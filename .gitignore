@@ -1,0 +1,5 @@
+# Root .gitignore
+backend/target/
+frontend/node_modules/
+frontend/dist/
+*.env
