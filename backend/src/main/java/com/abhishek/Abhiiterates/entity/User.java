@@ -1,6 +1,7 @@
 package com.abhishek.Abhiiterates.entity;
 
 import com.abhishek.Abhiiterates.enums.Role;
+import com.abhishek.Abhiiterates.enums.AuthProvider;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -33,6 +34,11 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private Role role = Role.USER;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private AuthProvider provider = AuthProvider.LOCAL;
 
     @Column(name = "avatar_url")
     private String avatarUrl;
