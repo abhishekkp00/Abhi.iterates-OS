@@ -1,23 +1,31 @@
-import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
+import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AppRoutes } from './routes/AppRoutes';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id.apps.googleusercontent.com';
 
 function App() {
-  const [status, setStatus] = useState('checking...')
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then(r => r.json())
-      .then(d => setStatus(d.message))
-      .catch(() => setStatus('Backend not reachable'))
-  }, [])
-
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-4">
-      <h1 className="text-3xl font-bold">Day 1 ✅</h1>
-      <p className="text-muted-foreground">Backend: <span className="text-green-600 font-medium">{status}</span></p>
-      <Button>Shadcn is working</Button>
-    </main>
-  )
+    <QueryClientProvider client={queryClient}>
+      <GoogleOAuthProvider clientId={googleClientId}>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </GoogleOAuthProvider>
+    </QueryClientProvider>
+  );
 }
 
-export default App
+export default App;
+
