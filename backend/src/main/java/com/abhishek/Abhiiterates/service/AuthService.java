@@ -34,7 +34,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    @Value("${GOOGLE_CLIENT_ID:dummy-client-id}")
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
 
     @Transactional
@@ -70,11 +70,11 @@ public class AuthService {
     public TokenResponse login(LoginRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-            );
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
             User user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + request.getEmail()));
+                    .orElseThrow(
+                            () -> new UsernameNotFoundException("User not found with email: " + request.getEmail()));
 
             String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name());
             String refreshToken = jwtService.generateRefreshToken(user.getEmail());
@@ -94,7 +94,7 @@ public class AuthService {
 
     public TokenResponse refreshToken(RefreshTokenRequest request) {
         String refreshToken = request.getRefreshToken();
-        
+
         if (jwtService.isTokenExpired(refreshToken)) {
             throw new UnauthorizedException("Refresh token is expired. Please login again.");
         }
@@ -130,10 +130,9 @@ public class AuthService {
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(),
-                    GsonFactory.getDefaultInstance()
-            )
-            .setAudience(Collections.singletonList(googleClientId))
-            .build();
+                    GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
 
             GoogleIdToken idToken = verifier.verify(request.getIdToken());
             if (idToken == null) {
@@ -152,7 +151,8 @@ public class AuthService {
                 user = User.builder()
                         .email(email)
                         .name(name != null ? name : "Google User")
-                        .password(passwordEncoder.encode(UUID.randomUUID().toString())) // Random password for OAuth2 users
+                        .password(passwordEncoder.encode(UUID.randomUUID().toString())) // Random password for OAuth2
+                                                                                        // users
                         .role(Role.USER)
                         .provider(AuthProvider.GOOGLE)
                         .avatarUrl(pictureUrl)
@@ -160,7 +160,8 @@ public class AuthService {
                         .build();
                 userRepository.save(user);
             } else {
-                // Existing user, update their provider to GOOGLE if it was local, or sync avatar
+                // Existing user, update their provider to GOOGLE if it was local, or sync
+                // avatar
                 if (user.getProvider() != AuthProvider.GOOGLE) {
                     user.setProvider(AuthProvider.GOOGLE);
                 }

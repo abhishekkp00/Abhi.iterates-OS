@@ -6,6 +6,7 @@ import { Login } from '../pages/Login';
 import { Register } from '../pages/Register';
 import { Dashboard } from '../pages/Dashboard';
 import { Unauthorized } from '../pages/Unauthorized';
+import { Resources } from '../pages/Resources';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
 export const AppRoutes: React.FC = () => {
@@ -25,7 +26,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           {/* Placeholder routes for future modules */}
           <Route path="/roadmaps" element={<div className="p-6 text-zinc-400 font-medium">Roadmap Generator Module - Coming Soon</div>} />
-          <Route path="/resources" element={<div className="p-6 text-zinc-400 font-medium">Resource Management Module - Coming Soon</div>} />
+          <Route path="/resources" element={<Resources />} />
           <Route path="/productivity" element={<div className="p-6 text-zinc-400 font-medium">Productivity Tracker Module - Coming Soon</div>} />
         </Route>
       </Route>

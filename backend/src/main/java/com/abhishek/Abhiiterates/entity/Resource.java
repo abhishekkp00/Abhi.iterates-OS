@@ -39,6 +39,10 @@ public class Resource {
     @Builder.Default
     private Boolean isProcessed = false;   // for PDF chunking later
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Double price = 0.0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
