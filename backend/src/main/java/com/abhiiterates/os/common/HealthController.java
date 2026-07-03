@@ -23,7 +23,7 @@ public class HealthController {
      */
     @GetMapping
     @Operation(summary = "Get system health status", description = "Returns a simple uptime check confirmation")
-    public ApiResponse<String> getHealth(HttpServletRequest request) {
+    public ApiResponse<Void> getHealth(HttpServletRequest request) {
         log.info("System health check triggered.");
         return ApiResponse.success("System is operational.", request.getRequestURI());
     }
