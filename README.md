@@ -1,73 +1,185 @@
-# React + TypeScript + Vite
+# AbhiIterates.OS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **The Operating System for College Students.**
 
-Currently, two official plugins are available:
+AbhiIterates.OS is an AI-powered academic workspace that consolidates every tool a college student needs — PDF reading, note organization, AI-powered study assistance, resource marketplace, and collaborative studying — into one cohesive platform.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Problem
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Students today use 8–12 applications to manage their academic life. Notes are scattered, PDFs are passive documents, AI tools don't understand personal study material, and purchased notes leak freely. Students lose hours daily switching contexts between applications.
 
-## Expanding the ESLint configuration
+## Solution
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+A single, production-grade academic OS that replaces:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Tool Replaced | Feature in AbhiIterates.OS |
+|---|---|
+| Google Drive | Library + Resource Management |
+| Notion | Notes + Productivity Dashboard |
+| ChatGPT | AI Workspace (context-aware) |
+| Adobe Acrobat | PDF Workspace |
+| Telegram Groups | Collaboration |
+| Gumroad / Payhip | Marketplace |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Client (React)                    │
+│              Vite · TypeScript · Tailwind            │
+└─────────────────────┬───────────────────────────────┘
+                      │ HTTPS / REST / WebSocket
+┌─────────────────────▼───────────────────────────────┐
+│               Backend (Spring Boot)                  │
+│     Modular Monolith · JWT · Spring Security         │
+│   auth · marketplace · library · ai · notification  │
+└──────┬──────────────┬──────────────────┬────────────┘
+       │              │                  │
+┌──────▼───┐  ┌───────▼──────┐  ┌───────▼──────┐
+│PostgreSQL│  │    Redis     │  │  AI Service  │
+│  (Neon)  │  │  (Sessions   │  │  (FastAPI +  │
+│          │  │   + Cache)   │  │  LangChain)  │
+└──────────┘  └──────────────┘  └──────────────┘
+                                        │
+                               ┌────────▼────────┐
+                               │ Supabase Storage │
+                               │ (MVP) / CF R2    │
+                               └─────────────────┘
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+**Architecture Pattern:** Modular Monolith → extractable to microservices
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+See [`docs/architecture.md`](docs/architecture.md) for full ADR.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS v4, shadcn/ui |
+| State | Zustand (global), TanStack Query (server) |
+| Forms | React Hook Form + Zod |
+| PDF | PDF.js |
+| Animations | Framer Motion |
+| Backend | Java 21, Spring Boot 3, Spring Security |
+| Auth | JWT + Refresh Tokens + OAuth2 (Google) |
+| ORM | Spring Data JPA + Hibernate |
+| AI Service | Python 3.12, FastAPI, LangChain, FAISS |
+| AI Models | Google Gemini / OpenAI GPT-4o |
+| Primary DB | PostgreSQL 16 (Neon) |
+| Cache | Redis (Upstash) |
+| Storage | Supabase Storage (MVP) → Cloudflare R2 (Production) |
+| Frontend Deploy | Vercel |
+| Backend Deploy | Railway |
+| AI Deploy | Railway |
+
+---
+
+## Project Structure
+
 ```
+abhiiterates-os/
+├── frontend/          # React application
+├── backend/           # Spring Boot application
+├── ai-service/        # FastAPI AI service
+├── docs/              # Architecture, design system, API docs
+└── .github/           # PR templates, workflows
+```
+
+---
+
+## Local Development Setup
+
+> Prerequisites: Node.js 20+, Java 21, Python 3.12, PostgreSQL 16, Redis
+
+### Clone
+
+```bash
+git clone https://github.com/your-username/abhiiterates-os.git
+cd abhiiterates-os
+```
+
+### Frontend
+
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+### Backend
+
+```bash
+cd backend
+cp .env.example .env
+./mvnw spring-boot:run
+```
+
+### AI Service
+
+```bash
+cd ai-service
+cp .env.example .env
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+---
+
+## Service Ports (Development)
+
+| Service | Port |
+|---|---|
+| Frontend | 3000 |
+| Backend | 8080 |
+| AI Service | 8000 |
+| PostgreSQL | 5432 |
+| Redis | 6379 |
+
+---
+
+## Git Workflow
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for commit standards and branching strategy.
+
+---
+
+## Roadmap
+
+| Phase | Timeline | Focus |
+|---|---|---|
+| MVP | Weeks 1–4 | Auth, Library, Marketplace, PDF Viewer, AI Chat |
+| Phase 2 | Weeks 5–8 | Ratings, Creator Dashboard, Flashcards, Analytics |
+| Phase 3 | Weeks 9–12 | Voice AI, Mobile App, Institutions, AI Tutor |
+
+See [`docs/mvp-scope.md`](docs/mvp-scope.md) for complete scope definition.
+
+---
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | Architecture decisions and reasoning |
+| [`docs/design-system.md`](docs/design-system.md) | Design tokens, typography, component rules |
+| [`docs/mvp-scope.md`](docs/mvp-scope.md) | MVP feature set, in/out of scope |
+| [`docs/api-conventions.md`](docs/api-conventions.md) | API naming, response format, error format |
+| [`docs/database-design.md`](docs/database-design.md) | ER diagram, schema definitions |
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE)
+
+---
+
+*Built with intention. Designed for scale. Engineered for students.*
