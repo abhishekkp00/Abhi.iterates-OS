@@ -51,7 +51,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <span className="pointer-events-none absolute right-3 text-muted-foreground">
+            <span className="absolute right-3 text-muted-foreground flex items-center justify-center">
               {rightIcon}
             </span>
           )}
