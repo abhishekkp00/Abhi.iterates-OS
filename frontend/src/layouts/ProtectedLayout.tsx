@@ -1,26 +1,33 @@
-import { Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useLocation } from 'react-router-dom'
+import { useAuthStore } from '@/store/auth.store'
 import { Sidebar } from '@/components/common/Sidebar'
 import { Navbar } from '@/components/common/Navbar'
+import { LoadingState } from '@/components/ui/feedback'
 import { pageVariants, pageTransition } from '@/lib/animations'
 
-/**
- * AuthenticatedLayout — wraps all protected pages.
- * Provides the sidebar + navbar shell with animated page transitions.
- */
-export function AuthenticatedLayout() {
+export function ProtectedLayout() {
+  const { isAuthenticated, isInitialized } = useAuthStore()
   const location = useLocation()
+
+  if (!isInitialized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <LoadingState label="Verifying session…" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    // Redirect to login, but keep the current location for redirect back
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar — fixed height, scroll independently */}
       <Sidebar />
-
-      {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <Navbar />
-
         <main className="flex-1 overflow-y-auto">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div

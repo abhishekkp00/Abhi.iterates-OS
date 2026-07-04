@@ -4,6 +4,7 @@ import { queryClient } from '@/lib/query-client'
 import { AppRouter } from '@/routes/router'
 import { useThemeStore } from '@/store/theme.store'
 import { useEffect } from 'react'
+import { SessionInitializer } from '@/components/common/SessionInitializer'
 
 /**
  * App — root provider wrapper.
@@ -30,6 +31,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeInitializer />
+      <SessionInitializer />
       <AppRouter />
       <Toaster
         position="bottom-right"
