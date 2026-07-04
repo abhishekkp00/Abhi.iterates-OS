@@ -7,12 +7,15 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.util.TimeZone;
 
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+
 /**
  * Main Entry Point for AbhiIterates.OS Spring Boot Application.
  *
  * Production best practice: Explicitly configure timezone and lifecycle markers.
  */
 @SpringBootApplication
+@EnableJpaAuditing
 @Slf4j
 public class OsApplication {
 
