@@ -1,52 +1,101 @@
 package com.abhiiterates.os.config;
 
+import com.abhiiterates.os.auth.CustomAccessDeniedHandler;
+import com.abhiiterates.os.auth.JwtAuthenticationEntryPoint;
+import com.abhiiterates.os.auth.JwtAuthenticationFilter;
+import com.abhiiterates.os.user.CustomUserDetailsService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Spring Security Configuration.
- * 
- * Day 4: Bootstrap security setup.
- * All endpoints are currently permitted. Real authentication will be added in Day 5 using JWT.
+ * Formulates the core security architecture, filter chains, mapping patterns, and authorization policies.
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity // Enables @PreAuthorize and @PostAuthorize support
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF since APIs are stateless (JWT-based)
-            .csrf(AbstractHttpConfigurer::disable)
-            
-            // Configure CORS
-            .cors(cors -> {})
-            
-            // Set stateless session policy
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
-            // Authorize requests
-            .authorizeHttpRequests(auth -> auth
-                // Allow public access to API docs and Swagger UI
-                .requestMatchers(
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui.html",
-                    "/api-docs/**"
-                ).permitAll()
-                // Allow public access to monitoring Actuator endpoints
-                .requestMatchers("/actuator/**").permitAll()
-                // Allow public access to base health endpoint
-                .requestMatchers("/api/v1/health").permitAll()
-                // permitAll for other endpoints on Day 4 to avoid blocking base setup verification
-                .anyRequest().permitAll()
-            );
+                // Disable CSRF since REST APIs are stateless
+                .csrf(AbstractHttpConfigurer::disable)
+                
+                // Configure CORS
+                .cors(cors -> {})
+                
+                // Handle unauthorized access points
+                .exceptionHandling(eh -> eh
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                        .accessDeniedHandler(customAccessDeniedHandler)
+                )
+                
+                // Enforce stateless session tracking
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                
+                // Authorize request pathways
+                .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/api-docs/**",
+                                "/actuator/**",
+                                "/api/v1/health"
+                        ).permitAll()
+                        // Public auth paths (register, login, refresh)
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Restrict Admin endpoints
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        // Require authentication for all other requests
+                        .anyRequest().authenticated()
+                )
+                
+                // Register custom JWT authentication filter before the username/password filter
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        // Enforce BCrypt password hashing with cost factor (strength) of 12
+        return new BCryptPasswordEncoder(12);
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(customUserDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 }
