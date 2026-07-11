@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useUploadAttachmentMutation, useDeleteAttachmentMutation } from '@/features/resources/hooks/useResources'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2 } from '@/lib/icons'
+import { Loader2, Paperclip, Upload, X } from '@/lib/icons'
 
 // ── Validation Schema using Zod ──────────────────────────────────────────────
 const resourceFormSchema = z.object({
@@ -38,14 +39,17 @@ const resourceFormSchema = z.object({
     .or(z.literal('')),
 })
 
+import type { Resource } from '@/types/resources'
+
 export type ResourceFormValues = z.infer<typeof resourceFormSchema>
 
 interface ResourceFormProps {
-  initialData?: Partial<ResourceFormValues>
-  onSubmit: (values: ResourceFormValues) => Promise<void>
+  initialData?: Partial<Resource>
+  onSubmit: (values: ResourceFormValues) => Promise<string | undefined>
   isLoading?: boolean
   submitLabel?: string
   onDirtyStateChange?: (isDirty: boolean) => void
+  onSuccess?: (id: string) => void
 }
 
 export function ResourceForm({
@@ -54,6 +58,7 @@ export function ResourceForm({
   isLoading = false,
   submitLabel = 'Save Resource',
   onDirtyStateChange,
+  onSuccess,
 }: ResourceFormProps) {
   const {
     register,
@@ -72,12 +77,56 @@ export function ResourceForm({
     },
   })
 
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [uploadProgresses, setUploadProgresses] = useState<{ fileName: string; percentage: number }[]>([])
+
+  const uploadAttachmentMutation = useUploadAttachmentMutation()
+  const deleteAttachmentMutation = useDeleteAttachmentMutation()
+
   useEffect(() => {
-    onDirtyStateChange?.(isDirty)
-  }, [isDirty, onDirtyStateChange])
+    onDirtyStateChange?.(isDirty || selectedFiles.length > 0)
+  }, [isDirty, selectedFiles, onDirtyStateChange])
+
+  const handleDeleteExistingAttachment = async (attachmentId: string) => {
+    if (window.confirm('Are you sure you want to remove this attachment?')) {
+      await deleteAttachmentMutation.mutateAsync({
+        attachmentId,
+        resourceId: initialData?.id || '',
+      })
+    }
+  }
+
+  const handleFormSubmit = async (values: ResourceFormValues) => {
+    try {
+      const resourceId = await onSubmit(values)
+      if (!resourceId) return
+
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          // Add to progresses state
+          setUploadProgresses(prev => [...prev, { fileName: file.name, percentage: 0 }])
+
+          await uploadAttachmentMutation.mutateAsync({
+            resourceId,
+            file,
+            onUploadProgress: (progressEvent) => {
+              const percentage = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1))
+              setUploadProgresses(prev =>
+                prev.map(p => p.fileName === file.name ? { ...p, percentage } : p)
+              )
+            }
+          })
+        }
+      }
+
+      onSuccess?.(resourceId)
+    } catch (err) {
+      console.error('Submission failed:', err)
+    }
+  }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 bg-card border border-border rounded-xl p-6 shadow-sm">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 bg-card border border-border rounded-xl p-6 shadow-sm">
       {/* Title Input */}
       <div className="space-y-1">
         <label htmlFor="title" className="text-xs font-semibold text-foreground">
@@ -200,6 +249,108 @@ export function ResourceForm({
           placeholder="e.g. midterm, math, study-guide"
           {...register('tags')}
         />
+      </div>
+
+      {/* File Attachments section */}
+      <div className="space-y-3 border-t border-border pt-5">
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Paperclip className="size-3.5" />
+          <span>Attachments</span>
+        </label>
+
+        {/* Existing attachments */}
+        {initialData?.attachments && initialData.attachments.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Existing Files</span>
+            <div className="grid grid-cols-1 gap-2">
+              {initialData.attachments.map((att) => (
+                <div key={att.id} className="flex items-center justify-between text-xs bg-muted/30 p-2.5 rounded-lg border border-border">
+                  <div className="flex items-center gap-2 truncate">
+                    <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-foreground truncate font-medium">{att.fileName}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">({(att.fileSize / 1024).toFixed(1)} KB)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteExistingAttachment(att.id)}
+                    className="text-destructive hover:underline font-medium text-[11px] shrink-0"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Selected files waiting to upload */}
+        {selectedFiles.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">New Files to Upload</span>
+            <div className="grid grid-cols-1 gap-2">
+              {selectedFiles.map((file, idx) => {
+                const progress = uploadProgresses.find(p => p.fileName === file.name)
+                return (
+                  <div key={idx} className="space-y-2 bg-muted/50 p-2.5 rounded-lg border border-border text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 truncate">
+                        <Paperclip className="size-3.5 text-primary shrink-0" />
+                        <span className="font-medium text-foreground truncate">{file.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">({(file.size / 1024).toFixed(1)} KB)</span>
+                      </div>
+                      {!progress && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== idx))}
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {progress && (
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                          <span>Uploading...</span>
+                          <span>{progress.percentage}%</span>
+                        </div>
+                        <div className="h-1 w-full bg-border rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-all duration-150"
+                            style={{ width: `${progress.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Drag and Drop Zone */}
+        <div
+          onClick={() => document.getElementById('attachments-input')?.click()}
+          className="flex flex-col items-center justify-center border border-dashed border-border hover:border-primary/50 rounded-xl p-5 bg-muted/10 hover:bg-muted/20 transition-all cursor-pointer space-y-1.5 text-center"
+        >
+          <input
+            id="attachments-input"
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) {
+                setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)])
+              }
+            }}
+          />
+          <Upload className="size-5 text-muted-foreground" />
+          <div>
+            <p className="text-xs font-semibold text-foreground">Click to upload files</p>
+            <p className="text-[10px] text-muted-foreground/80 mt-0.5">Supports PDF, slides, and files up to 50MB</p>
+          </div>
+        </div>
       </div>
 
       {/* Action Buttons */}

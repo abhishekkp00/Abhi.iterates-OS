@@ -1,5 +1,7 @@
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { api } from '@/services/api'
+import { toast } from 'sonner'
 import {
   ArrowLeft,
   Pencil,
@@ -65,6 +67,26 @@ export default function ResourceDetailPage() {
   async function handleArchive() {
     if (!id) return
     await archiveMutation.mutateAsync(id)
+  }
+
+  async function handleDownload(downloadUrl: string, fileName: string) {
+    try {
+      const response = await api.get(downloadUrl, {
+        responseType: 'blob',
+      })
+      const blob = new Blob([response.data], { type: (response.headers['content-type'] || 'application/octet-stream') as string })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', fileName)
+      document.body.appendChild(link)
+      link.click()
+      link.parentNode?.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      toast.success('Download started!')
+    } catch (err) {
+      toast.error('Failed to download file. Please try again.')
+    }
   }
 
   // ── Loading state ─────────────────────────────────────────────────────────
@@ -209,13 +231,13 @@ export default function ResourceDetailPage() {
                         </div>
                       </div>
 
-                      <a
-                        href={att.downloadUrl}
-                        download
-                        className="rounded border border-input bg-background p-2 text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground transition-colors"
+                      <button
+                        onClick={() => handleDownload(att.downloadUrl, att.fileName)}
+                        className="rounded border border-input bg-background p-2 text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+                        title="Download Attachment"
                       >
                         <Download className="size-4" />
-                      </a>
+                      </button>
                     </div>
                   ))}
                 </div>

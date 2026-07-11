@@ -3,18 +3,28 @@ import { motion } from 'framer-motion'
 import { ArrowLeft } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { ResourceForm, type ResourceFormValues } from '@/features/resources/components/ResourceForm'
+import { useCreateResourceMutation } from '@/features/resources/hooks/useResources'
 import { staggerParentVariants, staggerChildVariants } from '@/lib/animations'
-import { toast } from 'sonner'
 
 export default function ResourceCreatePage() {
   const navigate = useNavigate()
+  const createMutation = useCreateResourceMutation()
 
-  async function handleSubmit(values: ResourceFormValues) {
-    // Simulated api post request delay
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    console.log('Submitting new resource details:', values)
-    toast.success('Resource created successfully!')
-    navigate('/resources')
+  async function handleSubmit(values: ResourceFormValues): Promise<string | undefined> {
+    const data = await createMutation.mutateAsync({
+      title: values.title,
+      description: values.description,
+      category: values.category,
+      priority: values.priority,
+      status: values.status,
+      deadline: values.deadline ? new Date(values.deadline).toISOString() : undefined,
+      tags: values.tags,
+    })
+    return data.id
+  }
+
+  function handleSuccess(id: string) {
+    navigate(`/resources/${id}`)
   }
 
   return (
@@ -43,9 +53,8 @@ export default function ResourceCreatePage() {
           </div>
         </motion.div>
 
-        {/* Form Container */}
         <motion.div variants={staggerChildVariants}>
-          <ResourceForm onSubmit={handleSubmit} submitLabel="Create Resource" />
+          <ResourceForm onSubmit={handleSubmit} submitLabel="Create Resource" onSuccess={handleSuccess} />
         </motion.div>
       </motion.div>
     </div>

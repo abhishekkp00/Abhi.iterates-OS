@@ -1,5 +1,5 @@
 import { api } from '@/services/api'
-import type { Resource, ResourceCategory, ResourceStatus, ResourcePriority } from '@/types/resources'
+import type { Resource, ResourceCategory, ResourceStatus, ResourcePriority, ResourceAttachment } from '@/types/resources'
 
 export interface ResourceQueryParams {
   search?: string
@@ -102,5 +102,35 @@ export const resourcesApi = {
   archive: async (id: string): Promise<Resource> => {
     const response = await api.patch<ApiResponseEnvelope<Resource>>(`/resources/${id}/archive`)
     return response.data.data
+  },
+
+  /**
+   * Upload an attachment to a resource.
+   */
+  uploadAttachment: async (
+    resourceId: string,
+    file: File,
+    onUploadProgress?: (progressEvent: any) => void
+  ): Promise<ResourceAttachment> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post<ApiResponseEnvelope<ResourceAttachment>>(
+      `/resources/${resourceId}/attachments`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress,
+      }
+    )
+    return response.data.data
+  },
+
+  /**
+   * Delete an attachment.
+   */
+  deleteAttachment: async (attachmentId: string): Promise<void> => {
+    await api.delete<ApiResponseEnvelope<void>>(`/resources/attachments/${attachmentId}`)
   },
 }
