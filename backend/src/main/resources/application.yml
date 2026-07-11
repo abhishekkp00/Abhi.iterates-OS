@@ -1,6 +1,10 @@
 spring:
   profiles:
     active: dev
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
   jackson:
     date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
     time-zone: UTC
@@ -12,7 +16,7 @@ spring:
       max-request-size: 50MB
 
 server:
-  port: 8080
+  port: 8084
   error:
     include-message: always
 
@@ -31,4 +35,11 @@ management:
         include: health,info,metrics
   endpoint:
     health:
-      show-details: when_authorized
+      show-details: always
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      expiration-ms: ${JWT_EXPIRATION_MS:900000}          # 15 minutes
+      refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 days

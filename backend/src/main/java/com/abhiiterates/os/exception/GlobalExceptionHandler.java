@@ -57,6 +57,38 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle Spring Security BadCredentialsException.
+     * Returns 401 Unauthorized.
+     */
+    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBadCredentials(
+            org.springframework.security.authentication.BadCredentialsException ex, HttpServletRequest request) {
+        log.warn("Authentication failed: invalid credentials for path [{}]", request.getRequestURI());
+        ApiResponse<Void> response = ApiResponse.error(
+                "Invalid email or password. Please try again.", 
+                HttpStatus.UNAUTHORIZED.value(), 
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    /**
+     * Handle Spring Security AccessDeniedException.
+     * Returns 403 Forbidden.
+     */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(
+            org.springframework.security.access.AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied on path [{}]: {}", request.getRequestURI(), ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(
+                "Access denied: You do not have permission to access this resource.", 
+                HttpStatus.FORBIDDEN.value(), 
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    /**
      * Handle Resource Not Found Exceptions.
      * Returns 404 Not Found.
      */
