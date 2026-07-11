@@ -1,10 +1,22 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
+import { ResourceForm, type ResourceFormValues } from '@/features/resources/components/ResourceForm'
 import { staggerParentVariants, staggerChildVariants } from '@/lib/animations'
+import { toast } from 'sonner'
 
 export default function ResourceCreatePage() {
+  const navigate = useNavigate()
+
+  async function handleSubmit(values: ResourceFormValues) {
+    // Simulated api post request delay
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    console.log('Submitting new resource details:', values)
+    toast.success('Resource created successfully!')
+    navigate('/resources')
+  }
+
   return (
     <div className="page-container max-w-3xl">
       <motion.div
@@ -31,15 +43,9 @@ export default function ResourceCreatePage() {
           </div>
         </motion.div>
 
-        {/* Content area placeholder */}
-        <motion.div
-          variants={staggerChildVariants}
-          className="rounded-xl border border-dashed border-border bg-card p-12 text-center"
-        >
-          <p className="text-sm font-semibold text-foreground">Form Placeholder</p>
-          <p className="text-xs text-muted-foreground mt-2">
-            The full Resource Creation form with file uploads, tags, and validation will be implemented in Step 4.
-          </p>
+        {/* Form Container */}
+        <motion.div variants={staggerChildVariants}>
+          <ResourceForm onSubmit={handleSubmit} submitLabel="Create Resource" />
         </motion.div>
       </motion.div>
     </div>
