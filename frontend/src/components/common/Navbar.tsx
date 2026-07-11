@@ -6,7 +6,7 @@ import { useSidebarStore } from '@/store/sidebar.store'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Sun, Moon, Monitor, Bell, Search, ChevronDown, LogOut, Settings, Menu, User } from '@/lib/icons'
+import { Sun, Moon, Monitor, Bell, Search, ChevronDown, LogOut, Settings, Menu, User, Plus, FilePlus, ShoppingBag, Sparkles } from '@/lib/icons'
 import type { Theme } from '@/types'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -44,16 +44,29 @@ function ThemeToggle() {
 
 export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
   const [profileOpen, setProfileOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [actionsOpen, setActionsOpen] = useState(false)
+
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const notificationsRef = useRef<HTMLDivElement>(null)
+  const actionsRef = useRef<HTMLDivElement>(null)
+
   const user = useAuthStore((s) => s.user)
   const { setMobileOpen } = useSidebarStore()
   const { logout } = useAuth()
 
-  // Close dropdown on click outside
+  // Close dropdowns on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setProfileOpen(false)
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
+        setNotificationsOpen(false)
+      }
+      if (actionsRef.current && !actionsRef.current.contains(target)) {
+        setActionsOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -74,6 +87,12 @@ export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
 
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Guest User'
   const initials = user ? `${user.firstName} ${user.lastName}` : 'Guest'
+
+  const mockNotifications = [
+    { id: 1, title: 'Welcome to AbhiIterates.OS', desc: 'Glad to have you here! Explore the library.', time: 'Just now', unread: true },
+    { id: 2, title: 'Auth Complete', desc: 'Secure refresh token rotation is successfully active.', time: '2 hours ago', unread: true },
+    { id: 3, title: 'Verification Successful', desc: 'Your account is ready for business features.', time: '1 day ago', unread: false },
+  ]
 
   return (
     <header
@@ -114,22 +133,116 @@ export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
       </button>
 
       {/* Right actions */}
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex items-center gap-1.5">
+        
+        {/* Quick Actions Dropdown */}
+        <div className="relative" ref={actionsRef}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setActionsOpen((p) => !p)}
+            aria-expanded={actionsOpen}
+            aria-haspopup="true"
+            aria-label="Quick Actions"
+            title="Quick Actions"
+          >
+            <Plus className="size-4" />
+          </Button>
+
+          <AnimatePresence>
+            {actionsOpen && (
+              <motion.div
+                variants={scaleVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="absolute right-0 mt-1.5 w-48 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg z-50 origin-top-right"
+              >
+                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Quick Actions
+                </div>
+                <Link to="/library" onClick={() => setActionsOpen(false)}>
+                  <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-left hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <FilePlus className="size-3.5 text-muted-foreground" />
+                    <span>Upload PDF</span>
+                  </button>
+                </Link>
+                <Link to="/marketplace" onClick={() => setActionsOpen(false)}>
+                  <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-left hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <ShoppingBag className="size-3.5 text-muted-foreground" />
+                    <span>Browse Marketplace</span>
+                  </button>
+                </Link>
+                <Link to="/ai" onClick={() => setActionsOpen(false)}>
+                  <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-left hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <Sparkles className="size-3.5 text-muted-foreground" />
+                    <span>New AI Chat</span>
+                  </button>
+                </Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         <ThemeToggle />
 
-        {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Notifications"
-          className="relative"
-        >
-          <Bell className="size-4" />
-          <span
-            className="absolute right-1 top-1 size-1.5 rounded-full bg-primary"
-            aria-hidden="true"
-          />
-        </Button>
+        {/* Notifications Dropdown */}
+        <div className="relative" ref={notificationsRef}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setNotificationsOpen((p) => !p)}
+            aria-expanded={notificationsOpen}
+            aria-haspopup="true"
+            aria-label="Notifications"
+            className="relative"
+          >
+            <Bell className="size-4" />
+            <span
+              className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-primary"
+              aria-hidden="true"
+            />
+          </Button>
+
+          <AnimatePresence>
+            {notificationsOpen && (
+              <motion.div
+                variants={scaleVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="absolute right-0 mt-1.5 w-80 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg z-50 origin-top-right"
+              >
+                <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                  <span className="text-xs font-semibold">Notifications</span>
+                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    2 New
+                  </span>
+                </div>
+                <div className="max-h-64 overflow-y-auto p-1">
+                  {mockNotifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className={cn(
+                        'flex flex-col gap-0.5 rounded p-2 text-left text-xs transition-colors hover:bg-accent',
+                        n.unread && 'bg-accent/40'
+                      )}
+                    >
+                      <div className="flex items-center justify-between font-medium">
+                        <span className="truncate">{n.title}</span>
+                        {n.unread && (
+                          <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2">{n.desc}</p>
+                      <span className="text-[9px] text-muted-foreground/70 mt-1">{n.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
