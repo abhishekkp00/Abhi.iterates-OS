@@ -22,7 +22,11 @@ const SessionExpiredPage  = lazy(() => import('@/pages/auth/SessionExpiredPage')
 const DashboardPage   = lazy(() => import('@/pages/DashboardPage'))
 const LibraryPage     = lazy(() => import('@/pages/LibraryPage'))
 const MarketplacePage = lazy(() => import('@/pages/MarketplacePage'))
+const ResourcesLayout = lazy(() => import('@/layouts/ResourcesLayout'))
 const ResourcesPage   = lazy(() => import('@/pages/ResourcesPage'))
+const ResourceCreatePage = lazy(() => import('@/pages/ResourceCreatePage'))
+const ResourceDetailPage = lazy(() => import('@/pages/ResourceDetailPage'))
+const ResourceEditPage   = lazy(() => import('@/pages/ResourceEditPage'))
 const AIWorkspacePage = lazy(() => import('@/pages/AIWorkspacePage'))
 const ProfilePage     = lazy(() => import('@/pages/ProfilePage'))
 
@@ -112,7 +116,25 @@ const router = createBrowserRouter([
           },
           {
             path: '/resources',
-            element: <Suspense fallback={<PageLoader />}><ResourcesPage /></Suspense>,
+            element: <Suspense fallback={<PageLoader />}><ResourcesLayout /></Suspense>,
+            children: [
+              {
+                index: true,
+                element: <Suspense fallback={<PageLoader />}><ResourcesPage /></Suspense>,
+              },
+              {
+                path: 'new',
+                element: <Suspense fallback={<PageLoader />}><ResourceCreatePage /></Suspense>,
+              },
+              {
+                path: ':id',
+                element: <Suspense fallback={<PageLoader />}><ResourceDetailPage /></Suspense>,
+              },
+              {
+                path: ':id/edit',
+                element: <Suspense fallback={<PageLoader />}><ResourceEditPage /></Suspense>,
+              },
+            ],
           },
           {
             path: '/ai',

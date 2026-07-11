@@ -110,6 +110,8 @@ export const ROUTE_LABELS: Readonly<Record<string, string>> = {
   security:     'Security',
   notifications:'Notifications',
   appearance:   'Appearance',
+  new:          'Add Resource',
+  edit:         'Edit',
 } as const
 
 // ── Legacy flat arrays (kept for backward compatibility during migration) ──────
