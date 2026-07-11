@@ -71,7 +71,8 @@ export default function ResourceDetailPage() {
 
   async function handleDownload(downloadUrl: string, fileName: string) {
     try {
-      const response = await api.get(downloadUrl, {
+      const cleanUrl = downloadUrl.startsWith('/api/v1') ? downloadUrl.replace('/api/v1', '') : downloadUrl
+      const response = await api.get(cleanUrl, {
         responseType: 'blob',
       })
       const blob = new Blob([response.data], { type: (response.headers['content-type'] || 'application/octet-stream') as string })
