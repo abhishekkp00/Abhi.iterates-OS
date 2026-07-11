@@ -6,7 +6,7 @@ import { useSidebarStore } from '@/store/sidebar.store'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Sun, Moon, Monitor, Bell, Search, ChevronDown, LogOut, Settings, Menu } from '@/lib/icons'
+import { Sun, Moon, Monitor, Bell, Search, ChevronDown, LogOut, Settings, Menu, User } from '@/lib/icons'
 import type { Theme } from '@/types'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -151,6 +151,13 @@ export function Navbar() {
                 </div>
 
                 {/* Items */}
+                <Link to="/profile" onClick={() => setProfileOpen(false)}>
+                  <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-left hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <User className="size-3.5 text-muted-foreground" />
+                    <span>View profile</span>
+                  </button>
+                </Link>
+
                 <Link to="/settings" onClick={() => setProfileOpen(false)}>
                   <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-left hover:bg-accent hover:text-accent-foreground transition-colors">
                     <Settings className="size-3.5 text-muted-foreground" />

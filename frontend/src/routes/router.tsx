@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { ProtectedLayout } from '@/layouts/ProtectedLayout'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { GuestLayout } from '@/layouts/GuestLayout'
@@ -7,27 +7,36 @@ import { PublicLayout } from '@/layouts/PublicLayout'
 import { ErrorLayout } from '@/layouts/ErrorLayout'
 import { LoadingState } from '@/components/ui/feedback'
 
-// ── Public page ───────────────────────────────────────────────────────────────
-const LandingPage        = lazy(() => import('@/pages/LandingPage'))
+// ── Public ────────────────────────────────────────────────────────────────────
+const LandingPage = lazy(() => import('@/pages/LandingPage'))
 
-// ── Auth pages (guest-only) ───────────────────────────────────────────────────
-const LoginPage          = lazy(() => import('@/pages/auth/LoginPage'))
-const RegisterPage       = lazy(() => import('@/pages/auth/RegisterPage'))
-const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
-const ResetPasswordPage  = lazy(() => import('@/pages/auth/ResetPasswordPage'))
-const UnauthorizedPage   = lazy(() => import('@/pages/auth/UnauthorizedPage'))
-const SessionExpiredPage = lazy(() => import('@/pages/auth/SessionExpiredPage'))
+// ── Auth (guest-only) ─────────────────────────────────────────────────────────
+const LoginPage           = lazy(() => import('@/pages/auth/LoginPage'))
+const RegisterPage        = lazy(() => import('@/pages/auth/RegisterPage'))
+const ForgotPasswordPage  = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage   = lazy(() => import('@/pages/auth/ResetPasswordPage'))
+const UnauthorizedPage    = lazy(() => import('@/pages/auth/UnauthorizedPage'))
+const SessionExpiredPage  = lazy(() => import('@/pages/auth/SessionExpiredPage'))
 
-// ── Protected dashboard pages ─────────────────────────────────────────────────
+// ── Main dashboard pages ──────────────────────────────────────────────────────
 const DashboardPage   = lazy(() => import('@/pages/DashboardPage'))
 const LibraryPage     = lazy(() => import('@/pages/LibraryPage'))
 const MarketplacePage = lazy(() => import('@/pages/MarketplacePage'))
 const ResourcesPage   = lazy(() => import('@/pages/ResourcesPage'))
 const AIWorkspacePage = lazy(() => import('@/pages/AIWorkspacePage'))
-const SettingsPage    = lazy(() => import('@/pages/SettingsPage'))
+const ProfilePage     = lazy(() => import('@/pages/ProfilePage'))
 
-// Shared suspense fallback
-const PageLoader = () => <LoadingState label="Loading page…" />
+// ── Settings shell + sub-pages ────────────────────────────────────────────────
+// SettingsLayout is lazy so it's excluded from the initial bundle.
+// Each settings section is its own chunk — users only download what they open.
+const SettingsLayout        = lazy(() => import('@/layouts/SettingsLayout'))
+const ProfileSettings       = lazy(() => import('@/pages/settings/ProfileSettings'))
+const SecuritySettings      = lazy(() => import('@/pages/settings/SecuritySettings'))
+const NotificationsSettings = lazy(() => import('@/pages/settings/NotificationsSettings'))
+const AppearanceSettings    = lazy(() => import('@/pages/settings/AppearanceSettings'))
+
+// Shared suspense fallback — used across all lazy-loaded routes
+const PageLoader = () => <LoadingState label="Loading…" />
 
 const router = createBrowserRouter([
   // ── Public landing ─────────────────────────────────────────────────────────
@@ -35,12 +44,15 @@ const router = createBrowserRouter([
     element: <PublicLayout />,
     errorElement: <ErrorLayout />,
     children: [
-      { index: true, element: <Suspense fallback={<PageLoader />}><LandingPage /></Suspense> },
+      {
+        index: true,
+        element: <Suspense fallback={<PageLoader />}><LandingPage /></Suspense>,
+      },
     ],
   },
 
   // ── Guest-only auth routes ─────────────────────────────────────────────────
-  // GuestLayout redirects authenticated users to /dashboard.
+  // GuestLayout redirects authenticated users away to /dashboard.
   {
     element: <GuestLayout />,
     errorElement: <ErrorLayout />,
@@ -60,15 +72,19 @@ const router = createBrowserRouter([
   },
 
   // ── Authenticated routes ───────────────────────────────────────────────────
-  // Two-layer nesting:
-  //   ProtectedLayout  →  auth guard (redirects to /login if not authenticated)
-  //     DashboardLayout  →  visual shell (sidebar, navbar, content area)
-  //       Page components
   //
-  // Why two layers?
-  //   ProtectedLayout is a pure auth concern — no UI, easy to test in isolation.
-  //   DashboardLayout is a pure layout concern — no auth logic.
-  //   Future: admin routes can share ProtectedLayout but use a different layout.
+  // Layer 1 — ProtectedLayout: pure auth guard, no visual UI.
+  //           Redirects to /login if not authenticated.
+  //
+  // Layer 2 — DashboardLayout: visual application shell (sidebar, navbar).
+  //           Shared by all dashboard pages.
+  //
+  // Layer 3 — SettingsLayout: inner shell for /settings/* routes.
+  //           Has its own left-nav for settings categories.
+  //
+  // Why three layers?
+  //   Auth, layout, and domain concerns are each independently testable and swappable.
+  //   Future admin-only routes can reuse ProtectedLayout with a different layout shell.
   {
     element: <ProtectedLayout />,
     errorElement: <ErrorLayout />,
@@ -76,12 +92,73 @@ const router = createBrowserRouter([
       {
         element: <DashboardLayout />,
         children: [
-          { path: '/dashboard',   element: <Suspense fallback={<PageLoader />}><DashboardPage /></Suspense> },
-          { path: '/library',     element: <Suspense fallback={<PageLoader />}><LibraryPage /></Suspense> },
-          { path: '/marketplace', element: <Suspense fallback={<PageLoader />}><MarketplacePage /></Suspense> },
-          { path: '/resources',   element: <Suspense fallback={<PageLoader />}><ResourcesPage /></Suspense> },
-          { path: '/ai',          element: <Suspense fallback={<PageLoader />}><AIWorkspacePage /></Suspense> },
-          { path: '/settings',    element: <Suspense fallback={<PageLoader />}><SettingsPage /></Suspense> },
+
+          // Default protected route — redirect bare-path visitors to /dashboard
+          // This handles cases where users somehow land on an unmatched protected URL.
+          // Note: the root '/' is handled by PublicLayout (LandingPage), not here.
+
+          // ── Core pages ────────────────────────────────────────────────────
+          {
+            path: '/dashboard',
+            element: <Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>,
+          },
+          {
+            path: '/library',
+            element: <Suspense fallback={<PageLoader />}><LibraryPage /></Suspense>,
+          },
+          {
+            path: '/marketplace',
+            element: <Suspense fallback={<PageLoader />}><MarketplacePage /></Suspense>,
+          },
+          {
+            path: '/resources',
+            element: <Suspense fallback={<PageLoader />}><ResourcesPage /></Suspense>,
+          },
+          {
+            path: '/ai',
+            element: <Suspense fallback={<PageLoader />}><AIWorkspacePage /></Suspense>,
+          },
+
+          // ── Profile page ──────────────────────────────────────────────────
+          // /profile — public-facing profile card (distinct from /settings/profile)
+          {
+            path: '/profile',
+            element: <Suspense fallback={<PageLoader />}><ProfilePage /></Suspense>,
+          },
+
+          // ── Settings (nested routes) ──────────────────────────────────────
+          // SettingsLayout renders a left-nav + <Outlet />.
+          // The index redirect means /settings alone always shows /settings/profile.
+          {
+            path: '/settings',
+            element: <Suspense fallback={<PageLoader />}><SettingsLayout /></Suspense>,
+            children: [
+              {
+                index: true,
+                element: <Navigate to="/settings/profile" replace />,
+              },
+              {
+                path: 'profile',
+                element: <Suspense fallback={<PageLoader />}><ProfileSettings /></Suspense>,
+              },
+              {
+                path: 'security',
+                element: <Suspense fallback={<PageLoader />}><SecuritySettings /></Suspense>,
+              },
+              {
+                path: 'notifications',
+                element: <Suspense fallback={<PageLoader />}><NotificationsSettings /></Suspense>,
+              },
+              {
+                path: 'appearance',
+                element: <Suspense fallback={<PageLoader />}><AppearanceSettings /></Suspense>,
+              },
+              // Future settings sections — add new children here without router restructuring
+              // { path: 'billing',    element: ... },
+              // { path: 'api-keys',   element: ... },
+              // { path: 'integrations', element: ... },
+            ],
+          },
         ],
       },
     ],

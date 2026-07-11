@@ -51,7 +51,11 @@ export {
   LogIn,
   LogOut,
   Bell,
+  Bell as BellIcon,
+  Shield,
   ShieldAlert,
+  // Appearance / customization
+  Palette,
   // Content
   FileText,
   File,
