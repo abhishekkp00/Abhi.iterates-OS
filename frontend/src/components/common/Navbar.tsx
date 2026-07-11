@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useThemeStore } from '@/store/theme.store'
 import { useAuthStore } from '@/store/auth.store'
+import { useSidebarStore } from '@/store/sidebar.store'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Sun, Moon, Monitor, Bell, Search, ChevronDown, LogOut, Settings } from '@/lib/icons'
+import { Sun, Moon, Monitor, Bell, Search, ChevronDown, LogOut, Settings, Menu } from '@/lib/icons'
 import type { Theme } from '@/types'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -45,6 +46,7 @@ export function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const user = useAuthStore((s) => s.user)
+  const { setMobileOpen } = useSidebarStore()
   const { logout } = useAuth()
 
   // Close dropdown on click outside
@@ -68,6 +70,16 @@ export function Navbar() {
         'sticky top-0 z-20'
       )}
     >
+      {/* Mobile hamburger — only visible below md breakpoint */}
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="md:hidden shrink-0"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open navigation menu"
+      >
+        <Menu className="size-4" aria-hidden="true" />
+      </Button>
       {/* Global search placeholder */}
       <button
         className={cn(
