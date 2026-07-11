@@ -35,15 +35,84 @@ export const STORAGE_KEYS = {
   sidebarCollapsed: 'abhi_os_sidebar_collapsed',
 } as const
 
-// Navigation — sidebar items
-export const NAV_ITEMS = [
-  { id: 'dashboard',    label: 'Dashboard',   href: '/dashboard',   icon: 'LayoutDashboard' },
-  { id: 'library',      label: 'Library',      href: '/library',     icon: 'BookOpen'        },
-  { id: 'marketplace',  label: 'Marketplace',  href: '/marketplace', icon: 'ShoppingBag'     },
-  { id: 'resources',    label: 'Resources',    href: '/resources',   icon: 'FolderOpen'      },
-  { id: 'ai',           label: 'AI Workspace', href: '/ai',          icon: 'Sparkles'        },
+// ── Navigation types ──────────────────────────────────────────────────────────
+
+export type NavItem = {
+  readonly id: string
+  readonly label: string
+  readonly href: string
+  readonly icon: string
+  /** Optional: show a badge (e.g. notification count) */
+  readonly badge?: number
+  /** Optional: mark as coming soon — renders disabled with a "Soon" badge */
+  readonly soon?: boolean
+}
+
+export type NavGroup = {
+  readonly id: string
+  /** If null, no label is rendered above this group (used for the primary "Dashboard" item) */
+  readonly label: string | null
+  readonly items: readonly NavItem[]
+}
+
+// ── Navigation groups ─────────────────────────────────────────────────────────
+//
+// Structure:
+//   - null label  → no section header (used for top-level Overview group)
+//   - string label → rendered as a small uppercase section label in the sidebar
+//
+// Design rule: keep groups short (1–3 items). Long groups are harder to scan.
+// Navigation groups are the primary wayfinding tool — they must feel intentional.
+
+export const NAV_GROUPS: readonly NavGroup[] = [
+  {
+    id: 'overview',
+    label: null,
+    items: [
+      { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
+    ],
+  },
+  {
+    id: 'study',
+    label: 'Study',
+    items: [
+      { id: 'library',   label: 'Library',      href: '/library',   icon: 'BookOpen'  },
+      { id: 'resources', label: 'My Resources',  href: '/resources', icon: 'FolderOpen' },
+      { id: 'ai',        label: 'AI Workspace',  href: '/ai',        icon: 'Sparkles'  },
+    ],
+  },
+  {
+    id: 'discover',
+    label: 'Discover',
+    items: [
+      { id: 'marketplace', label: 'Marketplace', href: '/marketplace', icon: 'ShoppingBag' },
+    ],
+  },
 ] as const
 
-export const NAV_BOTTOM_ITEMS = [
+// Bottom items stay flat — they're persistent utility links, not grouped features.
+export const NAV_BOTTOM_ITEMS: readonly NavItem[] = [
   { id: 'settings', label: 'Settings', href: '/settings', icon: 'Settings' },
 ] as const
+
+// ── Breadcrumb route labels ───────────────────────────────────────────────────
+// Maps URL path segments → human-readable labels.
+// Used by the Breadcrumbs component to auto-generate crumbs from location.pathname.
+
+export const ROUTE_LABELS: Readonly<Record<string, string>> = {
+  dashboard:    'Dashboard',
+  library:      'Library',
+  marketplace:  'Marketplace',
+  resources:    'My Resources',
+  ai:           'AI Workspace',
+  settings:     'Settings',
+  profile:      'Profile',
+  security:     'Security',
+  notifications:'Notifications',
+  appearance:   'Appearance',
+} as const
+
+// ── Legacy flat arrays (kept for backward compatibility during migration) ──────
+// Sidebar.tsx now reads NAV_GROUPS directly.
+// These may be removed once all consumers are migrated.
+export const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items) as NavItem[]

@@ -42,7 +42,7 @@ function ThemeToggle() {
   )
 }
 
-export function Navbar() {
+export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
   const [profileOpen, setProfileOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const user = useAuthStore((s) => s.user)
@@ -59,6 +59,18 @@ export function Navbar() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Listen for global Cmd+K or Ctrl+K shortcut
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        onOpenCmd?.()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onOpenCmd])
 
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Guest User'
   const initials = user ? `${user.firstName} ${user.lastName}` : 'Guest'
@@ -82,6 +94,7 @@ export function Navbar() {
       </Button>
       {/* Global search placeholder */}
       <button
+        onClick={onOpenCmd}
         className={cn(
           'flex flex-1 max-w-sm items-center gap-2 rounded-md border border-input',
           'bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground',

@@ -2,14 +2,14 @@ import { NavLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useSidebarStore } from '@/store/sidebar.store'
-import { NAV_ITEMS, NAV_BOTTOM_ITEMS, APP_NAME } from '@/constants/app'
+import { NAV_GROUPS, NAV_BOTTOM_ITEMS, APP_NAME } from '@/constants/app'
+import type { NavItem } from '@/constants/app'
 import {
   LayoutDashboard, BookOpen, ShoppingBag, FolderOpen, Sparkles, Settings,
   PanelLeftClose, PanelLeftOpen, GraduationCap,
 } from '@/lib/icons'
 
-// ── Icon registry ────────────────────────────────────────────────────────────
-// Keeps the constants file free of React component imports.
+// ── Icon registry ─────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
   BookOpen,
@@ -19,11 +19,10 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
 }
 
-// ── NavItem ──────────────────────────────────────────────────────────────────
+// ── NavItem ───────────────────────────────────────────────────────────────────
 interface NavItemProps {
-  item: (typeof NAV_ITEMS)[number] | (typeof NAV_BOTTOM_ITEMS)[number]
+  item: NavItem
   isCollapsed: boolean
-  /** Called when the user clicks a nav link — used by MobileDrawer to close itself */
   onNavigate?: () => void
 }
 
@@ -34,22 +33,43 @@ export function NavItem({ item, isCollapsed, onNavigate }: NavItemProps) {
     <NavLink
       to={item.href}
       onClick={onNavigate}
+      aria-label={item.label}
       className={({ isActive }) =>
         cn(
+          // Base layout
           'group relative flex items-center gap-2.5 rounded-md px-2.5 py-2',
-          'text-sm font-medium transition-colors duration-100',
-          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+          'text-sm font-medium transition-all duration-100',
+          // Focus ring
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          // Active vs. inactive states
           isActive
-            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-            : 'text-sidebar-foreground/70',
+            ? [
+                // Active: stronger background + primary-colored text + left accent bar
+                'bg-sidebar-accent text-sidebar-accent-foreground',
+                // The left accent bar is rendered via the ::before pseudo-element below
+                'before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2',
+                'before:h-4 before:w-[3px] before:rounded-r-full before:bg-primary',
+              ]
+            : [
+                'text-sidebar-foreground/60',
+                'hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+              ],
           isCollapsed && 'justify-center px-2'
         )
       }
     >
-      {Icon && <Icon className="size-4 shrink-0" aria-hidden="true" />}
+      {/* Icon */}
+      {Icon && (
+        <Icon
+          className={cn(
+            'size-4 shrink-0 transition-colors',
+            // Icon is primary-colored when active, muted otherwise
+          )}
+          aria-hidden="true"
+        />
+      )}
 
-      {/* Label — animated in/out when sidebar collapses */}
+      {/* Label — animated in/out on collapse */}
       <AnimatePresence initial={false}>
         {!isCollapsed && (
           <motion.span
@@ -64,7 +84,21 @@ export function NavItem({ item, isCollapsed, onNavigate }: NavItemProps) {
         )}
       </AnimatePresence>
 
-      {/* Tooltip — only visible when sidebar is collapsed (icon-only mode) */}
+      {/* "Soon" badge */}
+      {item.soon && !isCollapsed && (
+        <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Soon
+        </span>
+      )}
+
+      {/* Numeric badge */}
+      {item.badge && item.badge > 0 && !isCollapsed && (
+        <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground min-w-[16px] text-center">
+          {item.badge > 99 ? '99+' : item.badge}
+        </span>
+      )}
+
+      {/* Tooltip — only in collapsed (icon-only) mode */}
       {isCollapsed && (
         <span
           role="tooltip"
@@ -76,14 +110,69 @@ export function NavItem({ item, isCollapsed, onNavigate }: NavItemProps) {
           )}
         >
           {item.label}
+          {item.soon && ' (Coming soon)'}
         </span>
       )}
     </NavLink>
   )
 }
 
-// ── SidebarContent ───────────────────────────────────────────────────────────
-// Extracted so MobileDrawer can render the same content without duplicating markup.
+// ── NavGroup ──────────────────────────────────────────────────────────────────
+interface NavGroupProps {
+  id: string
+  label: string | null
+  items: readonly NavItem[]
+  isCollapsed: boolean
+  onNavigate?: () => void
+}
+
+function NavGroup({ id, label, items, isCollapsed, onNavigate }: NavGroupProps) {
+  return (
+    <div role="group" aria-labelledby={label ? `nav-group-${id}` : undefined}>
+      {/* Group label — hidden when sidebar is collapsed */}
+      <AnimatePresence initial={false}>
+        {label && !isCollapsed && (
+          <motion.p
+            id={`nav-group-${id}`}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.15 }}
+            className={cn(
+              'overflow-hidden px-2.5 pt-4 pb-1',
+              'text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40',
+              'select-none'
+            )}
+          >
+            {label}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      {/* Divider when collapsed — shows group boundary without text */}
+      {isCollapsed && label && (
+        <div className="mx-2 my-2 h-px bg-sidebar-border" aria-hidden="true" />
+      )}
+
+      {/* Nav items */}
+      <div className="flex flex-col gap-0.5">
+        {items.map((item) => (
+          <NavItem
+            key={item.id}
+            item={item}
+            isCollapsed={isCollapsed}
+            onNavigate={onNavigate}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── SidebarContent ────────────────────────────────────────────────────────────
+// Shared between the desktop Sidebar and the MobileDrawer.
+// Accepts `onNavigate` so the mobile drawer can close itself after navigation.
+
 interface SidebarContentProps {
   isCollapsed: boolean
   onNavigate?: () => void
@@ -94,7 +183,7 @@ export function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps)
 
   return (
     <>
-      {/* Brand logo row */}
+      {/* ── Brand logo row ─────────────────────────────────────────────────── */}
       <div
         className={cn(
           'flex h-14 items-center border-b border-sidebar-border px-3',
@@ -110,36 +199,43 @@ export function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps)
 
         <AnimatePresence initial={false}>
           {!isCollapsed && (
-            <motion.span
+            <motion.div
               initial={{ opacity: 0, width: 0 }}
               animate={{ opacity: 1, width: 'auto' }}
               exit={{ opacity: 0, width: 0 }}
               transition={{ duration: 0.15 }}
-              className="overflow-hidden whitespace-nowrap text-sm font-semibold text-sidebar-foreground"
+              className="overflow-hidden"
             >
-              {APP_NAME}
-            </motion.span>
+              <span className="block whitespace-nowrap text-sm font-semibold text-sidebar-foreground leading-tight">
+                {APP_NAME}
+              </span>
+              <span className="block whitespace-nowrap text-[9px] text-sidebar-foreground/40 font-medium uppercase tracking-widest">
+                Student OS
+              </span>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Primary navigation */}
+      {/* ── Primary navigation (grouped) ───────────────────────────────────── */}
       <nav
-        className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pt-3"
+        className="flex flex-1 flex-col overflow-y-auto p-2 pt-2"
         aria-label="Primary navigation"
       >
-        {NAV_ITEMS.map((item) => (
-          <NavItem
-            key={item.id}
-            item={item}
+        {NAV_GROUPS.map((group) => (
+          <NavGroup
+            key={group.id}
+            id={group.id}
+            label={group.label}
+            items={group.items}
             isCollapsed={isCollapsed}
             onNavigate={onNavigate}
           />
         ))}
       </nav>
 
-      {/* Bottom navigation (Settings, etc.) */}
-      <div className="border-t border-sidebar-border p-2 pb-3">
+      {/* ── Bottom navigation ───────────────────────────────────────────────── */}
+      <div className="border-t border-sidebar-border p-2 pb-3 space-y-0.5">
         {NAV_BOTTOM_ITEMS.map((item) => (
           <NavItem
             key={item.id}
@@ -149,17 +245,15 @@ export function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps)
           />
         ))}
 
-        {/* Collapse toggle — only rendered inside the desktop sidebar.
-            The mobile drawer always shows expanded content so we only
-            show this button when not in mobile drawer mode (onNavigate not set). */}
+        {/* Collapse toggle — only shown in desktop sidebar context */}
         {!onNavigate && (
           <button
             onClick={toggle}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className={cn(
               'mt-1 flex w-full items-center gap-2.5 rounded-md px-2.5 py-2',
-              'text-sm text-sidebar-foreground/50 transition-colors',
-              'hover:bg-sidebar-accent hover:text-sidebar-foreground',
+              'text-sm text-sidebar-foreground/40 transition-colors',
+              'hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               isCollapsed && 'justify-center px-2'
             )}
@@ -179,13 +273,10 @@ export function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps)
   )
 }
 
-// ── Sidebar (desktop) ────────────────────────────────────────────────────────
+// ── Sidebar (desktop only) ────────────────────────────────────────────────────
 /**
- * Desktop-only persistent sidebar.
- * Hidden below the `md` breakpoint — MobileDrawer takes over on smaller screens.
- *
- * Width is animated between 56px (icon-only) and 220px (expanded).
- * `overflow-hidden` on the aside ensures no content leaks during animation.
+ * Desktop persistent sidebar — hidden below md breakpoint.
+ * Width animates between 56px (icon-only) and 220px (expanded).
  */
 export function Sidebar() {
   const { isCollapsed } = useSidebarStore()
@@ -195,7 +286,6 @@ export function Sidebar() {
       animate={{ width: isCollapsed ? 56 : 220 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
       className={cn(
-        // hidden on mobile — MobileDrawer handles small screens
         'hidden md:flex',
         'h-full flex-col border-r border-sidebar-border bg-sidebar',
         'overflow-hidden shrink-0'

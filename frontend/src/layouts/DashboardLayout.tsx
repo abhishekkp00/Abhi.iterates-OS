@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sidebar } from '@/components/common/Sidebar'
 import { MobileDrawer } from '@/components/common/MobileDrawer'
 import { Navbar } from '@/components/common/Navbar'
+import { Breadcrumbs } from '@/components/common/Breadcrumbs'
+import { CommandMenu } from '@/components/common/CommandMenu'
 import { pageVariants, pageTransition } from '@/lib/animations'
 
 /**
@@ -11,30 +14,19 @@ import { pageVariants, pageTransition } from '@/lib/animations'
  * Renders:
  *  - Desktop sidebar (hidden on mobile via `hidden md:flex`)
  *  - Mobile drawer (portal overlay, shown only on mobile)
- *  - Sticky top navbar (search, notifications, profile)
+ *  - Sticky top navbar (search, notifications, profile, hamburger)
+ *  - Breadcrumb bar (auto-generated from pathname, hidden on /dashboard)
  *  - Animated content area (page transitions via Framer Motion)
+ *  - CommandMenu (⌘K palette, controlled via cmdOpen state)
  *
- * Layout structure:
- *   <div> (flex-row, h-screen, overflow-hidden)
- *     <Sidebar />          ← desktop only, flex-shrink-0
- *     <MobileDrawer />     ← mobile only, fixed overlay
- *     <div> (flex-col, flex-1, overflow-hidden, min-w-0)
- *       <Navbar />         ← sticky h-14, z-20
- *       <main>             ← flex-1, overflow-y-auto
- *         <AnimatePresence>
- *           <motion.div key={pathname}>
- *             <Outlet />
- *
- * Why `min-w-0` on the right column?
- *   Without it, flex children don't shrink below their intrinsic size,
- *   causing horizontal overflow when the sidebar is visible.
- *
- * Why `overflow-hidden` on root?
- *   Prevents double scrollbars — sidebar and navbar stay fixed,
- *   only <main> scrolls independently.
+ * CommandMenu is owned here (not in Navbar) because:
+ *  - It's a layout-level concern — it can navigate anywhere in the app
+ *  - Navbar receives `onOpenCmd` prop to trigger it from the search bar
+ *  - This keeps Navbar free of navigation-related state
  */
 export function DashboardLayout() {
   const location = useLocation()
+  const [cmdOpen, setCmdOpen] = useState(false)
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -44,10 +36,20 @@ export function DashboardLayout() {
       {/* Mobile drawer — portal overlay, only renders on mobile */}
       <MobileDrawer />
 
-      {/* Right column: navbar + scrollable content */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Navbar />
+      {/* ⌘K Command palette — rendered at layout level so it overlays everything */}
+      <CommandMenu open={cmdOpen} onClose={() => setCmdOpen(false)} />
 
+      {/* Right column: navbar + breadcrumbs + scrollable content */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Top navbar — receives callback to open command palette */}
+        <Navbar onOpenCmd={() => setCmdOpen(true)} />
+
+        {/* Breadcrumbs — auto-generated, hidden on /dashboard */}
+        <div className="border-b border-border bg-background px-4 py-2 md:px-6">
+          <Breadcrumbs />
+        </div>
+
+        {/* Scrollable content area */}
         <main
           id="main-content"
           tabIndex={-1}
