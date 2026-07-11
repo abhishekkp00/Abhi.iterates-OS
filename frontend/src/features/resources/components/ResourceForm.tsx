@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -44,6 +45,7 @@ interface ResourceFormProps {
   onSubmit: (values: ResourceFormValues) => Promise<void>
   isLoading?: boolean
   submitLabel?: string
+  onDirtyStateChange?: (isDirty: boolean) => void
 }
 
 export function ResourceForm({
@@ -51,11 +53,12 @@ export function ResourceForm({
   onSubmit,
   isLoading = false,
   submitLabel = 'Save Resource',
+  onDirtyStateChange,
 }: ResourceFormProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ResourceFormValues>({
     resolver: zodResolver(resourceFormSchema),
     defaultValues: {
@@ -68,6 +71,10 @@ export function ResourceForm({
       tags: initialData?.tags ?? '',
     },
   })
+
+  useEffect(() => {
+    onDirtyStateChange?.(isDirty)
+  }, [isDirty, onDirtyStateChange])
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 bg-card border border-border rounded-xl p-6 shadow-sm">
