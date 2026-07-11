@@ -23,5 +23,6 @@ export interface Resource {
   createdAt: string // ISO date string
   updatedAt: string // ISO date string
   attachments: ResourceAttachment[]
+  tags?: string
   userId: string
 }
