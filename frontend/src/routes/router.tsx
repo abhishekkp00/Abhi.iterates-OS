@@ -36,7 +36,10 @@ const ResourceEditPage   = lazy(() => import('@/pages/ResourceEditPage'))
 const AIChatLayout = lazy(() => import('@/layouts/AIChatLayout').then(m => ({ default: m.AIChatLayout })))
 const AIPage        = lazy(() => import('@/pages/AIPage'))
 const AIChatPage    = lazy(() => import('@/pages/AIChatPage'))
+const AIToolsPage    = lazy(() => import('@/pages/AIToolsPage'))
+const AIHistoryPage  = lazy(() => import('@/pages/AIHistoryPage'))
 const ProfilePage     = lazy(() => import('@/pages/ProfilePage'))
+
 
 // ── Settings shell + sub-pages ────────────────────────────────────────────────
 // SettingsLayout is lazy so it's excluded from the initial bundle.
@@ -182,8 +185,17 @@ const router = createBrowserRouter([
                 path: 'chat/:conversationId',
                 element: <Suspense fallback={<PageLoader />}><AIChatPage /></Suspense>,
               },
+              {
+                path: 'tools',
+                element: <Suspense fallback={<PageLoader />}><AIToolsPage /></Suspense>,
+              },
+              {
+                path: 'history',
+                element: <Suspense fallback={<PageLoader />}><AIHistoryPage /></Suspense>,
+              },
             ],
           },
+
 
           // ── Profile page ──────────────────────────────────────────────────
           // /profile — public-facing profile card (distinct from /settings/profile)

@@ -1,5 +1,7 @@
 package com.abhiiterates.os.ai;
 
+import com.abhiiterates.os.ai.agent.ExecutionContext;
+import com.abhiiterates.os.ai.agent.ToolRegistry;
 import com.abhiiterates.os.ai.dto.*;
 import com.abhiiterates.os.exception.ResourceNotFoundException;
 import com.abhiiterates.os.user.User;
@@ -33,6 +35,7 @@ public class AiChatServiceImpl implements AiChatService {
     private final AiMessageRepository messageRepository;
     private final AiProperties aiProperties;
     private final ChatClient chatClient;
+    private final ToolRegistry toolRegistry;
 
     /** Virtual thread executor — won't block a carrier thread during LLM I/O */
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
@@ -57,6 +60,37 @@ public class AiChatServiceImpl implements AiChatService {
                         .name("message")
                         .data("{\"type\":\"conversationId\",\"content\":\"" + conversationId + "\"}"));
 
+                // Build ExecutionContext with tool callbacks
+                ExecutionContext context = ExecutionContext.builder()
+                        .user(user)
+                        .conversationId(conversationId)
+                        .listener(new ExecutionContext.ToolExecutionListener() {
+                            @Override
+                            public void onToolStarted(String toolName, String arguments) {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                            .name("message")
+                                            .data("{\"type\":\"tool_start\",\"name\":\"" + toolName + "\",\"arguments\":" + escapeJson(arguments) + "}"));
+                                } catch (IOException e) {
+                                    log.warn("Failed to send tool_start SSE event", e);
+                                }
+                            }
+
+                            @Override
+                            public void onToolCompleted(String toolName, String result) {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                            .name("message")
+                                            .data("{\"type\":\"tool_end\",\"name\":\"" + toolName + "\",\"result\":" + escapeJson(result) + "}"));
+                                } catch (IOException e) {
+                                    log.warn("Failed to send tool_end SSE event", e);
+                                }
+                            }
+                        })
+                        .build();
+
+                ToolRegistry.setContext(context);
+
                 // 3. Build Spring AI message history
                 List<org.springframework.ai.chat.messages.Message> history =
                         buildMessageHistory(conversation, request.message());
@@ -64,6 +98,7 @@ public class AiChatServiceImpl implements AiChatService {
                 // 4. Stream tokens from the LLM
                 chatClient.prompt()
                         .messages(history)
+                        .toolCallbacks(toolRegistry.getCallbacks())
                         .stream()
                         .chatResponse()
                         .doOnNext(chatResponse -> {
@@ -106,6 +141,7 @@ public class AiChatServiceImpl implements AiChatService {
                             } catch (IOException ignored) {}
                             emitter.completeWithError(err);
                         })
+                        .doFinally(signalType -> ToolRegistry.clearContext())
                         .blockLast(); // blocking inside virtual thread is safe
 
             } catch (Exception ex) {
@@ -135,19 +171,29 @@ public class AiChatServiceImpl implements AiChatService {
         List<org.springframework.ai.chat.messages.Message> history =
                 buildMessageHistory(conversation, request.message());
 
-        String responseContent = chatClient.prompt()
-                .messages(history)
-                .call()
-                .content();
-
-        AiMessage saved = saveMessages(conversation, request.message(), responseContent);
-
-        return MessageResponse.builder()
-                .id(saved.getId())
-                .role(MessageRole.ASSISTANT)
-                .content(responseContent)
-                .createdAt(saved.getCreatedAt())
+        ExecutionContext context = ExecutionContext.builder()
+                .user(user)
+                .conversationId(conversation.getId().toString())
                 .build();
+        ToolRegistry.setContext(context);
+        try {
+            String responseContent = chatClient.prompt()
+                    .messages(history)
+                    .toolCallbacks(toolRegistry.getCallbacks())
+                    .call()
+                    .content();
+
+            AiMessage saved = saveMessages(conversation, request.message(), responseContent);
+
+            return MessageResponse.builder()
+                    .id(saved.getId())
+                    .role(MessageRole.ASSISTANT)
+                    .content(responseContent)
+                    .createdAt(saved.getCreatedAt())
+                    .build();
+        } finally {
+            ToolRegistry.clearContext();
+        }
     }
 
     // ── Conversation CRUD ─────────────────────────────────────────────────────

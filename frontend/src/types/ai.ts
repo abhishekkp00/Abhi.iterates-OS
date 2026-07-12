@@ -12,6 +12,13 @@ export type StreamingStatus = 'idle' | 'streaming' | 'done' | 'error' | 'cancell
 
 // ── Individual message ──────────────────────────────────────────────────────
 
+export interface ToolExecution {
+  name: string
+  arguments: string
+  result?: string
+  status: 'running' | 'completed' | 'failed'
+}
+
 export interface ChatMessage {
   id: string
   role: MessageRole
@@ -24,6 +31,8 @@ export interface ChatMessage {
   isError?: boolean
   /** Token count returned by the backend (optional) */
   tokenCount?: number
+  /** Tool calling logs for the agent execution timeline */
+  toolExecutions?: ToolExecution[]
 }
 
 // ── Conversation (session) ──────────────────────────────────────────────────
@@ -105,6 +114,8 @@ export interface AIStore {
   setStreamingContent: (content: string) => void
   appendStreamingContent: (chunk: string) => void
   commitStreamingMessage: () => void
+  appendToolStartToLastMessage: (name: string, args: string) => void
+  updateToolEndInLastMessage: (name: string, result: string) => void
 
   toggleSidebar: () => void
 }
