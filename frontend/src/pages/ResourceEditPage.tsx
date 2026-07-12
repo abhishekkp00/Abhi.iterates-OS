@@ -43,8 +43,8 @@ export default function ResourceEditPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [isDirty, isSaving])
 
-  async function handleSubmit(values: ResourceFormValues) {
-    if (!id) return
+  async function handleSubmit(values: ResourceFormValues): Promise<string | undefined> {
+    if (!id) return undefined
     try {
       setIsSaving(true)
       // Save updates to API
@@ -60,13 +60,15 @@ export default function ResourceEditPage() {
           tags: values.tags,
         },
       })
-      
-      // Navigate to details page
-      navigate(`/resources/${id}`)
+      return id
     } catch (err) {
       setIsSaving(false)
-      // Toast notification is handled by the mutation itself
+      throw err
     }
+  }
+
+  function handleSuccess(savedId: string) {
+    navigate(`/resources/${savedId}`)
   }
 
   // ── Loading state ─────────────────────────────────────────────────────────
@@ -138,6 +140,7 @@ export default function ResourceEditPage() {
             isLoading={updateMutation.isPending}
             submitLabel="Save Changes"
             onDirtyStateChange={setIsDirty}
+            onSuccess={handleSuccess}
           />
         </motion.div>
       </motion.div>

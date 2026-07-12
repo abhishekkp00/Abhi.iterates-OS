@@ -194,3 +194,15 @@
     @apply mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-6;
   }
 }
+
+/* ── AI Chat Animations ──────────────────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30%            { transform: translateY(-6px); }
+}
+

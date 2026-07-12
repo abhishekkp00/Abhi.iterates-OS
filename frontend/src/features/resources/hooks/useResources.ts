@@ -121,3 +121,38 @@ export function useArchiveResourceMutation() {
     },
   })
 }
+
+export function useUploadAttachmentMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      resourceId,
+      file,
+      onUploadProgress,
+    }: {
+      resourceId: string
+      file: File
+      onUploadProgress?: (progressEvent: any) => void
+    }) => resourcesApi.uploadAttachment(resourceId, file, onUploadProgress),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['resource', variables.resourceId] })
+    },
+  })
+}
+
+export function useDeleteAttachmentMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ attachmentId }: { attachmentId: string; resourceId: string }) =>
+      resourcesApi.deleteAttachment(attachmentId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['resource', variables.resourceId] })
+      toast.success('Attachment removed successfully!')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to remove attachment.')
+    },
+  })
+}
