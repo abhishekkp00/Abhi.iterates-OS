@@ -14,6 +14,16 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:sk-placeholder}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: ${OPENAI_MODEL:gpt-4o-mini}
+          temperature: ${OPENAI_TEMPERATURE:0.7}
+          max-tokens: ${OPENAI_MAX_TOKENS:2048}
+
 
 server:
   port: 8084
@@ -43,3 +53,17 @@ app:
       secret: ${JWT_SECRET}
       expiration-ms: ${JWT_EXPIRATION_MS:900000}          # 15 minutes
       refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 days
+
+# ── AI Module App Config ──────────────────────────────────────────────────────
+ai:
+  system-prompt: |
+    You are an intelligent AI assistant embedded in AbhiIterates.OS — a productivity
+    operating system built exclusively for students. Your role is to help students with:
+    - Study planning and time management
+    - Concept explanations across all subjects
+    - Assignment and project guidance
+    - Marketplace advice for campus buying/selling
+    - Career and academic advice
+    Be concise, supportive, and academically accurate. Format responses using Markdown
+    where helpful (lists, code blocks, headers). Never provide harmful or off-topic content.
+

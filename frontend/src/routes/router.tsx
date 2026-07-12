@@ -21,13 +21,21 @@ const SessionExpiredPage  = lazy(() => import('@/pages/auth/SessionExpiredPage')
 // ── Main dashboard pages ──────────────────────────────────────────────────────
 const DashboardPage   = lazy(() => import('@/pages/DashboardPage'))
 const LibraryPage     = lazy(() => import('@/pages/LibraryPage'))
-const MarketplacePage = lazy(() => import('@/pages/MarketplacePage'))
+const MarketplaceLayout = lazy(() => import('@/layouts/MarketplaceLayout'))
+const MarketplaceHomePage = lazy(() => import('@/pages/MarketplaceHomePage'))
+const MarketplaceCreatePage = lazy(() => import('@/pages/MarketplaceCreatePage'))
+const MarketplaceDetailPage = lazy(() => import('@/pages/MarketplaceDetailPage'))
+const MarketplaceEditPage = lazy(() => import('@/pages/MarketplaceEditPage'))
+const MyListingsPage = lazy(() => import('@/pages/MyListingsPage'))
+const FavoritesPage = lazy(() => import('@/pages/FavoritesPage'))
 const ResourcesLayout = lazy(() => import('@/layouts/ResourcesLayout'))
 const ResourcesPage   = lazy(() => import('@/pages/ResourcesPage'))
 const ResourceCreatePage = lazy(() => import('@/pages/ResourceCreatePage'))
 const ResourceDetailPage = lazy(() => import('@/pages/ResourceDetailPage'))
 const ResourceEditPage   = lazy(() => import('@/pages/ResourceEditPage'))
-const AIWorkspacePage = lazy(() => import('@/pages/AIWorkspacePage'))
+const AIChatLayout = lazy(() => import('@/layouts/AIChatLayout').then(m => ({ default: m.AIChatLayout })))
+const AIPage        = lazy(() => import('@/pages/AIPage'))
+const AIChatPage    = lazy(() => import('@/pages/AIChatPage'))
 const ProfilePage     = lazy(() => import('@/pages/ProfilePage'))
 
 // ── Settings shell + sub-pages ────────────────────────────────────────────────
@@ -112,7 +120,33 @@ const router = createBrowserRouter([
           },
           {
             path: '/marketplace',
-            element: <Suspense fallback={<PageLoader />}><MarketplacePage /></Suspense>,
+            element: <Suspense fallback={<PageLoader />}><MarketplaceLayout /></Suspense>,
+            children: [
+              {
+                index: true,
+                element: <Suspense fallback={<PageLoader />}><MarketplaceHomePage /></Suspense>,
+              },
+              {
+                path: 'new',
+                element: <Suspense fallback={<PageLoader />}><MarketplaceCreatePage /></Suspense>,
+              },
+              {
+                path: ':id',
+                element: <Suspense fallback={<PageLoader />}><MarketplaceDetailPage /></Suspense>,
+              },
+              {
+                path: ':id/edit',
+                element: <Suspense fallback={<PageLoader />}><MarketplaceEditPage /></Suspense>,
+              },
+            ]
+          },
+          {
+            path: '/my-listings',
+            element: <Suspense fallback={<PageLoader />}><MyListingsPage /></Suspense>,
+          },
+          {
+            path: '/favorites',
+            element: <Suspense fallback={<PageLoader />}><FavoritesPage /></Suspense>,
           },
           {
             path: '/resources',
@@ -138,7 +172,17 @@ const router = createBrowserRouter([
           },
           {
             path: '/ai',
-            element: <Suspense fallback={<PageLoader />}><AIWorkspacePage /></Suspense>,
+            element: <Suspense fallback={<PageLoader />}><AIChatLayout /></Suspense>,
+            children: [
+              {
+                index: true,
+                element: <Suspense fallback={<PageLoader />}><AIPage /></Suspense>,
+              },
+              {
+                path: 'chat/:conversationId',
+                element: <Suspense fallback={<PageLoader />}><AIChatPage /></Suspense>,
+              },
+            ],
           },
 
           // ── Profile page ──────────────────────────────────────────────────
