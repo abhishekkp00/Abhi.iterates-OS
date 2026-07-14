@@ -70,6 +70,16 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     label: null,
     items: [
       { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
+      { id: 'analytics', label: 'Analytics', href: '/analytics', icon: 'BarChart3' },
+    ],
+  },
+  {
+    id: 'productivity',
+    label: 'Productivity',
+    items: [
+      { id: 'planner',   label: 'Planner',   href: '/planner',   icon: 'Clock' },
+      { id: 'tasks',     label: 'Tasks',     href: '/tasks',     icon: 'List' },
+      { id: 'calendar',  label: 'Calendar',  href: '/calendar',  icon: 'Calendar' },
     ],
   },
   {
@@ -112,6 +122,16 @@ export const ROUTE_LABELS: Readonly<Record<string, string>> = {
   appearance:   'Appearance',
   new:          'Add Resource',
   edit:         'Edit',
+  planner:      'Planner',
+  tasks:        'Tasks',
+  calendar:     'Calendar',
+  day:          'Day',
+  week:         'Week',
+  month:        'Month',
+  activity:     'Activity Log',
+  comments:     'Comments & Discussions',
+  analytics:    'Analytics',
+  productivity: 'Productivity Metrics',
 } as const
 
 // ── Legacy flat arrays (kept for backward compatibility during migration) ──────

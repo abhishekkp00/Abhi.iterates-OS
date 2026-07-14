@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { ProtectedLayout } from '@/layouts/ProtectedLayout'
+import { AdminGuard } from '@/components/common/AdminGuard'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { GuestLayout } from '@/layouts/GuestLayout'
 import { PublicLayout } from '@/layouts/PublicLayout'
@@ -40,6 +41,19 @@ const AIToolsPage    = lazy(() => import('@/pages/AIToolsPage'))
 const AIHistoryPage  = lazy(() => import('@/pages/AIHistoryPage'))
 const ProfilePage     = lazy(() => import('@/pages/ProfilePage'))
 
+// ── Productivity Hub ─────────────────────────────────────────────────────────
+const PlannerPage       = lazy(() => import('@/pages/PlannerPage'))
+const TasksPage         = lazy(() => import('@/pages/TasksPage'))
+const CalendarLayout    = lazy(() => import('@/layouts/CalendarLayout'))
+const CalendarDayPage   = lazy(() => import('@/pages/CalendarDayPage'))
+const CalendarWeekPage  = lazy(() => import('@/pages/CalendarWeekPage'))
+const CalendarMonthPage = lazy(() => import('@/pages/CalendarMonthPage'))
+
+
+// ── Real-Time Collaboration & Notifications ─────────────────────────────────
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
+const ActivityPage      = lazy(() => import('@/pages/ActivityPage'))
+const CommentsPage      = lazy(() => import('@/pages/CommentsPage'))
 
 // ── Settings shell + sub-pages ────────────────────────────────────────────────
 // SettingsLayout is lazy so it's excluded from the initial bundle.
@@ -49,6 +63,24 @@ const ProfileSettings       = lazy(() => import('@/pages/settings/ProfileSetting
 const SecuritySettings      = lazy(() => import('@/pages/settings/SecuritySettings'))
 const NotificationsSettings = lazy(() => import('@/pages/settings/NotificationsSettings'))
 const AppearanceSettings    = lazy(() => import('@/pages/settings/AppearanceSettings'))
+
+// ── Analytics ────────────────────────────────────────────────────────────────
+const AnalyticsDashboard     = lazy(() => import('@/pages/analytics/AnalyticsDashboard'))
+const ProductivityAnalytics  = lazy(() => import('@/pages/analytics/ProductivityAnalytics'))
+const AiAnalytics            = lazy(() => import('@/pages/analytics/AiAnalytics'))
+const ResourceAnalytics      = lazy(() => import('@/pages/analytics/ResourceAnalytics'))
+const MarketplaceAnalytics   = lazy(() => import('@/pages/analytics/MarketplaceAnalytics'))
+const AdminAnalytics         = lazy(() => import('@/pages/admin/AdminAnalytics'))
+
+// ── Admin Portal ─────────────────────────────────────────────────────────────
+const AdminLayout     = lazy(() => import('@/layouts/AdminLayout'))
+const AdminDashboard  = lazy(() => import('@/pages/admin/AdminDashboard'))
+const AdminUsers      = lazy(() => import('@/pages/admin/AdminUsers'))
+const AdminResources  = lazy(() => import('@/pages/admin/AdminResources'))
+const AdminMarketplace = lazy(() => import('@/pages/admin/AdminMarketplace'))
+const AdminAi         = lazy(() => import('@/pages/admin/AdminAi'))
+const AdminSettings   = lazy(() => import('@/pages/admin/AdminSettings'))
+const AdminAudit      = lazy(() => import('@/pages/admin/AdminAudit'))
 
 // Shared suspense fallback — used across all lazy-loaded routes
 const PageLoader = () => <LoadingState label="Loading…" />
@@ -195,7 +227,73 @@ const router = createBrowserRouter([
               },
             ],
           },
+          {
+            path: '/planner',
+            element: <Suspense fallback={<PageLoader />}><PlannerPage /></Suspense>,
+          },
+          {
+            path: '/tasks',
+            element: <Suspense fallback={<PageLoader />}><TasksPage /></Suspense>,
+          },
+          {
+            path: '/calendar',
+            element: <Suspense fallback={<PageLoader />}><CalendarLayout /></Suspense>,
+            children: [
+              {
+                index: true,
+                element: <Navigate to="/calendar/month" replace />,
+              },
+              {
+                path: 'day',
+                element: <Suspense fallback={<PageLoader />}><CalendarDayPage /></Suspense>,
+              },
+              {
+                path: 'week',
+                element: <Suspense fallback={<PageLoader />}><CalendarWeekPage /></Suspense>,
+              },
+              {
+                path: 'month',
+                element: <Suspense fallback={<PageLoader />}><CalendarMonthPage /></Suspense>,
+              },
+            ],
+          },
 
+
+          // ── Analytics ──────────────────────────────────────────────────────
+          {
+            path: '/analytics',
+            element: <Suspense fallback={<PageLoader />}><AnalyticsDashboard /></Suspense>,
+          },
+          {
+            path: '/analytics/productivity',
+            element: <Suspense fallback={<PageLoader />}><ProductivityAnalytics /></Suspense>,
+          },
+          {
+            path: '/analytics/ai',
+            element: <Suspense fallback={<PageLoader />}><AiAnalytics /></Suspense>,
+          },
+          {
+            path: '/analytics/resources',
+            element: <Suspense fallback={<PageLoader />}><ResourceAnalytics /></Suspense>,
+          },
+          {
+            path: '/analytics/marketplace',
+            element: <Suspense fallback={<PageLoader />}><MarketplaceAnalytics /></Suspense>,
+          },
+
+          // ── Real-Time Collaboration & Notifications ───────────────────────
+          {
+            path: '/notifications',
+            element: <Suspense fallback={<PageLoader />}><NotificationsPage /></Suspense>,
+          },
+          {
+            path: '/activity',
+            element: <Suspense fallback={<PageLoader />}><ActivityPage /></Suspense>,
+          },
+          {
+            path: '/comments',
+            element: <Suspense fallback={<PageLoader />}><CommentsPage /></Suspense>,
+          },
 
           // ── Profile page ──────────────────────────────────────────────────
           // /profile — public-facing profile card (distinct from /settings/profile)
@@ -235,6 +333,25 @@ const router = createBrowserRouter([
               // { path: 'billing',    element: ... },
               // { path: 'api-keys',   element: ... },
               // { path: 'integrations', element: ... },
+            ],
+          },
+        ],
+      },
+      // ── Admin Pages (Guarded by AdminGuard) ──
+      {
+        element: <AdminGuard />,
+        children: [
+          {
+            element: <Suspense fallback={<PageLoader />}><AdminLayout /></Suspense>,
+            children: [
+              { path: '/admin', element: <Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense> },
+              { path: '/admin/users', element: <Suspense fallback={<PageLoader />}><AdminUsers /></Suspense> },
+              { path: '/admin/resources', element: <Suspense fallback={<PageLoader />}><AdminResources /></Suspense> },
+              { path: '/admin/marketplace', element: <Suspense fallback={<PageLoader />}><AdminMarketplace /></Suspense> },
+              { path: '/admin/ai', element: <Suspense fallback={<PageLoader />}><AdminAi /></Suspense> },
+              { path: '/admin/settings', element: <Suspense fallback={<PageLoader />}><AdminSettings /></Suspense> },
+              { path: '/admin/audit', element: <Suspense fallback={<PageLoader />}><AdminAudit /></Suspense> },
+              { path: '/admin/analytics', element: <Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense> },
             ],
           },
         ],

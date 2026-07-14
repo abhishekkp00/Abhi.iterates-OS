@@ -6,7 +6,7 @@ import { NAV_GROUPS, NAV_BOTTOM_ITEMS, APP_NAME } from '@/constants/app'
 import type { NavItem } from '@/constants/app'
 import {
   LayoutDashboard, BookOpen, ShoppingBag, FolderOpen, Sparkles, Settings,
-  PanelLeftClose, PanelLeftOpen, GraduationCap,
+  PanelLeftClose, PanelLeftOpen, GraduationCap, Calendar, Clock, List,
 } from '@/lib/icons'
 
 // ── Icon registry ─────────────────────────────────────────────────────────────
@@ -17,6 +17,9 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   FolderOpen,
   Sparkles,
   Settings,
+  Calendar,
+  Clock,
+  List,
 }
 
 // ── NavItem ───────────────────────────────────────────────────────────────────
