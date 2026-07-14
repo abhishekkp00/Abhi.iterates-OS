@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Bot, User, Copy, RotateCcw, Check } from '@/lib/icons'
 import type { ChatMessage } from '@/types/ai'
 import { StreamingCursor } from './StreamingCursor'
+import { ToolTimeline } from './ToolTimeline'
 
 interface MessageBubbleProps {
   message: ChatMessage
@@ -49,6 +50,10 @@ export function MessageBubble({ message, isLast, onRegenerate }: MessageBubblePr
       )}
 
       <div className={`flex flex-col gap-1 max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
+        {!isUser && message.toolExecutions && message.toolExecutions.length > 0 && (
+          <ToolTimeline executions={message.toolExecutions} />
+        )}
+
         {/* Bubble */}
         <div
           className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${

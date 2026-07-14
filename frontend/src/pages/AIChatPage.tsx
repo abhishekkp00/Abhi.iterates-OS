@@ -34,6 +34,8 @@ export default function AIChatPage() {
   const setStreamingContent = useAIStore((s) => s.setStreamingContent)
   const updateConversationInList = useAIStore((s) => s.updateConversationInList)
   const prependConversation = useAIStore((s) => s.prependConversation)
+  const appendToolStartToLastMessage = useAIStore((s) => s.appendToolStartToLastMessage)
+  const updateToolEndInLastMessage = useAIStore((s) => s.updateToolEndInLastMessage)
 
   const [isLoading, setIsLoading] = useState(false)
 
@@ -140,6 +142,8 @@ export default function AIChatPage() {
               updateConversationInList(id, { updatedAt: now })
             }
           },
+          onToolStart: (name, args) => appendToolStartToLastMessage(name, args),
+          onToolEnd: (name, result) => updateToolEndInLastMessage(name, result),
           onDone: () => {
             commitStreamingMessage()
             cancelStreamRef.current = null
@@ -165,6 +169,8 @@ export default function AIChatPage() {
       setStreamingContent,
       prependConversation,
       updateConversationInList,
+      appendToolStartToLastMessage,
+      updateToolEndInLastMessage,
     ]
   )
 

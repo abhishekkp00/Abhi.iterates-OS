@@ -25,4 +25,6 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
             @Param("statuses") Collection<ResourceStatus> statuses,
             Pageable pageable
     );
+
+    java.util.List<Resource> findByUser(User user);
 }

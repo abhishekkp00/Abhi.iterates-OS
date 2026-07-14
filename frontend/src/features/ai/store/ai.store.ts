@@ -113,7 +113,7 @@ export const useAIStore = create<AIStore>()(
           }
         }),
 
-      commitStreamingMessage: () =>
+       commitStreamingMessage: () =>
         set((state) => {
           const activeConversation = state.activeConversation
           if (!activeConversation) return { streamingContent: '', streamingStatus: 'done' as StreamingStatus }
@@ -132,6 +132,59 @@ export const useAIStore = create<AIStore>()(
             streamingContent: '',
             streamingStatus: 'done' as StreamingStatus,
             activeConversation: { ...activeConversation, messages },
+          }
+        }),
+
+      appendToolStartToLastMessage: (toolName: string, args: string) =>
+        set((state) => {
+          if (!state.activeConversation) return state
+          const messages = [...state.activeConversation.messages]
+          const lastIdx = messages.length - 1
+          if (lastIdx < 0) return state
+          const lastMsg = messages[lastIdx]!
+          const toolExecutions = lastMsg.toolExecutions ? [...lastMsg.toolExecutions] : []
+          
+          toolExecutions.push({
+            name: toolName,
+            arguments: args,
+            status: 'running'
+          })
+          
+          messages[lastIdx] = {
+            ...lastMsg,
+            toolExecutions
+          }
+          return {
+            activeConversation: { ...state.activeConversation, messages }
+          }
+        }),
+
+      updateToolEndInLastMessage: (toolName: string, result: string) =>
+        set((state) => {
+          if (!state.activeConversation) return state
+          const messages = [...state.activeConversation.messages]
+          const lastIdx = messages.length - 1
+          if (lastIdx < 0) return state
+          const lastMsg = messages[lastIdx]!
+          if (!lastMsg.toolExecutions) return state
+          
+          const toolExecutions = lastMsg.toolExecutions.map((t) => {
+            if (t.name === toolName && t.status === 'running') {
+              return {
+                ...t,
+                result,
+                status: 'completed' as const
+              }
+            }
+            return t
+          })
+          
+          messages[lastIdx] = {
+            ...lastMsg,
+            toolExecutions
+          }
+          return {
+            activeConversation: { ...state.activeConversation, messages }
           }
         }),
 

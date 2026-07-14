@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 public class ResourceServiceImpl implements ResourceService {
 
     private final ResourceRepository resourceRepository;
+    private final com.abhiiterates.os.notification.service.NotificationService notificationService;
 
     @Override
     public Page<ResourceResponse> findAllWithFilters(
@@ -61,6 +62,19 @@ public class ResourceServiceImpl implements ResourceService {
                 .build();
 
         Resource saved = resourceRepository.save(resource);
+        
+        try {
+            notificationService.createNotification(
+                    user,
+                    com.abhiiterates.os.notification.domain.NotificationType.RESOURCE_SHARED,
+                    "New resource uploaded: \"" + saved.getTitle() + "\"",
+                    "/resources/" + saved.getId(),
+                    saved.getId()
+            );
+        } catch (Exception ex) {
+            // Resilient
+        }
+
         return mapToResponse(saved);
     }
 

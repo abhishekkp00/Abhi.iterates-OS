@@ -64,6 +64,8 @@ export const aiApi = {
 export interface StreamCallbacks {
   onToken: (chunk: string) => void
   onConversationId: (id: string) => void
+  onToolStart?: (name: string, args: string) => void
+  onToolEnd?: (name: string, result: string) => void
   onDone: () => void
   onError: (err: Error) => void
 }
@@ -127,13 +129,20 @@ export function streamChat(
 
           try {
             const parsed = JSON.parse(data) as {
-              type: 'token' | 'conversationId' | 'done' | 'error'
+              type: 'token' | 'conversationId' | 'done' | 'error' | 'tool_start' | 'tool_end'
               content?: string
+              name?: string
+              arguments?: string
+              result?: string
             }
             if (parsed.type === 'token' && parsed.content) {
               callbacks.onToken(parsed.content)
             } else if (parsed.type === 'conversationId' && parsed.content) {
               callbacks.onConversationId(parsed.content)
+            } else if (parsed.type === 'tool_start' && parsed.name && parsed.arguments) {
+              callbacks.onToolStart?.(parsed.name, parsed.arguments)
+            } else if (parsed.type === 'tool_end' && parsed.name && parsed.result) {
+              callbacks.onToolEnd?.(parsed.name, parsed.result)
             } else if (parsed.type === 'done') {
               callbacks.onDone()
               return
