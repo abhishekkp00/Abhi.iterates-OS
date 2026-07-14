@@ -37,10 +37,10 @@ export default function ResourceCreatePage() {
       >
         {/* Header with Back button */}
         <motion.div variants={staggerChildVariants} className="space-y-4">
-          <Link to="/resources">
-            <Button variant="ghost" size="sm" className="gap-1.5 -ml-3">
+          <Link to="/library">
+            <Button variant="ghost" size="sm" className="gap-1.5 -ml-3 cursor-pointer">
               <ArrowLeft className="size-4" />
-              <span>Back to Resources</span>
+              <span>Back to Library</span>
             </Button>
           </Link>
           <div>

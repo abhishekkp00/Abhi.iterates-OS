@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { api } from '@/services/api'
@@ -14,6 +15,7 @@ import {
   File,
   Bookmark,
   MessageSquare,
+  Eye,
 } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import {
@@ -48,6 +50,8 @@ const STATUS_BADGES: Record<string, string> = {
 export default function ResourceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewName, setPreviewName] = useState<string>('')
 
   // Query detail hook
   const { data: resource, isLoading, isError, error } = useResourceDetailQuery(id)
@@ -87,6 +91,22 @@ export default function ResourceDetailPage() {
       toast.success('Download started!')
     } catch (err) {
       toast.error('Failed to download file. Please try again.')
+    }
+  }
+
+  const handlePreviewFile = async (downloadUrl: string, fileName: string) => {
+    try {
+      const cleanUrl = downloadUrl.startsWith('/api/v1') ? downloadUrl.replace('/api/v1', '') : downloadUrl
+      const response = await api.get(cleanUrl, {
+        responseType: 'blob',
+      })
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      setPreviewUrl(url)
+      setPreviewName(fileName)
+      toast.success('Loading PDF preview...')
+    } catch (err) {
+      toast.error('Could not generate preview for this document.')
     }
   }
 
@@ -134,7 +154,7 @@ export default function ResourceDetailPage() {
   const isOverdue = hasDeadline && new Date(resource.deadline!) < new Date() && resource.status !== 'ARCHIVED'
 
   return (
-    <div className="page-container max-w-5xl">
+    <div className="page-container max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       <motion.div
         variants={staggerParentVariants}
         initial="initial"
@@ -147,10 +167,10 @@ export default function ResourceDetailPage() {
           className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5"
         >
           <div className="space-y-2">
-            <Link to="/resources">
-              <Button variant="ghost" size="sm" className="gap-1.5 -ml-3">
+            <Link to="/library">
+              <Button variant="ghost" size="sm" className="gap-1.5 -ml-3 cursor-pointer">
                 <ArrowLeft className="size-4" />
-                <span>Back to Resources</span>
+                <span>Back to Library</span>
               </Button>
             </Link>
             <h1 className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">
@@ -163,7 +183,7 @@ export default function ResourceDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-muted-foreground hover:text-foreground"
+                className="gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer"
                 onClick={handleArchive}
                 disabled={archiveMutation.isPending}
               >
@@ -172,7 +192,7 @@ export default function ResourceDetailPage() {
               </Button>
             )}
             <Link to={`/resources/${resource.id}/edit`}>
-              <Button variant="outline" size="sm" className="gap-1.5">
+              <Button variant="outline" size="sm" className="gap-1.5 cursor-pointer">
                 <Pencil className="size-4" />
                 <span>Edit Details</span>
               </Button>
@@ -180,7 +200,7 @@ export default function ResourceDetailPage() {
             <Button
               variant="destructive"
               size="sm"
-              className="gap-1.5"
+              className="gap-1.5 cursor-pointer"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >
@@ -194,6 +214,30 @@ export default function ResourceDetailPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Main Content Details (Left Column) */}
           <motion.div variants={staggerChildVariants} className="lg:col-span-2 space-y-6">
+            {/* PDF Viewer Embed if previewUrl is active */}
+            {previewUrl && (
+              <div className="rounded-xl border border-border bg-card p-4 shadow-md space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold text-foreground truncate max-w-[80%]">
+                    Preview: {previewName}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setPreviewUrl(null)}
+                    className="h-7 text-[10px] cursor-pointer text-muted-foreground hover:text-foreground"
+                  >
+                    Close Preview
+                  </Button>
+                </div>
+                <iframe
+                  src={previewUrl}
+                  title="PDF Document Preview"
+                  className="w-full h-[550px] rounded-lg border border-border/80 bg-background"
+                />
+              </div>
+            )}
+
             {/* Description Card */}
             <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-1.5 text-muted-foreground border-b border-border pb-3">
@@ -213,34 +257,48 @@ export default function ResourceDetailPage() {
               </div>
               {resource.attachments && resource.attachments.length > 0 ? (
                 <div className="divide-y divide-border">
-                  {resource.attachments.map((att) => (
-                    <div
-                      key={att.id}
-                      className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="rounded bg-muted p-2 text-muted-foreground">
-                          <File className="size-5" />
+                  {resource.attachments.map((att) => {
+                    const isPdf = att.fileName.toLowerCase().endsWith('.pdf') || att.contentType === 'application/pdf'
+                    return (
+                      <div
+                        key={att.id}
+                        className="flex items-center justify-between py-3 first:pt-0 last:pb-0 gap-4"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="rounded bg-muted p-2 text-muted-foreground shrink-0">
+                            <File className="size-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {att.fileName}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {(att.fileSize / 1024).toFixed(1)} KB • {att.contentType ?? 'Unknown'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground line-clamp-1">
-                            {att.fileName}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {(att.fileSize / 1024).toFixed(1)} KB • {att.contentType ?? 'Unknown'}
-                          </p>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isPdf && (
+                            <button
+                              onClick={() => handlePreviewFile(att.downloadUrl, att.fileName)}
+                              className="rounded border border-input bg-background p-2 text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+                              title="Preview Document"
+                            >
+                              <Eye className="size-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDownload(att.downloadUrl, att.fileName)}
+                            className="rounded border border-input bg-background p-2 text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+                            title="Download Attachment"
+                          >
+                            <Download className="size-4" />
+                          </button>
                         </div>
                       </div>
-
-                      <button
-                        onClick={() => handleDownload(att.downloadUrl, att.fileName)}
-                        className="rounded border border-input bg-background p-2 text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
-                        title="Download Attachment"
-                      >
-                        <Download className="size-4" />
-                      </button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="py-6 text-center">
