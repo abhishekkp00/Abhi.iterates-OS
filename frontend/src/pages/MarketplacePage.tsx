@@ -189,7 +189,7 @@ export default function MarketplacePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {storeItems.map((item: StoreResourceItem) => {
-                const isUnlocked = item.isPurchased && !item.isExpired
+                const isUnlocked = (item.isPurchased || myPurchases.some((p) => p.id === item.id)) && !item.isExpired
 
                 return (
                   <motion.div
