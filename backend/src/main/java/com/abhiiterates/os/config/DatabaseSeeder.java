@@ -3,6 +3,7 @@ package com.abhiiterates.os.config;
 import com.abhiiterates.os.auth.RefreshTokenRepository;
 import com.abhiiterates.os.auth.UserSessionRepository;
 import com.abhiiterates.os.user.*;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -30,6 +31,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserSessionRepository userSessionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EntityManager entityManager;
     private final com.abhiiterates.os.marketplace.store.StoreResourceRepository storeResourceRepository;
 
     @Override
@@ -62,10 +64,10 @@ public class DatabaseSeeder implements CommandLineRunner {
         Role superAdminRole = getOrCreateRole("ROLE_SUPER_ADMIN", "System owner role", adminPerms);
 
         // 3. Seed Primary Admin Credentials (abhishekforcollege@gmail.com)
-        seedAdminUser(adminRole, superAdminRole);
+        User adminUser = seedAdminUser(adminRole, superAdminRole);
 
-        // 4. Purge All Non-Admin Student Logins (deleting tokens and sessions first)
-        cleanupStudentLogins();
+        // 4. Purge All Non-Admin Student Logins (reassigning resources first)
+        cleanupStudentLogins(adminUser);
 
         // 5. Seed Initial Store Resources for Student Marketplace
         seedStoreResources();
@@ -73,39 +75,36 @@ public class DatabaseSeeder implements CommandLineRunner {
         log.info("Database seeding and user cleanup successfully completed.");
     }
 
-    private void seedAdminUser(Role adminRole, Role superAdminRole) {
+    private User seedAdminUser(Role adminRole, Role superAdminRole) {
         String adminEmail = "abhishekforcollege@gmail.com";
         Set<Role> roles = new HashSet<>();
         if (adminRole != null) roles.add(adminRole);
         if (superAdminRole != null) roles.add(superAdminRole);
 
-        userRepository.findByEmail(adminEmail).ifPresentOrElse(
-                user -> {
-                    user.setPasswordHash(passwordEncoder.encode("Abhishek.1410@2004"));
-                    user.setRoles(roles);
-                    user.setActive(true);
-                    user.setEmailVerified(true);
-                    userRepository.save(user);
-                    log.info("Admin user '{}' verified and updated.", adminEmail);
-                },
-                () -> {
-                    User adminUser = User.builder()
-                            .email(adminEmail)
-                            .username("abhishek")
-                            .passwordHash(passwordEncoder.encode("Abhishek.1410@2004"))
-                            .firstName("Abhishek")
-                            .lastName("Admin")
-                            .roles(roles)
-                            .active(true)
-                            .emailVerified(true)
-                            .build();
-                    userRepository.save(adminUser);
-                    log.info("Seeded primary admin user: {}", adminEmail);
-                }
-        );
+        return userRepository.findByEmail(adminEmail).map(user -> {
+            user.setPasswordHash(passwordEncoder.encode("Abhishek.1410@2004"));
+            user.setRoles(roles);
+            user.setActive(true);
+            user.setEmailVerified(true);
+            log.info("Admin user '{}' verified and updated.", adminEmail);
+            return userRepository.save(user);
+        }).orElseGet(() -> {
+            User adminUser = User.builder()
+                    .email(adminEmail)
+                    .username("abhishek")
+                    .passwordHash(passwordEncoder.encode("Abhishek.1410@2004"))
+                    .firstName("Abhishek")
+                    .lastName("Admin")
+                    .roles(roles)
+                    .active(true)
+                    .emailVerified(true)
+                    .build();
+            log.info("Seeded primary admin user: {}", adminEmail);
+            return userRepository.save(adminUser);
+        });
     }
 
-    private void cleanupStudentLogins() {
+    private void cleanupStudentLogins(User adminUser) {
         String adminEmail = "abhishekforcollege@gmail.com";
         List<User> nonAdminUsers = userRepository.findAll().stream()
                 .filter(u -> !adminEmail.equalsIgnoreCase(u.getEmail()))
@@ -114,9 +113,43 @@ public class DatabaseSeeder implements CommandLineRunner {
         if (!nonAdminUsers.isEmpty()) {
             log.info("Purging {} non-admin student logins from database...", nonAdminUsers.size());
             for (User student : nonAdminUsers) {
-                log.info("Deleting dependent refresh tokens & sessions for student user: {}", student.getEmail());
+                log.info("Reassigning resources and deleting dependent records for user: {}", student.getEmail());
+
+                // 1. Reassign academic resources to primary admin
+                try {
+                    entityManager.createQuery("UPDATE Resource r SET r.user = :adminUser WHERE r.user = :student")
+                            .setParameter("adminUser", adminUser)
+                            .setParameter("student", student)
+                            .executeUpdate();
+                } catch (Exception e) {
+                    log.warn("Resource re-assignment skipped: {}", e.getMessage());
+                }
+
+                // 2. Reassign marketplace listings to primary admin
+                try {
+                    entityManager.createQuery("UPDATE MarketplaceListing m SET m.seller = :adminUser WHERE m.seller = :student")
+                            .setParameter("adminUser", adminUser)
+                            .setParameter("student", student)
+                            .executeUpdate();
+                } catch (Exception e) {
+                    log.warn("MarketplaceListing re-assignment skipped: {}", e.getMessage());
+                }
+
+                // 3. Reassign AI conversations to primary admin
+                try {
+                    entityManager.createQuery("UPDATE AiConversation c SET c.user = :adminUser WHERE c.user = :student")
+                            .setParameter("adminUser", adminUser)
+                            .setParameter("student", student)
+                            .executeUpdate();
+                } catch (Exception e) {
+                    log.warn("AiConversation re-assignment skipped: {}", e.getMessage());
+                }
+
+                // 4. Delete dependent tokens & sessions
                 refreshTokenRepository.deleteByUser(student);
                 userSessionRepository.deleteByUser(student);
+
+                // 5. Delete non-admin user
                 userRepository.delete(student);
             }
         }
