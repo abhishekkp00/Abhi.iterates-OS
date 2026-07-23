@@ -173,7 +173,7 @@ export default function ResourcesPage() {
 
   // ── Apply Sorting ─────────────────────────────────────────────────────────
   const sortedResources = [...filteredResources].sort((a, b) => {
-    let factor = sortOrder === 'asc' ? 1 : -1
+    const factor = sortOrder === 'asc' ? 1 : -1
     
     if (sortBy === 'title') {
       return a.title.localeCompare(b.title) * factor

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { api } from '@/services/api'
@@ -50,8 +49,7 @@ const STATUS_BADGES: Record<string, string> = {
 export default function ResourceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [previewName, setPreviewName] = useState<string>('')
+
 
   // Query detail hook
   const { data: resource, isLoading, isError, error } = useResourceDetailQuery(id)
@@ -89,25 +87,13 @@ export default function ResourceDetailPage() {
       link.parentNode?.removeChild(link)
       window.URL.revokeObjectURL(url)
       toast.success('Download started!')
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to download file. Please try again.')
     }
   }
 
-  const handlePreviewFile = async (downloadUrl: string, fileName: string) => {
-    try {
-      const cleanUrl = downloadUrl.startsWith('/api/v1') ? downloadUrl.replace('/api/v1', '') : downloadUrl
-      const response = await api.get(cleanUrl, {
-        responseType: 'blob',
-      })
-      const blob = new Blob([response.data], { type: 'application/pdf' })
-      const url = window.URL.createObjectURL(blob)
-      setPreviewUrl(url)
-      setPreviewName(fileName)
-      toast.success('Loading PDF preview...')
-    } catch (err) {
-      toast.error('Could not generate preview for this document.')
-    }
+  const handlePreviewFile = (downloadUrl: string, fileName: string) => {
+    navigate(`/resources/study/${id}?file=${encodeURIComponent(fileName)}&url=${encodeURIComponent(downloadUrl)}`)
   }
 
   // ── Loading state ─────────────────────────────────────────────────────────
@@ -215,28 +201,7 @@ export default function ResourceDetailPage() {
           {/* Main Content Details (Left Column) */}
           <motion.div variants={staggerChildVariants} className="lg:col-span-2 space-y-6">
             {/* PDF Viewer Embed if previewUrl is active */}
-            {previewUrl && (
-              <div className="rounded-xl border border-border bg-card p-4 shadow-md space-y-3">
-                <div className="flex items-center justify-between border-b border-border pb-2">
-                  <span className="text-xs font-bold text-foreground truncate max-w-[80%]">
-                    Preview: {previewName}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => setPreviewUrl(null)}
-                    className="h-7 text-[10px] cursor-pointer text-muted-foreground hover:text-foreground"
-                  >
-                    Close Preview
-                  </Button>
-                </div>
-                <iframe
-                  src={previewUrl}
-                  title="PDF Document Preview"
-                  className="w-full h-[550px] rounded-lg border border-border/80 bg-background"
-                />
-              </div>
-            )}
+
 
             {/* Description Card */}
             <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
