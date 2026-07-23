@@ -264,6 +264,17 @@ export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
                   </Link>
                 )}
 
+                <button
+                  onClick={() => {
+                    setProfileOpen(false)
+                    window.dispatchEvent(new Event('open-onboarding-tour'))
+                  }}
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-left text-primary hover:bg-primary/10 transition-colors font-medium"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>Take Feature Tour</span>
+                </button>
+
                 <div className="border-t border-border my-1" />
 
                 {/* Logout */}
