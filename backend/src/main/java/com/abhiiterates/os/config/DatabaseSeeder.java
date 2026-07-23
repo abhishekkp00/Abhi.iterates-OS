@@ -4,15 +4,18 @@ import com.abhiiterates.os.user.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Database Seeder.
- * Bootstraps initial roles and permissions in PostgreSQL on application startup.
+ * Bootstraps initial roles, permissions, primary admin account, and purges non-admin student logins.
  */
 @Component
 @RequiredArgsConstructor
@@ -21,11 +24,14 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final com.abhiiterates.os.marketplace.store.StoreResourceRepository storeResourceRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
-        log.info("Checking database roles and permissions seeding...");
+        log.info("Checking database roles, permissions, admin account, and user cleanup...");
 
         // 1. Seed Permissions
         Permission readPermission = getOrCreatePermission("READ_RESOURCE", "Allows reading academic resources");
@@ -34,35 +40,81 @@ public class DatabaseSeeder implements CommandLineRunner {
         Permission adminAccess = getOrCreatePermission("ADMIN_ACCESS", "Allows access to administrative dashboards");
 
         // 2. Seed Roles
-        // ROLE_USER
         Set<Permission> userPerms = new HashSet<>();
         userPerms.add(readPermission);
         getOrCreateRole("ROLE_USER", "Standard student user role", userPerms);
 
-        // ROLE_CREATOR
         Set<Permission> creatorPerms = new HashSet<>();
         creatorPerms.add(readPermission);
         creatorPerms.add(writePermission);
         getOrCreateRole("ROLE_CREATOR", "Student content creator role", creatorPerms);
 
-        // ROLE_ADMIN
         Set<Permission> adminPerms = new HashSet<>();
         adminPerms.add(readPermission);
         adminPerms.add(writePermission);
         adminPerms.add(deletePermission);
         adminPerms.add(adminAccess);
-        getOrCreateRole("ROLE_ADMIN", "System administrator role", adminPerms);
+        Role adminRole = getOrCreateRole("ROLE_ADMIN", "System administrator role", adminPerms);
+        Role superAdminRole = getOrCreateRole("ROLE_SUPER_ADMIN", "System owner role", adminPerms);
 
-        // ROLE_SUPER_ADMIN
-        getOrCreateRole("ROLE_SUPER_ADMIN", "System owner role", adminPerms);
+        // 3. Seed Primary Admin Credentials (abhishekforcollege@gmail.com)
+        seedAdminUser(adminRole, superAdminRole);
 
-        // 3. Seed Initial Store Resources for Student Marketplace
+        // 4. Purge All Non-Admin Student Logins (keep only admin credentials)
+        cleanupStudentLogins();
+
+        // 5. Seed Initial Store Resources for Student Marketplace
         seedStoreResources();
 
-        log.info("Database seeding successfully completed.");
+        log.info("Database seeding and user cleanup successfully completed.");
     }
 
-    private final com.abhiiterates.os.marketplace.store.StoreResourceRepository storeResourceRepository;
+    private void seedAdminUser(Role adminRole, Role superAdminRole) {
+        String adminEmail = "abhishekforcollege@gmail.com";
+        Set<Role> roles = new HashSet<>();
+        if (adminRole != null) roles.add(adminRole);
+        if (superAdminRole != null) roles.add(superAdminRole);
+
+        userRepository.findByEmail(adminEmail).ifPresentOrElse(
+                user -> {
+                    user.setPasswordHash(passwordEncoder.encode("Abhishek.1410@2004"));
+                    user.setRoles(roles);
+                    user.setActive(true);
+                    user.setEmailVerified(true);
+                    userRepository.save(user);
+                    log.info("Admin user '{}' verified and updated.", adminEmail);
+                },
+                () -> {
+                    User adminUser = User.builder()
+                            .email(adminEmail)
+                            .username("abhishek")
+                            .passwordHash(passwordEncoder.encode("Abhishek.1410@2004"))
+                            .firstName("Abhishek")
+                            .lastName("Admin")
+                            .roles(roles)
+                            .active(true)
+                            .emailVerified(true)
+                            .build();
+                    userRepository.save(adminUser);
+                    log.info("Seeded primary admin user: {}", adminEmail);
+                }
+        );
+    }
+
+    private void cleanupStudentLogins() {
+        String adminEmail = "abhishekforcollege@gmail.com";
+        List<User> nonAdminUsers = userRepository.findAll().stream()
+                .filter(u -> !adminEmail.equalsIgnoreCase(u.getEmail()))
+                .collect(Collectors.toList());
+
+        if (!nonAdminUsers.isEmpty()) {
+            log.info("Purging {} non-admin student logins from database...", nonAdminUsers.size());
+            for (User student : nonAdminUsers) {
+                log.info("Deleting non-admin user: {}", student.getEmail());
+                userRepository.delete(student);
+            }
+        }
+    }
 
     private void seedStoreResources() {
         if (storeResourceRepository.count() == 0) {
@@ -136,23 +188,20 @@ public class DatabaseSeeder implements CommandLineRunner {
                 });
     }
 
-    private void getOrCreateRole(String name, String description, Set<Permission> permissions) {
-        roleRepository.findByName(name)
-                .ifPresentOrElse(
-                        role -> {
-                            // Ensure permissions are up to date
-                            role.setPermissions(permissions);
-                            roleRepository.save(role);
-                        },
-                        () -> {
-                            Role role = Role.builder()
-                                    .name(name)
-                                    .description(description)
-                                    .permissions(permissions)
-                                    .build();
-                            log.info("Seeding role: {}", name);
-                            roleRepository.save(role);
-                        }
-                );
+    private Role getOrCreateRole(String name, String description, Set<Permission> permissions) {
+        return roleRepository.findByName(name)
+                .map(role -> {
+                    role.setPermissions(permissions);
+                    return roleRepository.save(role);
+                })
+                .orElseGet(() -> {
+                    Role role = Role.builder()
+                            .name(name)
+                            .description(description)
+                            .permissions(permissions)
+                            .build();
+                    log.info("Seeding role: {}", name);
+                    return roleRepository.save(role);
+                });
     }
 }
