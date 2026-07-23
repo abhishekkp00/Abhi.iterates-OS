@@ -28,6 +28,7 @@ export interface StoreResourceRequest {
   expiryDate?: string | null
   fileUrl: string
   fileName?: string
+  fileSize?: number
   previewUrl?: string
   tags?: string
 }
