@@ -207,7 +207,7 @@ export default function MarketplacePage() {
                           </Badge>
 
                           <div className="flex items-center gap-1 font-mono font-bold text-base text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                            <span>₹{item.priceInRupees}</span>
+                            <span>{item.priceInRupees === 0 ? 'FREE' : `₹${item.priceInRupees}`}</span>
                           </div>
                         </div>
 
@@ -249,6 +249,16 @@ export default function MarketplacePage() {
                           >
                             <CheckCircle2 className="size-3.5" />
                             Unlocked — Access Notes
+                          </Button>
+                        ) : item.priceInRupees === 0 ? (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => setPurchasingItem(item)}
+                            className="w-full gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+                          >
+                            <Sparkles className="size-3.5" />
+                            Claim Free Notes (₹0)
                           </Button>
                         ) : (
                           <Button
