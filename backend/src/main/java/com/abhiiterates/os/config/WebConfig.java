@@ -1,6 +1,9 @@
 package com.abhiiterates.os.config;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -9,13 +12,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Global Web Configuration for CORS mappings.
+ * Global Web Configuration for CORS mappings and Jackson payload limits.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
     @Value("${cors.allowed-origins:http://localhost:5180}")
     private String[] allowedOrigins;
+
+    @Bean
+    public Jackson2ObjectMapperBuilderCustomizer customStreamReadConstraints() {
+        return builder -> builder.postConfigurer(objectMapper -> {
+            objectMapper.getFactory().setStreamReadConstraints(
+                    StreamReadConstraints.builder().maxStringLength(100_000_000).build()
+            );
+        });
+    }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {

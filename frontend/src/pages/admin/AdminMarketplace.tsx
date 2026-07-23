@@ -44,6 +44,7 @@ export default function AdminMarketplace() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [attachmentMode, setAttachmentMode] = useState<'FILE' | 'LINK'>('FILE')
   const [dragActive, setDragActive] = useState<boolean>(false)
+  const [isReadingFile, setIsReadingFile] = useState<boolean>(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState<StoreResourceRequest>({
@@ -59,6 +60,7 @@ export default function AdminMarketplace() {
   const [priceInputText, setPriceInputText] = useState<string>('')
 
   const handleFileSelect = (file: File) => {
+    setIsReadingFile(true)
     const reader = new FileReader()
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string
@@ -68,6 +70,10 @@ export default function AdminMarketplace() {
         fileName: file.name,
         fileSize: file.size,
       }))
+      setIsReadingFile(false)
+    }
+    reader.onerror = () => {
+      setIsReadingFile(false)
     }
     reader.readAsDataURL(file)
   }
@@ -633,13 +639,18 @@ export default function AdminMarketplace() {
                 <div className="pt-2">
                   <Button
                     type="submit"
-                    disabled={createStoreMutation.isPending}
+                    disabled={createStoreMutation.isPending || isReadingFile}
                     className="w-full text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
                     {createStoreMutation.isPending ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
                         Publishing to Marketplace…
+                      </>
+                    ) : isReadingFile ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Processing Attached PDF…
                       </>
                     ) : (
                       <>

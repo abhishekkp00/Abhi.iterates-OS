@@ -1,3 +1,15 @@
+server:
+  port: ${PORT:8095}
+  tomcat:
+    max-http-post-size: 100MB
+    max-swallow-size: 100MB
+  error:
+    # Never expose internal exception messages to clients in production
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
 spring:
   profiles:
     active: dev
@@ -12,8 +24,8 @@ spring:
       write-dates-as-timestamps: false
   servlet:
     multipart:
-      max-file-size: 20MB
-      max-request-size: 20MB
+      max-file-size: 100MB
+      max-request-size: 100MB
   security:
     oauth2:
       client:
@@ -39,14 +51,6 @@ spring:
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5180}
 
-server:
-  port: ${PORT:8095}
-  error:
-    # Never expose internal exception messages to clients in production
-    include-message: never
-    include-binding-errors: never
-    include-stacktrace: never
-    include-exception: false
 
 springdoc:
   api-docs:
