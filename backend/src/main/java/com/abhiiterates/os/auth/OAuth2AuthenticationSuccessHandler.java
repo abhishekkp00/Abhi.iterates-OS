@@ -42,8 +42,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProperties jwtProperties;
 
-    @Value("${cors.allowed-origins:http://localhost:5180}")
-    private String allowedOrigins;
+    @Value("${app.frontend-url:http://localhost:5180}")
+    private String frontendUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
@@ -59,7 +59,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         if (email == null || email.isBlank()) {
             log.error("Google OAuth2 user object does not contain email attribute");
-            response.sendRedirect(allowedOrigins + "/login?error=EmailNotProvided");
+            response.sendRedirect(frontendUrl + "/login?error=EmailNotProvided");
             return;
         }
 
@@ -106,8 +106,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         refreshTokenRepository.save(refreshToken);
 
         // Determine frontend base URL
-        String redirectOrigin = allowedOrigins.split(",")[0].trim();
-        String targetUrl = UriComponentsBuilder.fromUriString(redirectOrigin + "/login")
+        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
                 .queryParam("token", accessToken)
                 .queryParam("refreshToken", refreshTokenStr)
                 .build().toUriString();
