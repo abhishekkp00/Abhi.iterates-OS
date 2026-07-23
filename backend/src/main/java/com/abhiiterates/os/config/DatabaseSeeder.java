@@ -56,7 +56,72 @@ public class DatabaseSeeder implements CommandLineRunner {
         // ROLE_SUPER_ADMIN
         getOrCreateRole("ROLE_SUPER_ADMIN", "System owner role", adminPerms);
 
+        // 3. Seed Initial Store Resources for Student Marketplace
+        seedStoreResources();
+
         log.info("Database seeding successfully completed.");
+    }
+
+    private final com.abhiiterates.os.marketplace.store.StoreResourceRepository storeResourceRepository;
+
+    private void seedStoreResources() {
+        if (storeResourceRepository.count() == 0) {
+            log.info("Seeding initial premium store notes & resources...");
+            java.time.Instant oneYear = java.time.Instant.now().plus(365, java.time.temporal.ChronoUnit.DAYS);
+            java.time.Instant sixMonths = java.time.Instant.now().plus(180, java.time.temporal.ChronoUnit.DAYS);
+
+            storeResourceRepository.save(com.abhiiterates.os.marketplace.store.StoreResource.builder()
+                    .title("Placement Prep Masterkit 2026 (DSA + System Design)")
+                    .description("Complete curated handbook for MAANG and top product company interviews. Covers 150+ standard DSA patterns, mock interview questions, and System Design templates.")
+                    .category("Placement")
+                    .priceInRupees(new java.math.BigDecimal("149.00"))
+                    .expiryDate(oneYear)
+                    .fileUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
+                    .fileName("Placement_Prep_Masterkit_2026.pdf")
+                    .fileSize(12500000L)
+                    .tags("Placement, DSA, System Design, Java, C++, Interview")
+                    .active(true)
+                    .build());
+
+            storeResourceRepository.save(com.abhiiterates.os.marketplace.store.StoreResource.builder()
+                    .title("DBMS & SQL Query Optimization Handwritten Notes")
+                    .description("Comprehensive handwritten notes covering Normalization, B+ Trees, Indexing, Transactions, and top 50 SQL queries asked in campus placements.")
+                    .category("Placement")
+                    .priceInRupees(new java.math.BigDecimal("99.00"))
+                    .expiryDate(sixMonths)
+                    .fileUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
+                    .fileName("DBMS_SQL_Placement_Notes.pdf")
+                    .fileSize(8400000L)
+                    .tags("DBMS, SQL, Database, Placement, Core CS")
+                    .active(true)
+                    .build());
+
+            storeResourceRepository.save(com.abhiiterates.os.marketplace.store.StoreResource.builder()
+                    .title("Full Stack Web Development & Microservices Architecture Sheet")
+                    .description("Architecture blueprints, React + Spring Boot REST API integration guides, Docker deployment cheat sheet, and security best practices.")
+                    .category("General")
+                    .priceInRupees(new java.math.BigDecimal("79.00"))
+                    .expiryDate(sixMonths)
+                    .fileUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
+                    .fileName("FullStack_Architecture_Sheet.pdf")
+                    .fileSize(9600000L)
+                    .tags("Web Dev, React, Spring Boot, Microservices, General")
+                    .active(true)
+                    .build());
+
+            storeResourceRepository.save(com.abhiiterates.os.marketplace.store.StoreResource.builder()
+                    .title("GATE CS/IT 10-Year Topic-wise Solved Question Bank")
+                    .description("Topic-wise sorted 10-year GATE questions with step-by-step mathematical solutions and shortcut formulas for OS, TOC, Compiler Design, and CN.")
+                    .category("General")
+                    .priceInRupees(new java.math.BigDecimal("49.00"))
+                    .expiryDate(oneYear)
+                    .fileUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
+                    .fileName("GATE_CS_Solved_Question_Bank.pdf")
+                    .fileSize(15200000L)
+                    .tags("GATE, Core CS, OS, TOC, Algorithms, General")
+                    .active(true)
+                    .build());
+        }
     }
 
     private Permission getOrCreatePermission(String name, String description) {
