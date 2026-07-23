@@ -1,7 +1,5 @@
 package com.abhiiterates.os.config;
 
-import com.abhiiterates.os.auth.RefreshTokenRepository;
-import com.abhiiterates.os.auth.UserSessionRepository;
 import com.abhiiterates.os.user.*;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -28,8 +27,6 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final UserSessionRepository userSessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
     private final com.abhiiterates.os.marketplace.store.StoreResourceRepository storeResourceRepository;
@@ -66,7 +63,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         // 3. Seed Primary Admin Credentials (abhishekforcollege@gmail.com)
         User adminUser = seedAdminUser(adminRole, superAdminRole);
 
-        // 4. Purge All Non-Admin Student Logins (reassigning resources first)
+        // 4. Purge All Non-Admin Student Logins (reassigning content to primary admin)
         cleanupStudentLogins(adminUser);
 
         // 5. Seed Initial Store Resources for Student Marketplace
@@ -113,45 +110,52 @@ public class DatabaseSeeder implements CommandLineRunner {
         if (!nonAdminUsers.isEmpty()) {
             log.info("Purging {} non-admin student logins from database...", nonAdminUsers.size());
             for (User student : nonAdminUsers) {
-                log.info("Reassigning resources and deleting dependent records for user: {}", student.getEmail());
+                log.info("Cleaning references and purging student user: {}", student.getEmail());
 
-                // 1. Reassign academic resources to primary admin
-                try {
-                    entityManager.createQuery("UPDATE Resource r SET r.user = :adminUser WHERE r.user = :student")
-                            .setParameter("adminUser", adminUser)
-                            .setParameter("student", student)
-                            .executeUpdate();
-                } catch (Exception e) {
-                    log.warn("Resource re-assignment skipped: {}", e.getMessage());
-                }
+                UUID adminId = adminUser.getId();
+                UUID studentId = student.getId();
 
-                // 2. Reassign marketplace listings to primary admin
-                try {
-                    entityManager.createQuery("UPDATE MarketplaceListing m SET m.seller = :adminUser WHERE m.seller = :student")
-                            .setParameter("adminUser", adminUser)
-                            .setParameter("student", student)
-                            .executeUpdate();
-                } catch (Exception e) {
-                    log.warn("MarketplaceListing re-assignment skipped: {}", e.getMessage());
-                }
+                // Reassign entity ownership to primary admin
+                executeNativeUpdate("UPDATE tasks SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
+                executeNativeUpdate("UPDATE calendar_events SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
+                executeNativeUpdate("UPDATE resources SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
+                executeNativeUpdate("UPDATE marketplace_listings SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
+                executeNativeUpdate("UPDATE store_resources SET uploaded_by_user_id = :adminId WHERE uploaded_by_user_id = :studentId", adminId, studentId);
+                executeNativeUpdate("UPDATE resource_purchases SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
+                executeNativeUpdate("UPDATE notifications SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
+                executeNativeUpdate("UPDATE ai_conversations SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
 
-                // 3. Reassign AI conversations to primary admin
-                try {
-                    entityManager.createQuery("UPDATE AiConversation c SET c.user = :adminUser WHERE c.user = :student")
-                            .setParameter("adminUser", adminUser)
-                            .setParameter("student", student)
-                            .executeUpdate();
-                } catch (Exception e) {
-                    log.warn("AiConversation re-assignment skipped: {}", e.getMessage());
-                }
+                // Purge transient tokens and user-session relationships
+                executeNativeDelete("DELETE FROM password_reset_tokens WHERE user_id = :studentId", studentId);
+                executeNativeDelete("DELETE FROM email_verification_tokens WHERE user_id = :studentId", studentId);
+                executeNativeDelete("DELETE FROM refresh_tokens WHERE user_id = :studentId", studentId);
+                executeNativeDelete("DELETE FROM user_sessions WHERE user_id = :studentId", studentId);
+                executeNativeDelete("DELETE FROM user_roles WHERE user_id = :studentId", studentId);
 
-                // 4. Delete dependent tokens & sessions
-                refreshTokenRepository.deleteByUser(student);
-                userSessionRepository.deleteByUser(student);
-
-                // 5. Delete non-admin user
-                userRepository.delete(student);
+                // Purge student user
+                executeNativeDelete("DELETE FROM users WHERE id = :studentId", studentId);
             }
+        }
+    }
+
+    private void executeNativeUpdate(String sql, UUID adminId, UUID studentId) {
+        try {
+            entityManager.createNativeQuery(sql)
+                    .setParameter("adminId", adminId)
+                    .setParameter("studentId", studentId)
+                    .executeUpdate();
+        } catch (Exception e) {
+            log.debug("Native update query [{}] executed/skipped: {}", sql, e.getMessage());
+        }
+    }
+
+    private void executeNativeDelete(String sql, UUID studentId) {
+        try {
+            entityManager.createNativeQuery(sql)
+                    .setParameter("studentId", studentId)
+                    .executeUpdate();
+        } catch (Exception e) {
+            log.debug("Native delete query [{}] executed/skipped: {}", sql, e.getMessage());
         }
     }
 
