@@ -59,6 +59,8 @@ export interface SendMessageRequest {
   message: string
   /** Optional system prompt override */
   systemPrompt?: string
+  /** Optional resource ID for context retrieval */
+  resourceId?: string
 }
 
 export interface SendMessageResponse {

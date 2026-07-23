@@ -206,3 +206,11 @@
   30%            { transform: translateY(-6px); }
 }
 
+/* ── contentEditable Placeholder ── */
+div[contenteditable]:empty::before {
+  content: attr(placeholder);
+  color: #64748b; /* slate-500 */
+  pointer-events: none;
+  display: block;
+}
+

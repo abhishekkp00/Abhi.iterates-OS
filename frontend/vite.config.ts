@@ -5,6 +5,9 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    global: 'window',
+  },
   resolve: {
     // Path aliases enable clean imports like @/components/Button
     // instead of ../../components/Button
@@ -13,11 +16,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 5180,
     // Proxy API calls to backend to avoid CORS in dev
     proxy: {
       '/api': {
-        target: 'http://localhost:8084',
+        target: 'http://localhost:8095',
         changeOrigin: true,
       },
     },

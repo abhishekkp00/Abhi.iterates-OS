@@ -44,11 +44,13 @@ export interface UserProfile {
   role: 'STUDENT' | 'CREATOR' | 'ADMIN'
 }
 
-// Notification shape (placeholder)
+// Notification shape
 export interface AppNotification {
   id: string
-  title: string
-  body: string
+  type: string
+  message: string
+  actionUrl?: string
+  entityId?: string
   read: boolean
   createdAt: string
 }
