@@ -48,6 +48,7 @@ export default function MarketplacePage() {
   })
   const { data: myPurchases = [] } = useMyPurchasesQuery()
   const upiMutation = useUpiPurchaseMutation()
+  const [claimingFreeId, setClaimingFreeId] = useState<string | null>(null)
 
   const storeItems: StoreResourceItem[] = Array.isArray(storePage)
     ? storePage
@@ -57,6 +58,25 @@ export default function MarketplacePage() {
     navigator.clipboard.writeText(UPI_ID)
     setCopiedUpi(true)
     setTimeout(() => setCopiedUpi(false), 2000)
+  }
+
+  const handleClaimFree = (item: StoreResourceItem) => {
+    setClaimingFreeId(item.id)
+    upiMutation.mutate(
+      {
+        resourceId: item.id,
+        payload: { paymentRefId: 'FREE_ACCESS' },
+      },
+      {
+        onSuccess: () => {
+          setClaimingFreeId(null)
+          setViewingItem(item)
+        },
+        onError: () => {
+          setClaimingFreeId(null)
+        },
+      }
+    )
   }
 
   const handleUpiSubmit = (e: React.FormEvent) => {
@@ -254,11 +274,21 @@ export default function MarketplacePage() {
                           <Button
                             variant="default"
                             size="sm"
-                            onClick={() => setPurchasingItem(item)}
+                            disabled={claimingFreeId === item.id}
+                            onClick={() => handleClaimFree(item)}
                             className="w-full gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
                           >
-                            <Sparkles className="size-3.5" />
-                            Claim Free Notes (₹0)
+                            {claimingFreeId === item.id ? (
+                              <>
+                                <Loader2 className="size-3.5 animate-spin" />
+                                Unlocking Free Notes…
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="size-3.5" />
+                                Claim Free Notes (₹0)
+                              </>
+                            )}
                           </Button>
                         ) : (
                           <Button
