@@ -19,10 +19,11 @@ const ResetPasswordPage   = lazy(() => import('@/pages/auth/ResetPasswordPage'))
 const UnauthorizedPage    = lazy(() => import('@/pages/auth/UnauthorizedPage'))
 const SessionExpiredPage  = lazy(() => import('@/pages/auth/SessionExpiredPage'))
 
+import MarketplacePage from '@/pages/MarketplacePage'
+
 // ── Main dashboard pages ──────────────────────────────────────────────────────
 const DashboardPage   = lazy(() => import('@/pages/DashboardPage'))
 const LibraryPage     = lazy(() => import('@/pages/LibraryPage'))
-const MarketplacePage = lazy(() => import('@/pages/MarketplacePage'))
 const StudyRoomPage = lazy(() => import('@/pages/StudyRoomPage'))
 const ResourcesLayout = lazy(() => import('@/layouts/ResourcesLayout'))
 const ResourcesPage   = lazy(() => import('@/pages/ResourcesPage'))
@@ -149,7 +150,7 @@ const router = createBrowserRouter([
           },
           {
             path: '/marketplace',
-            element: <Suspense fallback={<PageLoader />}><MarketplacePage /></Suspense>,
+            element: <MarketplacePage />,
           },
           {
             path: '/my-listings',

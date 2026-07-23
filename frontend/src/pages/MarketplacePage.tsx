@@ -49,7 +49,9 @@ export default function MarketplacePage() {
   const { data: myPurchases = [] } = useMyPurchasesQuery()
   const upiMutation = useUpiPurchaseMutation()
 
-  const storeItems: StoreResourceItem[] = storePage?.content || []
+  const storeItems: StoreResourceItem[] = Array.isArray(storePage)
+    ? storePage
+    : storePage?.content || []
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(UPI_ID)
