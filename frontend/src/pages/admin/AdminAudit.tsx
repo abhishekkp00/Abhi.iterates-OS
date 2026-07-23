@@ -179,7 +179,7 @@ export default function AdminAudit() {
 
                     {/* Client IP Address */}
                     <td className="py-3.5 px-4 text-right font-mono text-muted-foreground text-[10px]">
-                      {log.ipAddress || '127.0.0.1'}
+                      {log.ipAddress || '—'}
                     </td>
                   </tr>
                 ))}
