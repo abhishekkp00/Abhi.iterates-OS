@@ -49,13 +49,14 @@ export default function AdminMarketplace() {
   const [formData, setFormData] = useState<StoreResourceRequest>({
     title: '',
     description: '',
-    category: 'Placement',
-    priceInRupees: 99,
+    category: '',
+    priceInRupees: 0,
     expiryDate: '',
     fileUrl: '',
     fileName: '',
     tags: '',
   })
+  const [priceInputText, setPriceInputText] = useState<string>('')
 
   const handleFileSelect = (file: File) => {
     const reader = new FileReader()
@@ -89,9 +90,11 @@ export default function AdminMarketplace() {
     e.preventDefault()
     if (!formData.title || !formData.category || !formData.fileUrl) return
 
+    const finalPrice = priceInputText === '' ? 0 : Number(priceInputText)
+
     const payload: StoreResourceRequest = {
       ...formData,
-      priceInRupees: Number(formData.priceInRupees),
+      priceInRupees: finalPrice,
       expiryDate: formData.expiryDate ? new Date(formData.expiryDate).toISOString() : null,
     }
 
@@ -101,13 +104,14 @@ export default function AdminMarketplace() {
         setFormData({
           title: '',
           description: '',
-          category: 'Placement',
-          priceInRupees: 99,
+          category: '',
+          priceInRupees: 0,
           expiryDate: '',
           fileUrl: '',
           fileName: '',
           tags: '',
         })
+        setPriceInputText('')
       },
     })
   }
@@ -443,11 +447,10 @@ export default function AdminMarketplace() {
                     <label className="font-semibold text-foreground">Price in INR (₹) *</label>
                     <Input
                       type="number"
-                      required
                       min="0"
-                      placeholder="e.g. 99"
-                      value={formData.priceInRupees}
-                      onChange={(e) => setFormData({ ...formData, priceInRupees: Number(e.target.value) })}
+                      placeholder="0 for Free, or enter price (e.g. 99)"
+                      value={priceInputText}
+                      onChange={(e) => setPriceInputText(e.target.value)}
                       className="h-9 text-xs font-mono"
                     />
                   </div>
@@ -641,7 +644,7 @@ export default function AdminMarketplace() {
                     ) : (
                       <>
                         <Plus className="size-4" />
-                        Publish Store Resource (₹{formData.priceInRupees})
+                        Publish Store Resource {priceInputText && Number(priceInputText) > 0 ? `(₹${priceInputText})` : '(Free / ₹0)'}
                       </>
                     )}
                   </Button>
