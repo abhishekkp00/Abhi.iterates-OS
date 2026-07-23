@@ -38,7 +38,7 @@ function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
-function usecrumbs(): Crumb[] {
+function useCrumbs(): Crumb[] {
   const { pathname } = useLocation()
 
   return useMemo(() => {
@@ -61,7 +61,7 @@ interface BreadcrumbsProps {
 }
 
 export function Breadcrumbs({ className }: BreadcrumbsProps) {
-  const crumbs = usecrumbs()
+  const crumbs = useCrumbs()
   const { pathname } = useLocation()
 
   // Don't render breadcrumbs on the dashboard home — it would just say "Dashboard"

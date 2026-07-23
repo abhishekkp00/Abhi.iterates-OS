@@ -3,10 +3,12 @@ import { cn } from '@/lib/utils'
 import { useThemeStore } from '@/store/theme.store'
 import { useAuthStore } from '@/store/auth.store'
 import { useSidebarStore } from '@/store/sidebar.store'
+import { useNotificationStore } from '@/store/notification.store'
+import { NotificationDrawer } from '@/components/common/NotificationDrawer'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Sun, Moon, Monitor, Bell, Search, ChevronDown, LogOut, Settings, Menu, User, Plus, FilePlus, ShoppingBag, Sparkles } from '@/lib/icons'
+import { Sun, Moon, Monitor, Bell, Search, ChevronDown, LogOut, Settings, Menu, User, Plus, FilePlus, ShoppingBag, Sparkles, ShieldCheck } from '@/lib/icons'
 import type { Theme } from '@/types'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -44,16 +46,20 @@ function ThemeToggle() {
 
 export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
   const [profileOpen, setProfileOpen] = useState(false)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const notificationsRef = useRef<HTMLDivElement>(null)
   const actionsRef = useRef<HTMLDivElement>(null)
 
   const user = useAuthStore((s) => s.user)
+  const unreadCount = useNotificationStore((s) => s.unreadCount)
   const { setMobileOpen } = useSidebarStore()
   const { logout } = useAuth()
+
+  const isAdmin = user?.roles?.some((r) =>
+    ['ROLE_ADMIN', 'ADMIN', 'ROLE_SUPER_ADMIN', 'SUPER_ADMIN'].includes(r)
+  )
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -61,9 +67,6 @@ export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
       const target = event.target as Node
       if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setProfileOpen(false)
-      }
-      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
-        setNotificationsOpen(false)
       }
       if (actionsRef.current && !actionsRef.current.contains(target)) {
         setActionsOpen(false)
@@ -87,12 +90,6 @@ export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
 
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Guest User'
   const initials = user ? `${user.firstName} ${user.lastName}` : 'Guest'
-
-  const mockNotifications = [
-    { id: 1, title: 'Welcome to AbhiIterates.OS', desc: 'Glad to have you here! Explore the library.', time: 'Just now', unread: true },
-    { id: 2, title: 'Auth Complete', desc: 'Secure refresh token rotation is successfully active.', time: '2 hours ago', unread: true },
-    { id: 3, title: 'Verification Successful', desc: 'Your account is ready for business features.', time: '1 day ago', unread: false },
-  ]
 
   return (
     <header
@@ -186,62 +183,26 @@ export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
 
         <ThemeToggle />
 
-        {/* Notifications Dropdown */}
-        <div className="relative" ref={notificationsRef}>
+        {/* Notifications Drawer Toggle */}
+        <div className="relative">
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => setNotificationsOpen((p) => !p)}
-            aria-expanded={notificationsOpen}
+            onClick={() => setDrawerOpen(true)}
+            aria-expanded={drawerOpen}
             aria-haspopup="true"
             aria-label="Notifications"
             className="relative"
           >
             <Bell className="size-4" />
-            <span
-              className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-primary"
-              aria-hidden="true"
-            />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground animate-pulse">
+                {unreadCount}
+              </span>
+            )}
           </Button>
 
-          <AnimatePresence>
-            {notificationsOpen && (
-              <motion.div
-                variants={scaleVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="absolute right-0 mt-1.5 w-80 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg z-50 origin-top-right"
-              >
-                <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                  <span className="text-xs font-semibold">Notifications</span>
-                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                    2 New
-                  </span>
-                </div>
-                <div className="max-h-64 overflow-y-auto p-1">
-                  {mockNotifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className={cn(
-                        'flex flex-col gap-0.5 rounded p-2 text-left text-xs transition-colors hover:bg-accent',
-                        n.unread && 'bg-accent/40'
-                      )}
-                    >
-                      <div className="flex items-center justify-between font-medium">
-                        <span className="truncate">{n.title}</span>
-                        {n.unread && (
-                          <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground line-clamp-2">{n.desc}</p>
-                      <span className="text-[9px] text-muted-foreground/70 mt-1">{n.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <NotificationDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
         </div>
 
         {/* Profile Dropdown */}
@@ -290,6 +251,18 @@ export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
                     <span>Settings</span>
                   </button>
                 </Link>
+
+                {isAdmin && (
+                  <Link to="/admin" onClick={() => setProfileOpen(false)}>
+                    <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-left text-amber-500 hover:bg-amber-500/10 transition-colors font-medium">
+                      <ShieldCheck className="size-3.5" />
+                      <span>Admin Portal</span>
+                      <span className="ml-auto rounded bg-amber-500/20 px-1 py-0.5 text-[9px] font-bold text-amber-500 uppercase">
+                        Admin
+                      </span>
+                    </button>
+                  </Link>
+                )}
 
                 <div className="border-t border-border my-1" />
 

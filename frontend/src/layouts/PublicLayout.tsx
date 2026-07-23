@@ -1,15 +1,26 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { GraduationCap } from '@/lib/icons'
 import { APP_NAME, APP_TAGLINE } from '@/constants/app'
 
 /**
  * PublicLayout — used for Landing, Login, Signup pages.
- * Minimal branding header, centered content.
+ * Renders full-width for Landing Page, and centered auth card layout for guest auth pages.
  */
 export function PublicLayout() {
+  const location = useLocation()
+  const isLandingPage = location.pathname === '/'
+
+  if (isLandingPage) {
+    return (
+      <div className="min-h-screen bg-background font-sans text-foreground antialiased selection:bg-primary/20 selection:text-primary">
+        <Outlet />
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Minimal top bar */}
+      {/* Minimal top bar for auth pages */}
       <header className="flex h-14 items-center border-b border-border px-6">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -29,3 +40,4 @@ export function PublicLayout() {
     </div>
   )
 }
+

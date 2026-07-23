@@ -42,19 +42,21 @@ export function DashboardLayout() {
       {/* Right column: navbar + breadcrumbs + scrollable content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top navbar — receives callback to open command palette */}
-        <Navbar onOpenCmd={() => setCmdOpen(true)} />
+        {!location.pathname.includes('/resources/study/') && <Navbar onOpenCmd={() => setCmdOpen(true)} />}
 
         {/* Breadcrumbs — auto-generated, hidden on /dashboard */}
-        <div className="border-b border-border bg-background px-4 py-2 md:px-6">
-          <Breadcrumbs />
-        </div>
+        {!location.pathname.includes('/resources/study/') && (
+          <div className="border-b border-border bg-background px-4 py-2 md:px-6">
+            <Breadcrumbs />
+          </div>
+        )}
 
         {/* Scrollable content area */}
         <main
           id="main-content"
           tabIndex={-1}
           aria-label="Main content"
-          className="flex-1 overflow-y-auto focus-visible:outline-none"
+          className={`flex-1 ${location.pathname.includes('/resources/study/') ? 'overflow-hidden' : 'overflow-y-auto'} focus-visible:outline-none`}
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -64,7 +66,7 @@ export function DashboardLayout() {
               animate="animate"
               exit="exit"
               transition={pageTransition}
-              className="min-h-full"
+              className={location.pathname.includes('/resources/study/') ? "h-full w-full" : "min-h-full"}
             >
               <Outlet />
             </motion.div>
