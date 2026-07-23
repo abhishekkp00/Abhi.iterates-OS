@@ -34,6 +34,7 @@ export function useAuth() {
   const registerMutation = useMutation({
     mutationFn: (payload: RegisterPayload) => AuthService.register(payload),
     onSuccess: (_data) => {
+      sessionStorage.setItem('abhi_os_new_signup', 'true')
       toast.success('Registration successful!', {
         description: 'You can now log in to your workspace.',
       })
