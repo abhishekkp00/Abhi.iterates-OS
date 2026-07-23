@@ -12,8 +12,8 @@ spring:
       write-dates-as-timestamps: false
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
+      max-file-size: 20MB
+      max-request-size: 20MB
   security:
     oauth2:
       client:
@@ -26,10 +26,9 @@ spring:
               - profile
               - openid
 
-
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY}
+      api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       chat:
         options:
@@ -37,14 +36,17 @@ spring:
           temperature: ${OPENAI_TEMPERATURE:0.7}
           max-tokens: ${OPENAI_MAX_TOKENS:2048}
 
-
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5180}
 
 server:
   port: ${PORT:8095}
   error:
-    include-message: always
+    # Never expose internal exception messages to clients in production
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
 
 springdoc:
   api-docs:
@@ -58,10 +60,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        # Only expose health and info — never metrics/env/beans publicly
+        include: health,info
   endpoint:
     health:
-      show-details: always
+      # Do NOT show full health details publicly; use 'when-authorized' for production
+      show-details: when-authorized
+      show-components: when-authorized
 
 app:
   security:
@@ -69,6 +74,7 @@ app:
       secret: ${JWT_SECRET}
       expiration-ms: ${JWT_EXPIRATION_MS:900000}          # 15 minutes
       refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 days
+  upi-id: ${UPI_ID:abhiiterates@upi}
 
 # ── AI Module App Config ──────────────────────────────────────────────────────
 ai:
@@ -82,4 +88,3 @@ ai:
     - Career and academic advice
     Be concise, supportive, and academically accurate. Format responses using Markdown
     where helpful (lists, code blocks, headers). Never provide harmful or off-topic content.
-

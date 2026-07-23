@@ -11,6 +11,9 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:80
 export const API_PREFIX = '/api/v1' as const
 export const API_TIMEOUT_MS = 15_000
 
+// UPI payment — configurable via VITE_UPI_ID env var for deployment
+export const UPI_ID = import.meta.env.VITE_UPI_ID ?? 'abhiiterates@upi'
+
 // Query keys — central registry prevents key typos
 export const QUERY_KEYS = {
   user: ['user'] as const,
@@ -26,7 +29,7 @@ export const DEFAULT_PAGE_SIZE = 20
 export const MAX_PAGE_SIZE = 100
 
 // File upload limits (bytes)
-export const MAX_PDF_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB
+export const MAX_PDF_SIZE_BYTES = 20 * 1024 * 1024 // 20 MB (matches backend limit)
 export const ALLOWED_FILE_TYPES = ['application/pdf'] as const
 
 // Local storage keys

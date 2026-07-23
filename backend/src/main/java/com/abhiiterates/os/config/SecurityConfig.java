@@ -3,11 +3,14 @@ package com.abhiiterates.os.config;
 import com.abhiiterates.os.auth.CustomAccessDeniedHandler;
 import com.abhiiterates.os.auth.JwtAuthenticationEntryPoint;
 import com.abhiiterates.os.auth.JwtAuthenticationFilter;
+import com.abhiiterates.os.auth.OAuth2AuthenticationFailureHandler;
+import com.abhiiterates.os.auth.OAuth2AuthenticationSuccessHandler;
 import com.abhiiterates.os.user.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -17,18 +20,24 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 /**
  * Spring Security Configuration.
- * Formulates the core security architecture, filter chains, mapping patterns, and authorization policies.
+ * Defines the core security filter chain, CORS, session policy, authorization rules,
+ * and HTTP security headers for production-grade hardening.
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Enables @PreAuthorize and @PostAuthorize support
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -36,77 +45,105 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final CustomUserDetailsService customUserDetailsService;
-    private final com.abhiiterates.os.auth.OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
-    private final com.abhiiterates.os.auth.OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
     @Value("${cors.allowed-origins:http://localhost:5180}")
-    private String[] allowedOrigins;
+    private String[] allowedOriginsConfig;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                    AuthenticationProvider authenticationProvider) throws Exception {
         http
-                // Disable CSRF since REST APIs are stateless
+                // Disable CSRF — stateless JWT API does not need it
                 .csrf(AbstractHttpConfigurer::disable)
-                
-                // Configure CORS
+
+                // CORS — uses environment-driven allowed origins
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                
-                // Handle unauthorized access points
+
+                // Security headers hardening
+                .headers(headers -> headers
+                        .contentTypeOptions(contentType -> {}) // X-Content-Type-Options: nosniff
+                        .frameOptions(frame -> frame.deny())   // X-Frame-Options: DENY (clickjacking)
+                        .xssProtection(xss -> {})              // X-XSS-Protection
+                        .referrerPolicy(ref ->
+                                ref.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .contentSecurityPolicy(csp ->
+                                csp.policyDirectives(
+                                        "default-src 'self'; " +
+                                        "script-src 'self' 'unsafe-inline'; " +
+                                        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                                        "font-src 'self' https://fonts.gstatic.com; " +
+                                        "img-src 'self' data: https:; " +
+                                        "connect-src 'self'"
+                                ))
+                )
+
+                // Unauthorized / forbidden response handlers
                 .exceptionHandling(eh -> eh
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
-                
-                // Enforce stateless session tracking
+
+                // Stateless — no HTTP session
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                
-                // Authorize request pathways
+
+                // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
+                        // Preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Public API docs (consider restricting in production via IP allowlist)
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
-                                "/api-docs/**",
-                                "/actuator/**",
-                                "/api/v1/health",
-                                "/login/oauth2/**",
-                                "/oauth2/**"
+                                "/api-docs/**"
                         ).permitAll()
-                        // Public auth paths (register, login, refresh)
+                        // Actuator health only — no sensitive endpoints
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        // OAuth2 SSO
+                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
+                        // Public auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        // Restrict Admin endpoints
+                        // Admin-only REST
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        // Require authentication for all other requests
+                        // Require JWT for everything else
                         .anyRequest().authenticated()
                 )
-                
-                // OAuth2 Social Login Configuration
+
+                // OAuth2 login flow
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                         .failureHandler(oAuth2AuthenticationFailureHandler)
                 )
-                
-                // Register custom JWT authentication filter before the username/password filter
+
+                // JWT filter
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-
-
-
     @Bean
-    public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
-        org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-        configuration.setAllowedOriginPatterns(java.util.List.of("http://localhost:*", "http://127.0.0.1:*"));
-        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(java.util.List.of("*"));
-        configuration.setExposedHeaders(java.util.List.of("Authorization", "Content-Disposition"));
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // In production, CORS_ALLOWED_ORIGINS env var should contain only your real domain(s).
+        // For dev, allowedOriginsConfig will be "http://localhost:5180".
+        // We always also allow localhost wildcards for local development convenience.
+        List<String> patterns = new java.util.ArrayList<>(List.of(allowedOriginsConfig));
+        if (!patterns.contains("http://localhost:*")) {
+            patterns.add("http://localhost:*");
+        }
+        configuration.setAllowedOriginPatterns(patterns);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
-        org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
@@ -118,7 +155,6 @@ public class SecurityConfig {
         authProvider.setPasswordEncoder(passwordEncoder);
         return authProvider;
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { UPI_ID } from '@/constants/app'
 
 export default function MarketplacePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL')
@@ -51,7 +52,7 @@ export default function MarketplacePage() {
   const storeItems: StoreResourceItem[] = storePage?.content || []
 
   const handleCopyUpi = () => {
-    navigator.clipboard.writeText('abhiiterates@upi')
+    navigator.clipboard.writeText(UPI_ID)
     setCopiedUpi(true)
     setTimeout(() => setCopiedUpi(false), 2000)
   }
@@ -397,7 +398,7 @@ export default function MarketplacePage() {
                   <div className="space-y-1">
                     <p className="text-[11px] text-muted-foreground">Scan with GPay, PhonePe, Paytm, or BHIM</p>
                     <div className="inline-flex items-center gap-2 rounded-lg bg-card border border-border px-3 py-1 text-xs font-mono font-bold text-foreground">
-                      <span>abhiiterates@upi</span>
+                      <span>{UPI_ID}</span>
                       <button
                         type="button"
                         onClick={handleCopyUpi}

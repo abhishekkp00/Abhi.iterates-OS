@@ -8,6 +8,7 @@ import com.abhiiterates.os.user.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -67,7 +68,7 @@ public class AdminUserController {
     @Operation(summary = "Assign a new list of security roles to a user")
     public ResponseEntity<ApiResponse<Void>> updateUserRoles(
             @PathVariable UUID id,
-            @RequestBody UpdateRolesRequest body,
+            @Valid @RequestBody UpdateRolesRequest body,
             @AuthenticationPrincipal User adminUser,
             HttpServletRequest request
     ) {

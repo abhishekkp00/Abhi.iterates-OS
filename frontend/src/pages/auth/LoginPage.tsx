@@ -40,8 +40,7 @@ export default function LoginPage() {
           })
           navigate('/dashboard', { replace: true })
         })
-        .catch((err) => {
-          console.error('Failed to fetch user profile post Google OAuth', err)
+        .catch(() => {
           toast.error('Authentication Failed', {
             description: 'Could not load your profile. Please sign in again.',
           })

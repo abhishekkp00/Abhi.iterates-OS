@@ -10,6 +10,7 @@ import com.abhiiterates.os.user.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -56,7 +57,7 @@ public class AdminSettingsController {
         boolean enableAiAssistant = Boolean.parseBoolean(getOrInit("enableAiAssistant", "true", "Enables AI study tutor feature"));
         boolean marketplaceAutoApprove = Boolean.parseBoolean(getOrInit("marketplaceAutoApprove", "true", "Bypasses marketplace moderation index"));
         int maxTokens = Integer.parseInt(getOrInit("maxTokensPerSession", "2000", "Maximum LLM token limit per study chat"));
-        String apiKey = getOrInit("apiKeyConfig", "sk-gemini-os-prod-key-xyz", "Decryption API key configuration");
+        String apiKey = getOrInit("apiKeyConfig", "", "Decryption API key configuration");
 
         SystemSettingsDto dto = SystemSettingsDto.builder()
                 .maintenanceMode(maintenanceMode)
@@ -74,7 +75,7 @@ public class AdminSettingsController {
     @PutMapping
     @Operation(summary = "Update global system configuration parameters and feature flags")
     public ResponseEntity<ApiResponse<Void>> saveSettings(
-            @RequestBody SystemSettingsDto dto,
+            @Valid @RequestBody SystemSettingsDto dto,
             @AuthenticationPrincipal User adminUser,
             HttpServletRequest request
     ) {
