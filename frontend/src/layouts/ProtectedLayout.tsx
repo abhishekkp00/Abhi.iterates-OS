@@ -1,5 +1,9 @@
+import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth.store'
+import { useWebSocketStore } from '@/store/websocket.store'
+import { useNotificationStore } from '@/store/notification.store'
+import type { AppNotification } from '@/types'
 import { LoadingState } from '@/components/ui/feedback'
 
 /**
@@ -10,6 +14,34 @@ import { LoadingState } from '@/components/ui/feedback'
 export function ProtectedLayout() {
   const { isAuthenticated, isInitialized } = useAuthStore()
   const location = useLocation()
+
+  const { connect, disconnect, subscribe, status } = useWebSocketStore()
+  const { fetchNotifications, fetchUnreadCount, addLiveNotification } = useNotificationStore()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Connect to WebSocket
+      connect()
+      
+      // Load initial notifications list and count
+      fetchNotifications()
+      fetchUnreadCount()
+    } else {
+      disconnect()
+    }
+  }, [isAuthenticated, connect, disconnect, fetchNotifications, fetchUnreadCount])
+
+  // Subscribe to user notifications queue when WebSocket status becomes CONNECTED
+  useEffect(() => {
+    if (isAuthenticated && status === 'CONNECTED') {
+      const unsubscribe = subscribe('/user/queue/notifications', (payload) => {
+        addLiveNotification(payload as AppNotification)
+      })
+      return () => {
+        unsubscribe()
+      }
+    }
+  }, [isAuthenticated, status, subscribe, addLiveNotification])
 
   // While SessionInitializer is performing silent token refresh, show a
   // full-screen loader to prevent a flash-redirect to /login.

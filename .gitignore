@@ -107,8 +107,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -164,3 +164,12 @@ logs/
 coverage/
 .nyc_output/
 test-results/
+
+# Uploaded Files & Temporary Classpath
+classpath.txt
+uploads/*
+!uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+**/uploads/*
+

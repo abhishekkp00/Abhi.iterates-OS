@@ -7,9 +7,12 @@ export const APP_TAGLINE = 'The Operating System for Students' as const
 export const APP_VERSION = '1.0.0' as const
 
 // API
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8084'
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8095'
 export const API_PREFIX = '/api/v1' as const
 export const API_TIMEOUT_MS = 15_000
+
+// UPI payment — configurable via VITE_UPI_ID env var for deployment
+export const UPI_ID = import.meta.env.VITE_UPI_ID ?? 'abhiiterates@upi'
 
 // Query keys — central registry prevents key typos
 export const QUERY_KEYS = {
@@ -26,7 +29,7 @@ export const DEFAULT_PAGE_SIZE = 20
 export const MAX_PAGE_SIZE = 100
 
 // File upload limits (bytes)
-export const MAX_PDF_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB
+export const MAX_PDF_SIZE_BYTES = 20 * 1024 * 1024 // 20 MB (matches backend limit)
 export const ALLOWED_FILE_TYPES = ['application/pdf'] as const
 
 // Local storage keys
@@ -91,14 +94,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { id: 'ai',        label: 'AI Workspace',  href: '/ai',        icon: 'Sparkles'  },
     ],
   },
-  {
-    id: 'discover',
-    label: 'Discover',
-    items: [
-      { id: 'marketplace', label: 'Marketplace', href: '/marketplace', icon: 'ShoppingBag' },
-    ],
-  },
 ] as const
+
 
 // Bottom items stay flat — they're persistent utility links, not grouped features.
 export const NAV_BOTTOM_ITEMS: readonly NavItem[] = [

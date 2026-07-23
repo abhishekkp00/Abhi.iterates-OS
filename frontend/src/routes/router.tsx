@@ -22,13 +22,8 @@ const SessionExpiredPage  = lazy(() => import('@/pages/auth/SessionExpiredPage')
 // ── Main dashboard pages ──────────────────────────────────────────────────────
 const DashboardPage   = lazy(() => import('@/pages/DashboardPage'))
 const LibraryPage     = lazy(() => import('@/pages/LibraryPage'))
-const MarketplaceLayout = lazy(() => import('@/layouts/MarketplaceLayout'))
-const MarketplaceHomePage = lazy(() => import('@/pages/MarketplaceHomePage'))
-const MarketplaceCreatePage = lazy(() => import('@/pages/MarketplaceCreatePage'))
-const MarketplaceDetailPage = lazy(() => import('@/pages/MarketplaceDetailPage'))
-const MarketplaceEditPage = lazy(() => import('@/pages/MarketplaceEditPage'))
-const MyListingsPage = lazy(() => import('@/pages/MyListingsPage'))
-const FavoritesPage = lazy(() => import('@/pages/FavoritesPage'))
+const MarketplacePage = lazy(() => import('@/pages/MarketplacePage'))
+const StudyRoomPage = lazy(() => import('@/pages/StudyRoomPage'))
 const ResourcesLayout = lazy(() => import('@/layouts/ResourcesLayout'))
 const ResourcesPage   = lazy(() => import('@/pages/ResourcesPage'))
 const ResourceCreatePage = lazy(() => import('@/pages/ResourceCreatePage'))
@@ -69,7 +64,6 @@ const AnalyticsDashboard     = lazy(() => import('@/pages/analytics/AnalyticsDas
 const ProductivityAnalytics  = lazy(() => import('@/pages/analytics/ProductivityAnalytics'))
 const AiAnalytics            = lazy(() => import('@/pages/analytics/AiAnalytics'))
 const ResourceAnalytics      = lazy(() => import('@/pages/analytics/ResourceAnalytics'))
-const MarketplaceAnalytics   = lazy(() => import('@/pages/analytics/MarketplaceAnalytics'))
 const AdminAnalytics         = lazy(() => import('@/pages/admin/AdminAnalytics'))
 
 // ── Admin Portal ─────────────────────────────────────────────────────────────
@@ -77,7 +71,7 @@ const AdminLayout     = lazy(() => import('@/layouts/AdminLayout'))
 const AdminDashboard  = lazy(() => import('@/pages/admin/AdminDashboard'))
 const AdminUsers      = lazy(() => import('@/pages/admin/AdminUsers'))
 const AdminResources  = lazy(() => import('@/pages/admin/AdminResources'))
-const AdminMarketplace = lazy(() => import('@/pages/admin/AdminMarketplace'))
+const AdminMarketplace= lazy(() => import('@/pages/admin/AdminMarketplace'))
 const AdminAi         = lazy(() => import('@/pages/admin/AdminAi'))
 const AdminSettings   = lazy(() => import('@/pages/admin/AdminSettings'))
 const AdminAudit      = lazy(() => import('@/pages/admin/AdminAudit'))
@@ -155,33 +149,15 @@ const router = createBrowserRouter([
           },
           {
             path: '/marketplace',
-            element: <Suspense fallback={<PageLoader />}><MarketplaceLayout /></Suspense>,
-            children: [
-              {
-                index: true,
-                element: <Suspense fallback={<PageLoader />}><MarketplaceHomePage /></Suspense>,
-              },
-              {
-                path: 'new',
-                element: <Suspense fallback={<PageLoader />}><MarketplaceCreatePage /></Suspense>,
-              },
-              {
-                path: ':id',
-                element: <Suspense fallback={<PageLoader />}><MarketplaceDetailPage /></Suspense>,
-              },
-              {
-                path: ':id/edit',
-                element: <Suspense fallback={<PageLoader />}><MarketplaceEditPage /></Suspense>,
-              },
-            ]
+            element: <Suspense fallback={<PageLoader />}><MarketplacePage /></Suspense>,
           },
           {
             path: '/my-listings',
-            element: <Suspense fallback={<PageLoader />}><MyListingsPage /></Suspense>,
+            element: <Navigate to="/dashboard" replace />,
           },
           {
             path: '/favorites',
-            element: <Suspense fallback={<PageLoader />}><FavoritesPage /></Suspense>,
+            element: <Navigate to="/dashboard" replace />,
           },
           {
             path: '/resources',
@@ -202,6 +178,10 @@ const router = createBrowserRouter([
               {
                 path: ':id/edit',
                 element: <Suspense fallback={<PageLoader />}><ResourceEditPage /></Suspense>,
+              },
+              {
+                path: 'study/:resourceId',
+                element: <Suspense fallback={<PageLoader />}><StudyRoomPage /></Suspense>,
               },
             ],
           },
@@ -278,7 +258,7 @@ const router = createBrowserRouter([
           },
           {
             path: '/analytics/marketplace',
-            element: <Suspense fallback={<PageLoader />}><MarketplaceAnalytics /></Suspense>,
+            element: <Navigate to="/dashboard" replace />,
           },
 
           // ── Real-Time Collaboration & Notifications ───────────────────────

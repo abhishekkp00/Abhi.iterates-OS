@@ -10,4 +10,5 @@ import java.util.Optional;
 @Repository
 public interface ResourceAttachmentRepository extends JpaRepository<ResourceAttachment, UUID> {
     Optional<ResourceAttachment> findByDownloadUrl(String downloadUrl);
+    java.util.List<ResourceAttachment> findByResourceId(UUID resourceId);
 }

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth.store'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Settings, GraduationCap, Calendar, Mail } from '@/lib/icons'
+import { Settings, GraduationCap, Calendar, Mail, ShieldCheck } from '@/lib/icons'
 import { staggerParentVariants, staggerChildVariants } from '@/lib/animations'
 
 /**
@@ -55,12 +55,22 @@ export default function ProfilePage() {
                 size="xl"
                 className="ring-4 ring-card"
               />
-              <Link to="/settings/profile">
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <Settings className="size-3.5" aria-hidden="true" />
-                  Edit profile
-                </Button>
-              </Link>
+              <div className="flex items-center gap-2">
+                {user?.roles?.some((r) => ['ROLE_ADMIN', 'ADMIN', 'ROLE_SUPER_ADMIN', 'SUPER_ADMIN'].includes(r)) && (
+                  <Link to="/admin">
+                    <Button variant="default" size="sm" className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white border-none shadow-sm">
+                      <ShieldCheck className="size-3.5" aria-hidden="true" />
+                      Admin Portal
+                    </Button>
+                  </Link>
+                )}
+                <Link to="/settings/profile">
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Settings className="size-3.5" aria-hidden="true" />
+                    Edit profile
+                  </Button>
+                </Link>
+              </div>
             </div>
 
             {/* Name & meta */}

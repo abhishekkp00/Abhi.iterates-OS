@@ -97,17 +97,16 @@ export default function MarketplaceEditPage() {
     )
   }
 
-  const handleSubmit = async (values: ListingFormValues, files: File[]) => {
+  const handleSubmit = async (_values: ListingFormValues, _files: File[]) => {
     setIsSubmitting(true)
     try {
-      console.log('Updating Listing ID:', id, 'Metadata:', values, 'new photos count:', files.length)
       // Simulate file upload delay
       await new Promise((resolve) => setTimeout(resolve, 1000))
       
       setIsDirty(false) // Reset dirty state to bypass navigation block on success
       toast.success('Your listing was updated successfully!')
       navigate(`/marketplace/${id}`)
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to save listing changes.')
     } finally {
       setIsSubmitting(false)

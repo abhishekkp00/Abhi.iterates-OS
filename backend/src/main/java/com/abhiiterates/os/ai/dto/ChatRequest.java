@@ -13,5 +13,8 @@ public record ChatRequest(
         String message,
 
         /** Optional custom system prompt override (for power users / future templates) */
-        String systemPrompt
+        String systemPrompt,
+
+        /** Optional resource ID for RAG document context retrieval */
+        String resourceId
 ) {}

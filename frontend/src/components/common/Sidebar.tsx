@@ -1,12 +1,13 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useSidebarStore } from '@/store/sidebar.store'
+import { useAuthStore } from '@/store/auth.store'
 import { NAV_GROUPS, NAV_BOTTOM_ITEMS, APP_NAME } from '@/constants/app'
-import type { NavItem } from '@/constants/app'
+import type { NavItem, NavGroup as NavGroupType } from '@/constants/app'
 import {
   LayoutDashboard, BookOpen, ShoppingBag, FolderOpen, Sparkles, Settings,
-  PanelLeftClose, PanelLeftOpen, GraduationCap, Calendar, Clock, List,
+  PanelLeftClose, PanelLeftOpen, GraduationCap, Calendar, Clock, List, ShieldCheck,
 } from '@/lib/icons'
 
 // ── Icon registry ─────────────────────────────────────────────────────────────
@@ -20,6 +21,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Calendar,
   Clock,
   List,
+  ShieldCheck,
 }
 
 // ── NavItem ───────────────────────────────────────────────────────────────────
@@ -183,15 +185,36 @@ interface SidebarContentProps {
 
 export function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps) {
   const { toggle } = useSidebarStore()
+  const user = useAuthStore((s) => s.user)
+
+  const isAdmin = user?.roles?.some((r) =>
+    ['ROLE_ADMIN', 'ADMIN', 'ROLE_SUPER_ADMIN', 'SUPER_ADMIN'].includes(r)
+  )
+
+  const groups: readonly NavGroupType[] = isAdmin
+    ? [
+        ...NAV_GROUPS,
+        {
+          id: 'admin',
+          label: 'Administration',
+          items: [
+            { id: 'admin-portal', label: 'Admin Portal', href: '/admin', icon: 'ShieldCheck' },
+          ],
+        },
+      ]
+    : NAV_GROUPS
 
   return (
     <>
       {/* ── Brand logo row ─────────────────────────────────────────────────── */}
-      <div
+      <Link
+        to="/dashboard"
         className={cn(
           'flex h-14 items-center border-b border-sidebar-border px-3',
+          'hover:opacity-80 transition-opacity',
           isCollapsed ? 'justify-center' : 'gap-2.5'
         )}
+        aria-label="Go to Dashboard"
       >
         <div
           className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
@@ -218,14 +241,14 @@ export function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps)
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </Link>
 
       {/* ── Primary navigation (grouped) ───────────────────────────────────── */}
       <nav
         className="flex flex-1 flex-col overflow-y-auto p-2 pt-2"
         aria-label="Primary navigation"
       >
-        {NAV_GROUPS.map((group) => (
+        {groups.map((group) => (
           <NavGroup
             key={group.id}
             id={group.id}

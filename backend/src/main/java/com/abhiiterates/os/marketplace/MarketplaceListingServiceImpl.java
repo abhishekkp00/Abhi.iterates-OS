@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 public class MarketplaceListingServiceImpl implements MarketplaceListingService {
 
     private final MarketplaceListingRepository listingRepository;
+    private final com.abhiiterates.os.notification.service.NotificationService notificationService;
 
     @Override
     public Page<MarketplaceListingResponse> findAllWithFilters(
@@ -84,6 +85,19 @@ public class MarketplaceListingServiceImpl implements MarketplaceListingService 
         }
 
         MarketplaceListing saved = listingRepository.save(listing);
+        
+        try {
+            notificationService.createNotification(
+                    seller,
+                    com.abhiiterates.os.notification.domain.NotificationType.MARKETPLACE_LISTING,
+                    "New item listed on Marketplace: \"" + saved.getTitle() + "\"",
+                    "/marketplace/" + saved.getId(),
+                    saved.getId()
+            );
+        } catch (Exception ex) {
+            // Resilient
+        }
+
         return mapToResponse(saved);
     }
 

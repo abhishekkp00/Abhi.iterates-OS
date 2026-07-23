@@ -9,18 +9,15 @@ export default function MarketplaceCreatePage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (values: ListingFormValues, files: File[]) => {
+  const handleSubmit = async (_values: ListingFormValues, _files: File[]) => {
     setIsSubmitting(true)
     try {
-      // Log parameters to satisfy tsc compiler unused warnings
-      console.log('Publishing Listing Metadata:', values, 'photos count:', files.length)
-      
       // Simulate file upload delay
       await new Promise((resolve) => setTimeout(resolve, 1000))
       
       toast.success('Your listing was published successfully!')
       navigate('/marketplace')
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to publish listing.')
     } finally {
       setIsSubmitting(false)
