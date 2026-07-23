@@ -21,6 +21,8 @@ export {
   ArrowRight,
   ExternalLink,
   Home,
+  Rocket,
+  Command,
   // Actions
   Plus,
   Pencil,

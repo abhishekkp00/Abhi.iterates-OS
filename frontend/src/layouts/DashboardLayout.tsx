@@ -6,24 +6,9 @@ import { MobileDrawer } from '@/components/common/MobileDrawer'
 import { Navbar } from '@/components/common/Navbar'
 import { Breadcrumbs } from '@/components/common/Breadcrumbs'
 import { CommandMenu } from '@/components/common/CommandMenu'
+import { OnboardingModal } from '@/components/common/OnboardingModal'
 import { pageVariants, pageTransition } from '@/lib/animations'
 
-/**
- * DashboardLayout — visual application shell.
- *
- * Renders:
- *  - Desktop sidebar (hidden on mobile via `hidden md:flex`)
- *  - Mobile drawer (portal overlay, shown only on mobile)
- *  - Sticky top navbar (search, notifications, profile, hamburger)
- *  - Breadcrumb bar (auto-generated from pathname, hidden on /dashboard)
- *  - Animated content area (page transitions via Framer Motion)
- *  - CommandMenu (⌘K palette, controlled via cmdOpen state)
- *
- * CommandMenu is owned here (not in Navbar) because:
- *  - It's a layout-level concern — it can navigate anywhere in the app
- *  - Navbar receives `onOpenCmd` prop to trigger it from the search bar
- *  - This keeps Navbar free of navigation-related state
- */
 export function DashboardLayout() {
   const location = useLocation()
   const [cmdOpen, setCmdOpen] = useState(false)
@@ -35,6 +20,9 @@ export function DashboardLayout() {
 
       {/* Mobile drawer — portal overlay, only renders on mobile */}
       <MobileDrawer />
+
+      {/* Feature onboarding tour modal for new users */}
+      <OnboardingModal />
 
       {/* ⌘K Command palette — rendered at layout level so it overlays everything */}
       <CommandMenu open={cmdOpen} onClose={() => setCmdOpen(false)} />
