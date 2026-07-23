@@ -1,5 +1,7 @@
 package com.abhiiterates.os.config;
 
+import com.abhiiterates.os.auth.RefreshTokenRepository;
+import com.abhiiterates.os.auth.UserSessionRepository;
 import com.abhiiterates.os.user.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,8 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserSessionRepository userSessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final com.abhiiterates.os.marketplace.store.StoreResourceRepository storeResourceRepository;
 
@@ -60,7 +64,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         // 3. Seed Primary Admin Credentials (abhishekforcollege@gmail.com)
         seedAdminUser(adminRole, superAdminRole);
 
-        // 4. Purge All Non-Admin Student Logins (keep only admin credentials)
+        // 4. Purge All Non-Admin Student Logins (deleting tokens and sessions first)
         cleanupStudentLogins();
 
         // 5. Seed Initial Store Resources for Student Marketplace
@@ -110,7 +114,9 @@ public class DatabaseSeeder implements CommandLineRunner {
         if (!nonAdminUsers.isEmpty()) {
             log.info("Purging {} non-admin student logins from database...", nonAdminUsers.size());
             for (User student : nonAdminUsers) {
-                log.info("Deleting non-admin user: {}", student.getEmail());
+                log.info("Deleting dependent refresh tokens & sessions for student user: {}", student.getEmail());
+                refreshTokenRepository.deleteByUser(student);
+                userSessionRepository.deleteByUser(student);
                 userRepository.delete(student);
             }
         }
