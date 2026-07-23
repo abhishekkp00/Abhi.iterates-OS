@@ -2,6 +2,7 @@ package com.abhiiterates.os.auth;
 
 import com.abhiiterates.os.auth.dto.*;
 import com.abhiiterates.os.common.ApiResponse;
+import com.abhiiterates.os.user.User;
 import com.abhiiterates.os.user.dto.UserProfileDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -87,4 +89,21 @@ public class AuthController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/me")
+    @Operation(summary = "Fetch current authenticated user profile", description = "Returns the user profile associated with the JWT bearer token.")
+    public ResponseEntity<ApiResponse<UserProfileDto>> getMe(
+            @AuthenticationPrincipal User currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        UserProfileDto profile = authService.getCurrentUser(currentUser.getEmail());
+        ApiResponse<UserProfileDto> response = ApiResponse.success(
+                profile,
+                "Profile fetched successfully.",
+                servletRequest.getRequestURI()
+        );
+        return ResponseEntity.ok(response);
+    }
 }
+
+

@@ -67,6 +67,13 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+        <!-- OAuth2 Client for Google Authentication -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
+
         <!-- Lombok: Reducing boilerplate with annotations like @Getter, @Setter, @Builder -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -145,6 +152,19 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+
+        <!-- ── Real-Time: Spring WebSocket + STOMP + SockJS ─────────────── -->
+        <!-- Provides @EnableWebSocketMessageBroker, SimpMessagingTemplate,   -->
+        <!-- STOMP protocol support, and SockJS fallback transport.            -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.2</version>
         </dependency>
     </dependencies>
 

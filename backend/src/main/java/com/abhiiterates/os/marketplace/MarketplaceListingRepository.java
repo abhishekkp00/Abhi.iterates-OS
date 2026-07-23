@@ -26,4 +26,10 @@ public interface MarketplaceListingRepository extends JpaRepository<MarketplaceL
     );
 
     Page<MarketplaceListing> findBySeller(User seller, Pageable pageable);
+
+    long countBySeller(User seller);
+
+    long countBySellerAndStatus(User seller, ListingStatus status);
+
+    java.util.List<MarketplaceListing> findAllBySeller(User seller);
 }

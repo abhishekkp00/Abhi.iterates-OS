@@ -196,6 +196,14 @@ public class AuthServiceImpl implements AuthService {
         log.info("Logout successful. Token revoked.");
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfileDto getCurrentUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        return userMapper.toUserProfileDto(user);
+    }
+
     private String parseDeviceType(String userAgent) {
         if (userAgent == null) return "UNKNOWN";
         String ua = userAgent.toLowerCase();
@@ -207,3 +215,4 @@ public class AuthServiceImpl implements AuthService {
         return "DESKTOP";
     }
 }
+
