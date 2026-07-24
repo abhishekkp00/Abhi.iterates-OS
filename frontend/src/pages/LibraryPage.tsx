@@ -286,14 +286,14 @@ export default function LibraryPage() {
                   const [field, order] = e.target.value.split('-')
                   setSort(field as any, order as any)
                 }}
-                className="h-10 px-3 text-xs font-bold rounded-xl border border-border/80 bg-background/50 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer text-muted-foreground hover:text-foreground transition-all"
+                className="h-10 px-3 text-xs font-bold rounded-xl border border-border/80 bg-background focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer text-muted-foreground hover:text-foreground transition-all"
               >
-                <option value="createdAt-desc">Newest First</option>
-                <option value="createdAt-asc">Oldest First</option>
-                <option value="title-asc">Title (A-Z)</option>
-                <option value="title-desc">Title (Z-A)</option>
-                <option value="deadline-asc">Deadline (Soonest)</option>
-                <option value="deadline-desc">Deadline (Latest)</option>
+                <option value="createdAt-desc" className="bg-slate-900 text-slate-100">Newest First</option>
+                <option value="createdAt-asc" className="bg-slate-900 text-slate-100">Oldest First</option>
+                <option value="title-asc" className="bg-slate-900 text-slate-100">Title (A-Z)</option>
+                <option value="title-desc" className="bg-slate-900 text-slate-100">Title (Z-A)</option>
+                <option value="deadline-asc" className="bg-slate-900 text-slate-100">Deadline (Soonest)</option>
+                <option value="deadline-desc" className="bg-slate-900 text-slate-100">Deadline (Latest)</option>
               </select>
 
               <Button
