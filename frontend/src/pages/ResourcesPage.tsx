@@ -8,110 +8,17 @@ import { ResourceCard } from '@/features/resources/components/ResourceCard'
 import { ResourceTable } from '@/features/resources/components/ResourceTable'
 import { ResourceListSkeleton } from '@/features/resources/components/ResourceListSkeleton'
 import { useResourcesStore } from '@/features/resources/store/resources.store'
+import { useResourcesListQuery, useDeleteResourceMutation } from '@/features/resources/hooks/useResources'
 import { useMyPurchasesQuery } from '@/features/marketplace/hooks/useStore'
 import { staggerParentVariants, staggerChildVariants } from '@/lib/animations'
-import type { Resource } from '@/types/resources'
 import { BookOpen, Download, Sparkles, Bot, SlidersHorizontal } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
-// ── Realistic Mock Data ──────────────────────────────────────────────────────
-const MOCK_RESOURCES: Resource[] = [
-  {
-    id: 'res-1',
-    title: 'Algorithms & Complexity Cheat Sheet',
-    description: 'Quick reference guide covering Sorting, Big-O, Graph traversals (DFS/BFS), and dynamic programming paradigms.',
-    category: 'CHEATSHEET',
-    status: 'ACTIVE',
-    priority: 'HIGH',
-    deadline: '2026-07-20T23:59:59Z',
-    createdAt: '2026-07-01T10:00:00Z',
-    updatedAt: '2026-07-02T12:00:00Z',
-    attachments: [
-      { id: 'att-1', fileName: 'algorithms_ref.pdf', fileSize: 1024 * 1500, contentType: 'application/pdf', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-2',
-    title: 'Introduction to Organic Chemistry - Lecture Slides',
-    description: 'Detailed lecture material on covalent bonds, functional groups, and carbon chains reaction mechanisms.',
-    category: 'LECTURE',
-    status: 'ACTIVE',
-    priority: 'MEDIUM',
-    deadline: '2026-07-28T18:00:00Z',
-    createdAt: '2026-07-02T09:30:00Z',
-    updatedAt: '2026-07-02T09:30:00Z',
-    attachments: [
-      { id: 'att-2', fileName: 'chem_lecture_3.pdf', fileSize: 1024 * 3400, contentType: 'application/pdf', downloadUrl: '#' },
-      { id: 'att-3', fileName: 'reaction_formulas.docx', fileSize: 1024 * 450, contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-3',
-    title: 'Operating Systems Midterm past paper - Fall 2025',
-    description: 'Exam questions from past year covering process synchronization, semaphores, and virtual memory paging.',
-    category: 'PAST_PAPER',
-    status: 'ACTIVE',
-    priority: 'HIGH',
-    deadline: '2026-07-15T09:00:00Z',
-    createdAt: '2026-07-03T14:00:00Z',
-    updatedAt: '2026-07-03T15:30:00Z',
-    attachments: [
-      { id: 'att-4', fileName: 'os_midterm_2025.pdf', fileSize: 1024 * 850, contentType: 'application/pdf', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-4',
-    title: 'Calculus II Paging/Sequences Outline',
-    description: 'Comprehensive assignment guide focusing on Taylor series convergence and integration techniques.',
-    category: 'OTHER',
-    status: 'DRAFT',
-    priority: 'LOW',
-    createdAt: '2026-07-04T16:00:00Z',
-    updatedAt: '2026-07-04T16:00:00Z',
-    attachments: [],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-5',
-    title: 'Machine Learning Deep Foundations - Volume I',
-    description: 'Open source PDF book on linear algebra bases, loss optimization, and neural architecture principles.',
-    category: 'BOOK',
-    status: 'ACTIVE',
-    priority: 'MEDIUM',
-    deadline: '2026-08-05T12:00:00Z',
-    createdAt: '2026-07-05T08:00:00Z',
-    updatedAt: '2026-07-06T10:00:00Z',
-    attachments: [
-      { id: 'att-5', fileName: 'ml_foundations_vol1.pdf', fileSize: 1024 * 12400, contentType: 'application/pdf', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-6',
-    title: 'Intellectual Property Law Case Files',
-    description: 'Archived studies on fair use guidelines, software patenting laws, and copyright infringement rulings.',
-    category: 'LECTURE',
-    status: 'ARCHIVED',
-    priority: 'LOW',
-    createdAt: '2026-06-25T11:00:00Z',
-    updatedAt: '2026-06-29T14:00:00Z',
-    attachments: [
-      { id: 'att-6', fileName: 'ip_law_cases.pdf', fileSize: 1024 * 5100, contentType: 'application/pdf', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  }
-]
-
 export default function ResourcesPage() {
   const navigate = useNavigate()
   const [showFilters, setShowFilters] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [resources, setResources] = useState<Resource[]>(MOCK_RESOURCES)
 
   const { data: myPurchases = [] } = useMyPurchasesQuery()
 
@@ -130,14 +37,29 @@ export default function ResourcesPage() {
     resetFilters,
   } = useResourcesStore()
 
-  // Simulate loading state transitions on first render or query changes
+  // Query resources from Backend API
+  const { data: resourcesPage, isLoading: loading } = useResourcesListQuery({
+    page,
+    size: pageSize,
+    search: searchQuery.trim() || undefined,
+    categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+    priorities: selectedPriorities.length > 0 ? selectedPriorities : undefined,
+    statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+    sort: `${sortBy},${sortOrder}`,
+  })
+
+  const deleteMutation = useDeleteResourceMutation()
+
+  const paginatedResources = resourcesPage?.content || []
+  const totalItems = resourcesPage?.totalElements || 0
+  const totalPages = Math.max(1, resourcesPage?.totalPages || 1)
+
+  // Ensure current page doesn't overshoot boundaries if list shrinks
   useEffect(() => {
-    setLoading(true)
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [searchQuery, selectedCategories, selectedPriorities, selectedStatuses, sortBy, sortOrder])
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [totalPages, page, setPage])
 
   function handleAddResource() {
     navigate('/resources/new')
@@ -150,73 +72,10 @@ export default function ResourcesPage() {
   }
 
   function handleDeleteResource(id: string) {
-    if (confirm('Are you sure you want to delete this resource?')) {
-      setResources((prev) => prev.filter((r) => r.id !== id))
+    if (confirm('Are you sure you want to delete this study resource?')) {
+      deleteMutation.mutate(id)
     }
   }
-
-  // ── Apply Query & Filters ─────────────────────────────────────────────────
-  const filteredResources = resources.filter((res) => {
-    // Search query check
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      const titleMatch = res.title.toLowerCase().includes(q)
-      const descMatch = res.description?.toLowerCase().includes(q)
-      if (!titleMatch && !descMatch) return false
-    }
-
-    // Categories filter
-    if (selectedCategories.length > 0) {
-      if (!selectedCategories.includes(res.category)) return false
-    }
-
-    // Priorities filter
-    if (selectedPriorities.length > 0) {
-      if (!selectedPriorities.includes(res.priority)) return false
-    }
-
-    // Statuses filter
-    if (selectedStatuses.length > 0) {
-      if (!selectedStatuses.includes(res.status)) return false
-    }
-
-    return true
-  })
-
-  // ── Apply Sorting ─────────────────────────────────────────────────────────
-  const sortedResources = [...filteredResources].sort((a, b) => {
-    const factor = sortOrder === 'asc' ? 1 : -1
-    
-    if (sortBy === 'title') {
-      return a.title.localeCompare(b.title) * factor
-    }
-
-    if (sortBy === 'deadline') {
-      const aTime = a.deadline ? new Date(a.deadline).getTime() : Infinity
-      const bTime = b.deadline ? new Date(b.deadline).getTime() : Infinity
-      return (aTime - bTime) * factor
-    }
-
-    // Default: Sort by createdAt
-    const aTime = new Date(a.createdAt).getTime()
-    const bTime = new Date(b.createdAt).getTime()
-    return (aTime - bTime) * factor
-  })
-
-  // ── Apply Pagination Slicing ──────────────────────────────────────────────
-  const totalItems = sortedResources.length
-  const paginatedResources = sortedResources.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  )
-
-  // Ensure current page doesn't overshoot boundaries if list shrinks
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages)
-    }
-  }, [totalPages, page, setPage])
 
   return (
     <div className="page-container max-w-7xl">
