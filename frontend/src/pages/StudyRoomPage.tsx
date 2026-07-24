@@ -51,6 +51,7 @@ export default function StudyRoomPage() {
   // References and local states
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const editorRef = useRef<HTMLDivElement | null>(null)
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
   const [isPdfLoading, setIsPdfLoading] = useState(true)
@@ -205,12 +206,42 @@ export default function StudyRoomPage() {
     }
   }
 
-  // ── Canvas Drawing Logic ─────────────────────────────────────────────────
-  const redrawCanvas = () => {
+  // ── Canvas Scroll Coordinate & Drawing Logic ─────────────────────────────
+  const getScrollPos = useCallback((): { scrollTop: number; scrollLeft: number } => {
+    if (iframeRef.current) {
+      try {
+        const win = iframeRef.current.contentWindow
+        if (win && (win.scrollY !== undefined || win.pageYOffset !== undefined)) {
+          const sTop = win.scrollY || win.pageYOffset || 0
+          const sLeft = win.scrollX || win.pageXOffset || 0
+          if (sTop > 0 || sLeft > 0) return { scrollTop: sTop, scrollLeft: sLeft }
+        }
+        const doc = iframeRef.current.contentDocument
+        if (doc && doc.documentElement) {
+          const sTop = doc.documentElement.scrollTop || doc.body?.scrollTop || 0
+          const sLeft = doc.documentElement.scrollLeft || doc.body?.scrollLeft || 0
+          if (sTop > 0 || sLeft > 0) return { scrollTop: sTop, scrollLeft: sLeft }
+        }
+      } catch (e) {
+        // Cross-origin fallback
+      }
+    }
+    if (containerRef.current) {
+      return {
+        scrollTop: containerRef.current.scrollTop || 0,
+        scrollLeft: containerRef.current.scrollLeft || 0,
+      }
+    }
+    return { scrollTop: 0, scrollLeft: 0 }
+  }, [])
+
+  const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+
+    const scroll = getScrollPos()
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
@@ -226,16 +257,58 @@ export default function StudyRoomPage() {
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
 
-      ctx.moveTo(first.x, first.y)
+      ctx.moveTo(first.x - scroll.scrollLeft, first.y - scroll.scrollTop)
       for (let i = 1; i < pts.length; i++) {
         const pt = pts[i]
         if (pt) {
-          ctx.lineTo(pt.x, pt.y)
+          ctx.lineTo(pt.x - scroll.scrollLeft, pt.y - scroll.scrollTop)
         }
       }
       ctx.stroke()
     })
-  }
+  }, [strokes, getScrollPos])
+
+  // Attach scroll listeners to container and iframe
+  useEffect(() => {
+    const handleScroll = () => {
+      redrawCanvas()
+    }
+
+    const container = containerRef.current
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true })
+    }
+
+    const iframe = iframeRef.current
+    let iframeWin: Window | null = null
+
+    if (iframe) {
+      const attachListener = () => {
+        try {
+          iframeWin = iframe.contentWindow
+          if (iframeWin) {
+            iframeWin.addEventListener('scroll', handleScroll, { passive: true })
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      iframe.addEventListener('load', attachListener)
+      attachListener()
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll)
+      }
+      if (iframeWin) {
+        try {
+          iframeWin.removeEventListener('scroll', handleScroll)
+        } catch (e) {}
+      }
+    }
+  }, [redrawCanvas])
 
   // Handle canvas resize to match screen container
   useEffect(() => {
@@ -251,12 +324,10 @@ export default function StudyRoomPage() {
 
     handleResize()
     window.addEventListener('resize', handleResize)
-
-    // Redraw whenever strokes list updates
     redrawCanvas()
 
     return () => window.removeEventListener('resize', handleResize)
-  }, [strokes, isPdfLoading])
+  }, [redrawCanvas, isPdfLoading])
 
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16)
@@ -265,13 +336,34 @@ export default function StudyRoomPage() {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`
   }
 
+  const eraseStrokeAt = (docX: number, docY: number) => {
+    const threshold = 18
+    const filtered = strokes.filter((stroke) => {
+      const isClose = stroke.points.some((p) => {
+        const dx = p.x - docX
+        const dy = p.y - docY
+        return Math.sqrt(dx * dx + dy * dy) < threshold
+      })
+      return !isClose
+    })
+
+    if (filtered.length !== strokes.length) {
+      setStrokes(filtered)
+      if (resourceId) {
+        localStorage.setItem(`study_strokes_${resourceId}`, JSON.stringify(filtered))
+      }
+    }
+  }
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (tool === 'scroll') return
     const canvas = canvasRef.current
     if (!canvas) return
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const scroll = getScrollPos()
+
+    const x = e.clientX - rect.left + scroll.scrollLeft
+    const y = e.clientY - rect.top + scroll.scrollTop
 
     if (tool === 'eraser') {
       eraseStrokeAt(x, y)
@@ -294,8 +386,10 @@ export default function StudyRoomPage() {
     const canvas = canvasRef.current
     if (!canvas) return
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const scroll = getScrollPos()
+
+    const x = e.clientX - rect.left + scroll.scrollLeft
+    const y = e.clientY - rect.top + scroll.scrollTop
 
     if (tool === 'eraser') {
       if (e.buttons === 1) {
@@ -312,7 +406,7 @@ export default function StudyRoomPage() {
     }
     setCurrentStroke(updatedStroke)
 
-    // Immediate draw feedback
+    // Immediate draw feedback taking scroll into account
     const ctx = canvas.getContext('2d')
     if (ctx) {
       ctx.beginPath()
@@ -326,8 +420,8 @@ export default function StudyRoomPage() {
         const p1 = pts[pts.length - 2]
         const p2 = pts[pts.length - 1]
         if (p1 && p2) {
-          ctx.moveTo(p1.x, p1.y)
-          ctx.lineTo(p2.x, p2.y)
+          ctx.moveTo(p1.x - scroll.scrollLeft, p1.y - scroll.scrollTop)
+          ctx.lineTo(p2.x - scroll.scrollLeft, p2.y - scroll.scrollTop)
           ctx.stroke()
         }
       }
@@ -345,23 +439,16 @@ export default function StudyRoomPage() {
     }
   }
 
-  const eraseStrokeAt = (x: number, y: number) => {
-    const threshold = 18
-    const filtered = strokes.filter((stroke) => {
-      const isClose = stroke.points.some((p) => {
-        const dx = p.x - x
-        const dy = p.y - y
-        return Math.sqrt(dx * dx + dy * dy) < threshold
-      })
-      return !isClose
-    })
-
-    if (filtered.length !== strokes.length) {
-      setStrokes(filtered)
-      if (resourceId) {
-        localStorage.setItem(`study_strokes_${resourceId}`, JSON.stringify(filtered))
-      }
+  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    if (iframeRef.current) {
+      try {
+        iframeRef.current.contentWindow?.scrollBy({ top: e.deltaY, left: e.deltaX, behavior: 'instant' as ScrollBehavior })
+      } catch (err) {}
     }
+    if (containerRef.current) {
+      containerRef.current.scrollTop += e.deltaY
+    }
+    redrawCanvas()
   }
 
   const clearStrokes = () => {
@@ -790,6 +877,7 @@ Provide highly detailed study responses. Format mathematics equations elegantly,
               {/* PDF embed iframe */}
               {pdfBlobUrl ? (
                 <iframe
+                  ref={iframeRef}
                   src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
                   title="Study Document Reader"
                   className="w-full h-full border-none z-0"
@@ -813,6 +901,7 @@ Provide highly detailed study responses. Format mathematics equations elegantly,
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                onWheel={handleWheel}
                 className="absolute inset-0 z-10 w-full h-full select-none"
                 style={{
                   pointerEvents: tool === 'scroll' ? 'none' : 'auto',
