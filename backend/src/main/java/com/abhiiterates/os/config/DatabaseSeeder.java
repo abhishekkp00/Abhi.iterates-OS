@@ -4,6 +4,7 @@ import com.abhiiterates.os.user.*;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,14 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
     private final com.abhiiterates.os.marketplace.store.StoreResourceRepository storeResourceRepository;
+
+    /** Loaded from ADMIN_EMAIL env variable — never hardcoded in source */
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
+    /** Loaded from ADMIN_PASSWORD env variable — never hardcoded in source */
+    @Value("${app.admin.password}")
+    private String adminPassword;
 
     @Override
     @Transactional
@@ -60,7 +69,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         Role adminRole = getOrCreateRole("ROLE_ADMIN", "System administrator role", adminPerms);
         Role superAdminRole = getOrCreateRole("ROLE_SUPER_ADMIN", "System owner role", adminPerms);
 
-        // 3. Seed Primary Admin Credentials (abhishekforcollege@gmail.com)
+        // 3. Seed Primary Admin Credentials (loaded from ADMIN_EMAIL / ADMIN_PASSWORD env vars)
         User adminUser = seedAdminUser(adminRole, superAdminRole);
 
         // 4. Purge All Non-Admin Student Logins (reassigning content to primary admin)
@@ -73,36 +82,34 @@ public class DatabaseSeeder implements CommandLineRunner {
     }
 
     private User seedAdminUser(Role adminRole, Role superAdminRole) {
-        String adminEmail = "abhishekforcollege@gmail.com";
         Set<Role> roles = new HashSet<>();
         if (adminRole != null) roles.add(adminRole);
         if (superAdminRole != null) roles.add(superAdminRole);
 
         return userRepository.findByEmail(adminEmail).map(user -> {
-            user.setPasswordHash(passwordEncoder.encode("Abhishek.1410@2004"));
+            user.setPasswordHash(passwordEncoder.encode(adminPassword));
             user.setRoles(roles);
             user.setActive(true);
             user.setEmailVerified(true);
-            log.info("Admin user '{}' verified and updated.", adminEmail);
+            log.info("Admin user verified and updated.");
             return userRepository.save(user);
         }).orElseGet(() -> {
             User adminUser = User.builder()
                     .email(adminEmail)
                     .username("abhishek")
-                    .passwordHash(passwordEncoder.encode("Abhishek.1410@2004"))
+                    .passwordHash(passwordEncoder.encode(adminPassword))
                     .firstName("Abhishek")
                     .lastName("Admin")
                     .roles(roles)
                     .active(true)
                     .emailVerified(true)
                     .build();
-            log.info("Seeded primary admin user: {}", adminEmail);
+            log.info("Seeded primary admin user from environment configuration.");
             return userRepository.save(adminUser);
         });
     }
 
     private void cleanupStudentLogins(User adminUser) {
-        String adminEmail = "abhishekforcollege@gmail.com";
         List<User> nonAdminUsers = userRepository.findAll().stream()
                 .filter(u -> !adminEmail.equalsIgnoreCase(u.getEmail()))
                 .collect(Collectors.toList());

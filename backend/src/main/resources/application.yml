@@ -80,6 +80,9 @@ app:
       expiration-ms: ${JWT_EXPIRATION_MS:900000}          # 15 minutes
       refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 days
   upi-id: ${UPI_ID:abhiiterates@upi}
+  admin:
+    email: ${ADMIN_EMAIL}
+    password: ${ADMIN_PASSWORD}
 
 # ── AI Module App Config ──────────────────────────────────────────────────────
 ai:
