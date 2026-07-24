@@ -472,7 +472,9 @@ export default function AdminMarketplace() {
                     type="date"
                     value={formData.expiryDate || ''}
                     onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                    className="h-9 text-xs"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    onFocus={(e) => e.currentTarget.showPicker?.()}
+                    className="h-9 text-xs cursor-pointer [color-scheme:dark]"
                   />
                 </div>
 

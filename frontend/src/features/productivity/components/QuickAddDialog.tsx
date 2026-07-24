@@ -149,7 +149,9 @@ export function QuickAddDialog({ isOpen, onClose, onAddTask, onAddEvent }: Quick
                     required
                     value={eventStart}
                     onChange={(e) => setEventStart(e.target.value)}
-                    className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    onFocus={(e) => e.currentTarget.showPicker?.()}
+                    className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer [color-scheme:dark]"
                   />
                 </div>
 
@@ -163,7 +165,9 @@ export function QuickAddDialog({ isOpen, onClose, onAddTask, onAddEvent }: Quick
                     required
                     value={eventEnd}
                     onChange={(e) => setEventEnd(e.target.value)}
-                    className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    onFocus={(e) => e.currentTarget.showPicker?.()}
+                    className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer [color-scheme:dark]"
                   />
                 </div>
               </div>
