@@ -8,9 +8,13 @@ import { ResourceCard } from '@/features/resources/components/ResourceCard'
 import { ResourceTable } from '@/features/resources/components/ResourceTable'
 import { ResourceListSkeleton } from '@/features/resources/components/ResourceListSkeleton'
 import { useResourcesStore } from '@/features/resources/store/resources.store'
+import { useMyPurchasesQuery } from '@/features/marketplace/hooks/useStore'
 import { staggerParentVariants, staggerChildVariants } from '@/lib/animations'
 import type { Resource } from '@/types/resources'
-import { SlidersHorizontal } from '@/lib/icons'
+import { BookOpen, Download, Sparkles, Bot, SlidersHorizontal } from '@/lib/icons'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 // ── Realistic Mock Data ──────────────────────────────────────────────────────
 const MOCK_RESOURCES: Resource[] = [
@@ -109,6 +113,8 @@ export default function ResourcesPage() {
   const [loading, setLoading] = useState(true)
   const [resources, setResources] = useState<Resource[]>(MOCK_RESOURCES)
 
+  const { data: myPurchases = [] } = useMyPurchasesQuery()
+
   // Grab ZUSTAND filter properties
   const {
     searchQuery,
@@ -135,6 +141,12 @@ export default function ResourcesPage() {
 
   function handleAddResource() {
     navigate('/resources/new')
+  }
+
+  function handleOpenStudyRoom(item: any) {
+    const fileName = item.fileName || `${item.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+    const url = item.fileUrl || ''
+    navigate(`/resources/study/${item.id}?file=${encodeURIComponent(fileName)}&url=${encodeURIComponent(url)}`)
   }
 
   function handleDeleteResource(id: string) {
@@ -233,6 +245,60 @@ export default function ResourcesPage() {
             </p>
           </div>
         </motion.div>
+
+        {/* Purchased Marketplace Notes Section */}
+        {myPurchases.length > 0 && (
+          <motion.div variants={staggerChildVariants} className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="size-4 text-emerald-400" />
+                Unlocked Marketplace & Placement Notes ({myPurchases.length})
+              </h2>
+              <span className="text-xs text-muted-foreground">Interactive AI Study Room Available</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {myPurchases.map((item) => (
+                <Card key={item.id} className="bg-card/70 border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
+                  <CardHeader className="p-4 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                        {item.category}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[9px] bg-indigo-500/10 text-indigo-400">
+                        <Bot className="size-3 mr-1" />
+                        AI Chat Ready
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-sm font-bold text-foreground pt-1 line-clamp-1">{item.title}</CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="px-4 py-1 space-y-1 text-xs text-muted-foreground">
+                    <p className="line-clamp-2">{item.description}</p>
+                  </CardContent>
+
+                  <CardFooter className="p-4 pt-3 flex gap-2 border-t border-border/40">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleOpenStudyRoom(item)}
+                      className="flex-1 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                    >
+                      <BookOpen className="size-3.5" />
+                      Open Study Room & AI Notes
+                    </Button>
+                    <a href={item.fileUrl} target="_blank" rel="noreferrer" download>
+                      <Button variant="outline" size="sm" className="text-xs gap-1.5">
+                        <Download className="size-3.5" />
+                        Download
+                      </Button>
+                    </a>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Toolbar */}
         <motion.div variants={staggerChildVariants}>

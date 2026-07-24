@@ -113,6 +113,13 @@ export default function StudyRoomPage() {
         return
       }
 
+      if (downloadUrl.startsWith('data:') || downloadUrl.startsWith('http://') || downloadUrl.startsWith('https://') || downloadUrl.startsWith('blob:')) {
+        setPdfBlobUrl(downloadUrl)
+        setIsPdfLoading(false)
+        animateIngestion()
+        return
+      }
+
       try {
         setIsPdfLoading(true)
         const cleanUrl = downloadUrl.startsWith('/api/v1') ? downloadUrl.replace('/api/v1', '') : downloadUrl

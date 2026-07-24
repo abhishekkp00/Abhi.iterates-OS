@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import {
   useStoreResourcesQuery,
   useStoreCategoriesQuery,
@@ -30,13 +32,13 @@ import { Input } from '@/components/ui/input'
 import { UPI_ID } from '@/constants/app'
 
 export default function MarketplacePage() {
+  const navigate = useNavigate()
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [viewTab, setViewTab] = useState<'EXPLORE' | 'MY_NOTES'>('EXPLORE')
 
   // Modals state
   const [purchasingItem, setPurchasingItem] = useState<StoreResourceItem | null>(null)
-  const [viewingItem, setViewingItem] = useState<StoreResourceItem | null>(null)
   const [upiRefInput, setUpiRefInput] = useState<string>('')
   const [copiedUpi, setCopiedUpi] = useState<boolean>(false)
 
@@ -60,6 +62,12 @@ export default function MarketplacePage() {
     setTimeout(() => setCopiedUpi(false), 2000)
   }
 
+  const handleOpenStudyRoom = (item: StoreResourceItem) => {
+    const fileName = item.fileName || `${item.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+    const url = item.fileUrl || ''
+    navigate(`/resources/study/${item.id}?file=${encodeURIComponent(fileName)}&url=${encodeURIComponent(url)}`)
+  }
+
   const handleClaimFree = (item: StoreResourceItem) => {
     setClaimingFreeId(item.id)
     upiMutation.mutate(
@@ -70,10 +78,12 @@ export default function MarketplacePage() {
       {
         onSuccess: () => {
           setClaimingFreeId(null)
-          setViewingItem(item)
+          toast.success(`Unlocked "${item.title}"! Opening Interactive Study Room...`)
+          handleOpenStudyRoom(item)
         },
         onError: () => {
           setClaimingFreeId(null)
+          toast.error('Failed to unlock free notes. Please try again.')
         },
       }
     )
@@ -90,8 +100,14 @@ export default function MarketplacePage() {
       },
       {
         onSuccess: () => {
+          const item = purchasingItem
           setPurchasingItem(null)
           setUpiRefInput('')
+          toast.success(`Payment verified! Opening Interactive Study Room for "${item.title}"...`)
+          handleOpenStudyRoom(item)
+        },
+        onError: () => {
+          toast.error('Payment verification failed. Please check the UTR number.')
         },
       }
     )
@@ -264,11 +280,11 @@ export default function MarketplacePage() {
                           <Button
                             variant="default"
                             size="sm"
-                            onClick={() => setViewingItem(item)}
+                            onClick={() => handleOpenStudyRoom(item)}
                             className="w-full gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
                           >
-                            <CheckCircle2 className="size-3.5" />
-                            Unlocked — Access Notes
+                            <BookOpen className="size-3.5" />
+                            Open Interactive Study Room & AI Notes
                           </Button>
                         ) : item.priceInRupees === 0 ? (
                           <Button
@@ -355,11 +371,11 @@ export default function MarketplacePage() {
                     <Button
                       variant="default"
                       size="sm"
-                      onClick={() => setViewingItem(item)}
+                      onClick={() => handleOpenStudyRoom(item)}
                       className="flex-1 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700"
                     >
                       <BookOpen className="size-3.5" />
-                      View Notes Online
+                      Open Study Room & AI Notes
                     </Button>
                     <a href={item.fileUrl} target="_blank" rel="noreferrer" download>
                       <Button variant="outline" size="sm" className="text-xs gap-1.5">
@@ -498,52 +514,6 @@ export default function MarketplacePage() {
         )}
       </AnimatePresence>
 
-      {/* Document Viewer Modal */}
-      <AnimatePresence>
-        {viewingItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card border border-border rounded-2xl shadow-2xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-border bg-muted/40">
-                <div className="space-y-0.5">
-                  <Badge variant="outline" className={`text-[9px] ${getCategoryColor(viewingItem.category)}`}>
-                    {viewingItem.category}
-                  </Badge>
-                  <h3 className="text-sm font-bold text-foreground line-clamp-1">{viewingItem.title}</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  <a href={viewingItem.fileUrl} target="_blank" rel="noreferrer" download>
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                      <Download className="size-3.5" />
-                      Download PDF
-                    </Button>
-                  </a>
-                  <button
-                    onClick={() => setViewingItem(null)}
-                    className="p-1 rounded-lg hover:bg-accent text-muted-foreground"
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Document Frame */}
-              <div className="flex-1 bg-slate-950 p-2 flex flex-col items-center justify-center overflow-hidden">
-                <iframe
-                  src={viewingItem.fileUrl}
-                  title={viewingItem.title}
-                  className="w-full h-full rounded-lg border border-slate-800 bg-white"
-                />
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
