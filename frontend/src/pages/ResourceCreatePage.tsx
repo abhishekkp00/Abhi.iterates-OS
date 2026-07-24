@@ -17,7 +17,6 @@ export default function ResourceCreatePage() {
       category: values.category,
       priority: values.priority,
       status: values.status,
-      deadline: values.deadline ? new Date(values.deadline).toISOString() : undefined,
       tags: values.tags,
     })
     return data.id

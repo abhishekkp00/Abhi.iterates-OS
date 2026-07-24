@@ -21,18 +21,6 @@ const resourceFormSchema = z.object({
   category: z.enum(['LECTURE', 'BOOK', 'CHEATSHEET', 'PAST_PAPER', 'OTHER']),
   priority: z.enum(['HIGH', 'MEDIUM', 'LOW']),
   status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED']),
-  deadline: z
-    .string()
-    .optional()
-    .refine(
-      (val) => {
-        if (!val) return true
-        const date = new Date(val)
-        return !isNaN(date.getTime())
-      },
-      { message: 'Please enter a valid date.' }
-    )
-    .or(z.literal('')),
   tags: z
     .string()
     .optional()
@@ -72,7 +60,6 @@ export function ResourceForm({
       category: initialData?.category ?? 'LECTURE',
       priority: initialData?.priority ?? 'MEDIUM',
       status: initialData?.status ?? 'ACTIVE',
-      deadline: initialData?.deadline ? new Date(initialData.deadline).toISOString().split('T')[0] : '',
       tags: initialData?.tags ?? '',
     },
   })
@@ -162,7 +149,7 @@ export function ResourceForm({
       </div>
 
       {/* Inputs Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* Category Select */}
         <div className="space-y-1">
           <label htmlFor="category" className="text-xs font-semibold text-foreground">
@@ -219,24 +206,6 @@ export function ResourceForm({
           </select>
           {errors.status && (
             <p className="text-xs text-destructive mt-1 font-medium">{errors.status.message}</p>
-          )}
-        </div>
-
-        {/* Target Deadline */}
-        <div className="space-y-1">
-          <label htmlFor="deadline" className="text-xs font-semibold text-foreground">
-            Target Completion Deadline
-          </label>
-          <input
-            id="deadline"
-            type="date"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring text-foreground cursor-pointer [color-scheme:dark]"
-            {...register('deadline')}
-            onClick={(e) => e.currentTarget.showPicker?.()}
-            onFocus={(e) => e.currentTarget.showPicker?.()}
-          />
-          {errors.deadline && (
-            <p className="text-xs text-destructive mt-1 font-medium">{errors.deadline.message}</p>
           )}
         </div>
       </div>
