@@ -28,4 +28,6 @@ public interface ResourceService {
     void delete(UUID id, User user);
 
     ResourceResponse archive(UUID id, User user);
+
+    ResourceResponse toggleStar(UUID id, User user);
 }

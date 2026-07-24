@@ -121,4 +121,17 @@ public class ResourceController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{id}/star")
+    public ResponseEntity<ApiResponse<ResourceResponse>> toggleStarResource(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user,
+            HttpServletRequest servletRequest
+    ) {
+        ResourceResponse data = resourceService.toggleStar(id, user);
+        ApiResponse<ResourceResponse> response = ApiResponse.success(
+                data, "Resource star toggled successfully", servletRequest.getRequestURI()
+        );
+        return ResponseEntity.ok(response);
+    }
 }

@@ -27,6 +27,7 @@ import {
   Sparkles,
   Tag,
   AlertCircle,
+  Star,
 } from '@/lib/icons'
 
 // Icon registry for collection tags
@@ -102,8 +103,13 @@ export default function LibraryPage() {
   // Delete mutation
   const deleteMutation = useDeleteResourceMutation()
 
+  const starredCount = allResources.filter((r) => r.starred).length
+
   // Client-side filtering when a collection is selected
   const filteredResources = allResources.filter((res) => {
+    if (activeCollection === 'starred') {
+      return res.starred === true
+    }
     if (!activeCollection) return true
     const activeCol = collections.find((c) => c.id === activeCollection)
     if (!activeCol) return true
@@ -226,6 +232,23 @@ export default function LibraryPage() {
                 <span>All Documents</span>
                 <Badge variant="outline" className="text-[10px] font-bold">
                   {allResources.length}
+                </Badge>
+              </button>
+
+              <button
+                onClick={() => setActiveCollection('starred')}
+                className={`w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
+                  activeCollection === 'starred'
+                    ? 'border-amber-400/30 bg-amber-500/10 text-amber-400 font-bold'
+                    : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                  <span>Starred Items</span>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-bold border-amber-400/30 text-amber-400">
+                  {starredCount}
                 </Badge>
               </button>
 

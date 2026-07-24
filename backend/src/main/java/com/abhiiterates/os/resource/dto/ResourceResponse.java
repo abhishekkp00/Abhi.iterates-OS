@@ -22,6 +22,7 @@ public class ResourceResponse {
     private ResourceStatus status;
     private Instant deadline;
     private String tags;
+    private boolean starred;
     private Instant createdAt;
     private Instant updatedAt;
     private List<AttachmentResponse> attachments;

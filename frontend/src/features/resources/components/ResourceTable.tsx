@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import type { Resource } from '@/types/resources'
-import { FileText, File, Eye, Pencil, Trash2, Calendar, Paperclip } from '@/lib/icons'
+import { FileText, File, Eye, Pencil, Trash2, Calendar, Paperclip, Star } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { useToggleStarResourceMutation } from '../hooks/useResources'
 
 interface ResourceTableProps {
   resources: Resource[]
@@ -29,6 +30,8 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 export function ResourceTable({ resources, onDeleteClick }: ResourceTableProps) {
+  const toggleStarMutation = useToggleStarResourceMutation()
+
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
       <table className="w-full border-collapse text-left text-sm" aria-label="Resources table">
@@ -55,13 +58,31 @@ export function ResourceTable({ resources, onDeleteClick }: ResourceTableProps) 
                 {/* Title & Attachment details */}
                 <td className="px-4 py-3">
                   <div className="flex flex-col gap-0.5">
-                    <Link
-                      to={`/resources/${res.id}`}
-                      className="font-medium text-foreground hover:text-primary transition-colors line-clamp-1"
-                    >
-                      {res.title}
-                    </Link>
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleStarMutation.mutate(res.id)}
+                        disabled={toggleStarMutation.isPending}
+                        title={res.starred ? 'Unstar resource' : 'Star resource'}
+                        className="p-0.5 rounded hover:bg-muted transition-colors cursor-pointer"
+                      >
+                        <Star
+                          className={cn(
+                            'size-3.5 transition-all',
+                            res.starred
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-muted-foreground/40 hover:text-amber-400'
+                          )}
+                        />
+                      </button>
+                      <Link
+                        to={`/resources/${res.id}`}
+                        className="font-medium text-foreground hover:text-primary transition-colors line-clamp-1"
+                      >
+                        {res.title}
+                      </Link>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground pl-5">
                       <span className="flex items-center gap-0.5">
                         <Paperclip className="size-3" />
                         {res.attachments.length} {res.attachments.length === 1 ? 'file' : 'files'}

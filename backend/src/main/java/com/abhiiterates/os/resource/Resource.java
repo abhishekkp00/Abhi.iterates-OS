@@ -47,6 +47,10 @@ public class Resource extends BaseAuditEntity {
     @Column(name = "tags")
     private String tags;
 
+    @Column(name = "is_starred", nullable = false)
+    @Builder.Default
+    private boolean starred = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

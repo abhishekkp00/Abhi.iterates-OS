@@ -58,6 +58,7 @@ public class ResourceServiceImpl implements ResourceService {
                 .status(request.getStatus())
                 .deadline(request.getDeadline())
                 .tags(request.getTags())
+                .starred(Boolean.TRUE.equals(request.getStarred()))
                 .user(user)
                 .build();
 
@@ -90,6 +91,9 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setStatus(request.getStatus());
         resource.setDeadline(request.getDeadline());
         resource.setTags(request.getTags());
+        if (request.getStarred() != null) {
+            resource.setStarred(request.getStarred());
+        }
 
         Resource updated = resourceRepository.save(resource);
         return mapToResponse(updated);
@@ -107,6 +111,15 @@ public class ResourceServiceImpl implements ResourceService {
     public ResourceResponse archive(UUID id, User user) {
         Resource resource = getResourceAndValidateOwner(id, user);
         resource.setStatus(ResourceStatus.ARCHIVED);
+        Resource updated = resourceRepository.save(resource);
+        return mapToResponse(updated);
+    }
+
+    @Override
+    @Transactional
+    public ResourceResponse toggleStar(UUID id, User user) {
+        Resource resource = getResourceAndValidateOwner(id, user);
+        resource.setStarred(!resource.isStarred());
         Resource updated = resourceRepository.save(resource);
         return mapToResponse(updated);
     }
@@ -133,6 +146,7 @@ public class ResourceServiceImpl implements ResourceService {
                 .status(resource.getStatus())
                 .deadline(resource.getDeadline())
                 .tags(resource.getTags())
+                .starred(resource.isStarred())
                 .createdAt(resource.getCreatedAt())
                 .updatedAt(resource.getUpdatedAt())
                 .userId(resource.getUser().getId())
