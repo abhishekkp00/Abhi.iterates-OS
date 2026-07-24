@@ -8,106 +8,19 @@ import { ResourceCard } from '@/features/resources/components/ResourceCard'
 import { ResourceTable } from '@/features/resources/components/ResourceTable'
 import { ResourceListSkeleton } from '@/features/resources/components/ResourceListSkeleton'
 import { useResourcesStore } from '@/features/resources/store/resources.store'
+import { useResourcesListQuery, useDeleteResourceMutation } from '@/features/resources/hooks/useResources'
+import { useMyPurchasesQuery } from '@/features/marketplace/hooks/useStore'
 import { staggerParentVariants, staggerChildVariants } from '@/lib/animations'
-import type { Resource } from '@/types/resources'
-import { SlidersHorizontal } from '@/lib/icons'
-
-// ── Realistic Mock Data ──────────────────────────────────────────────────────
-const MOCK_RESOURCES: Resource[] = [
-  {
-    id: 'res-1',
-    title: 'Algorithms & Complexity Cheat Sheet',
-    description: 'Quick reference guide covering Sorting, Big-O, Graph traversals (DFS/BFS), and dynamic programming paradigms.',
-    category: 'CHEATSHEET',
-    status: 'ACTIVE',
-    priority: 'HIGH',
-    deadline: '2026-07-20T23:59:59Z',
-    createdAt: '2026-07-01T10:00:00Z',
-    updatedAt: '2026-07-02T12:00:00Z',
-    attachments: [
-      { id: 'att-1', fileName: 'algorithms_ref.pdf', fileSize: 1024 * 1500, contentType: 'application/pdf', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-2',
-    title: 'Introduction to Organic Chemistry - Lecture Slides',
-    description: 'Detailed lecture material on covalent bonds, functional groups, and carbon chains reaction mechanisms.',
-    category: 'LECTURE',
-    status: 'ACTIVE',
-    priority: 'MEDIUM',
-    deadline: '2026-07-28T18:00:00Z',
-    createdAt: '2026-07-02T09:30:00Z',
-    updatedAt: '2026-07-02T09:30:00Z',
-    attachments: [
-      { id: 'att-2', fileName: 'chem_lecture_3.pdf', fileSize: 1024 * 3400, contentType: 'application/pdf', downloadUrl: '#' },
-      { id: 'att-3', fileName: 'reaction_formulas.docx', fileSize: 1024 * 450, contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-3',
-    title: 'Operating Systems Midterm past paper - Fall 2025',
-    description: 'Exam questions from past year covering process synchronization, semaphores, and virtual memory paging.',
-    category: 'PAST_PAPER',
-    status: 'ACTIVE',
-    priority: 'HIGH',
-    deadline: '2026-07-15T09:00:00Z',
-    createdAt: '2026-07-03T14:00:00Z',
-    updatedAt: '2026-07-03T15:30:00Z',
-    attachments: [
-      { id: 'att-4', fileName: 'os_midterm_2025.pdf', fileSize: 1024 * 850, contentType: 'application/pdf', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-4',
-    title: 'Calculus II Paging/Sequences Outline',
-    description: 'Comprehensive assignment guide focusing on Taylor series convergence and integration techniques.',
-    category: 'OTHER',
-    status: 'DRAFT',
-    priority: 'LOW',
-    createdAt: '2026-07-04T16:00:00Z',
-    updatedAt: '2026-07-04T16:00:00Z',
-    attachments: [],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-5',
-    title: 'Machine Learning Deep Foundations - Volume I',
-    description: 'Open source PDF book on linear algebra bases, loss optimization, and neural architecture principles.',
-    category: 'BOOK',
-    status: 'ACTIVE',
-    priority: 'MEDIUM',
-    deadline: '2026-08-05T12:00:00Z',
-    createdAt: '2026-07-05T08:00:00Z',
-    updatedAt: '2026-07-06T10:00:00Z',
-    attachments: [
-      { id: 'att-5', fileName: 'ml_foundations_vol1.pdf', fileSize: 1024 * 12400, contentType: 'application/pdf', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  },
-  {
-    id: 'res-6',
-    title: 'Intellectual Property Law Case Files',
-    description: 'Archived studies on fair use guidelines, software patenting laws, and copyright infringement rulings.',
-    category: 'LECTURE',
-    status: 'ARCHIVED',
-    priority: 'LOW',
-    createdAt: '2026-06-25T11:00:00Z',
-    updatedAt: '2026-06-29T14:00:00Z',
-    attachments: [
-      { id: 'att-6', fileName: 'ip_law_cases.pdf', fileSize: 1024 * 5100, contentType: 'application/pdf', downloadUrl: '#' }
-    ],
-    userId: 'user-1'
-  }
-]
+import { BookOpen, Download, Sparkles, Bot, SlidersHorizontal } from '@/lib/icons'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 export default function ResourcesPage() {
   const navigate = useNavigate()
   const [showFilters, setShowFilters] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [resources, setResources] = useState<Resource[]>(MOCK_RESOURCES)
+
+  const { data: myPurchases = [] } = useMyPurchasesQuery()
 
   // Grab ZUSTAND filter properties
   const {
@@ -124,87 +37,45 @@ export default function ResourcesPage() {
     resetFilters,
   } = useResourcesStore()
 
-  // Simulate loading state transitions on first render or query changes
-  useEffect(() => {
-    setLoading(true)
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [searchQuery, selectedCategories, selectedPriorities, selectedStatuses, sortBy, sortOrder])
-
-  function handleAddResource() {
-    navigate('/resources/new')
-  }
-
-  function handleDeleteResource(id: string) {
-    if (confirm('Are you sure you want to delete this resource?')) {
-      setResources((prev) => prev.filter((r) => r.id !== id))
-    }
-  }
-
-  // ── Apply Query & Filters ─────────────────────────────────────────────────
-  const filteredResources = resources.filter((res) => {
-    // Search query check
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      const titleMatch = res.title.toLowerCase().includes(q)
-      const descMatch = res.description?.toLowerCase().includes(q)
-      if (!titleMatch && !descMatch) return false
-    }
-
-    // Categories filter
-    if (selectedCategories.length > 0) {
-      if (!selectedCategories.includes(res.category)) return false
-    }
-
-    // Priorities filter
-    if (selectedPriorities.length > 0) {
-      if (!selectedPriorities.includes(res.priority)) return false
-    }
-
-    // Statuses filter
-    if (selectedStatuses.length > 0) {
-      if (!selectedStatuses.includes(res.status)) return false
-    }
-
-    return true
+  // Query resources from Backend API
+  const { data: resourcesPage, isLoading: loading } = useResourcesListQuery({
+    page,
+    size: pageSize,
+    search: searchQuery.trim() || undefined,
+    categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+    priorities: selectedPriorities.length > 0 ? selectedPriorities : undefined,
+    statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+    sort: `${sortBy},${sortOrder}`,
   })
 
-  // ── Apply Sorting ─────────────────────────────────────────────────────────
-  const sortedResources = [...filteredResources].sort((a, b) => {
-    const factor = sortOrder === 'asc' ? 1 : -1
-    
-    if (sortBy === 'title') {
-      return a.title.localeCompare(b.title) * factor
-    }
+  const deleteMutation = useDeleteResourceMutation()
 
-    if (sortBy === 'deadline') {
-      const aTime = a.deadline ? new Date(a.deadline).getTime() : Infinity
-      const bTime = b.deadline ? new Date(b.deadline).getTime() : Infinity
-      return (aTime - bTime) * factor
-    }
-
-    // Default: Sort by createdAt
-    const aTime = new Date(a.createdAt).getTime()
-    const bTime = new Date(b.createdAt).getTime()
-    return (aTime - bTime) * factor
-  })
-
-  // ── Apply Pagination Slicing ──────────────────────────────────────────────
-  const totalItems = sortedResources.length
-  const paginatedResources = sortedResources.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  )
+  const paginatedResources = resourcesPage?.content || []
+  const totalItems = resourcesPage?.totalElements || 0
+  const totalPages = Math.max(1, resourcesPage?.totalPages || 1)
 
   // Ensure current page doesn't overshoot boundaries if list shrinks
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
   useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages)
     }
   }, [totalPages, page, setPage])
+
+  function handleAddResource() {
+    navigate('/resources/new')
+  }
+
+  function handleOpenStudyRoom(item: any) {
+    const fileName = item.fileName || `${item.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+    const url = item.fileUrl || ''
+    navigate(`/resources/study/${item.id}?file=${encodeURIComponent(fileName)}&url=${encodeURIComponent(url)}`)
+  }
+
+  function handleDeleteResource(id: string) {
+    if (confirm('Are you sure you want to delete this study resource?')) {
+      deleteMutation.mutate(id)
+    }
+  }
 
   return (
     <div className="page-container max-w-7xl">
@@ -233,6 +104,60 @@ export default function ResourcesPage() {
             </p>
           </div>
         </motion.div>
+
+        {/* Purchased Marketplace Notes Section */}
+        {myPurchases.length > 0 && (
+          <motion.div variants={staggerChildVariants} className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="size-4 text-emerald-400" />
+                Unlocked Marketplace & Placement Notes ({myPurchases.length})
+              </h2>
+              <span className="text-xs text-muted-foreground">Interactive AI Study Room Available</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {myPurchases.map((item) => (
+                <Card key={item.id} className="bg-card/70 border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
+                  <CardHeader className="p-4 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                        {item.category}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[9px] bg-indigo-500/10 text-indigo-400">
+                        <Bot className="size-3 mr-1" />
+                        AI Chat Ready
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-sm font-bold text-foreground pt-1 line-clamp-1">{item.title}</CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="px-4 py-1 space-y-1 text-xs text-muted-foreground">
+                    <p className="line-clamp-2">{item.description}</p>
+                  </CardContent>
+
+                  <CardFooter className="p-4 pt-3 flex gap-2 border-t border-border/40">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleOpenStudyRoom(item)}
+                      className="flex-1 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                    >
+                      <BookOpen className="size-3.5" />
+                      Open Study Room & AI Notes
+                    </Button>
+                    <a href={item.fileUrl} target="_blank" rel="noreferrer" download>
+                      <Button variant="outline" size="sm" className="text-xs gap-1.5">
+                        <Download className="size-3.5" />
+                        Download
+                      </Button>
+                    </a>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Toolbar */}
         <motion.div variants={staggerChildVariants}>

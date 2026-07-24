@@ -179,8 +179,8 @@ public class StoreServiceImpl implements StoreService {
         Instant purchaseExpiresAt = resource.getExpiryDate();
         String paymentRef = null;
 
-        if (currentUser != null) {
-            Optional<ResourcePurchase> purchase = purchaseRepository.findByUserAndStoreResource(currentUser, resource);
+        if (currentUser != null && currentUser.getId() != null) {
+            Optional<ResourcePurchase> purchase = purchaseRepository.findByUserIdAndStoreResourceId(currentUser.getId(), resource.getId());
             if (purchase.isPresent()) {
                 isPurchased = true;
                 paymentRef = purchase.get().getPaymentRefId();

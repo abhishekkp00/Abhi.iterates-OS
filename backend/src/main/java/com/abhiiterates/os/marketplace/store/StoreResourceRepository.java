@@ -19,8 +19,8 @@ public interface StoreResourceRepository extends JpaRepository<StoreResource, UU
     List<String> findDistinctActiveCategories();
 
     @Query("SELECT s FROM StoreResource s WHERE s.active = true AND " +
-           "(COALESCE(:category, '') = '' OR LOWER(s.category) = LOWER(:category)) AND " +
-           "(COALESCE(:search, '') = '' OR LOWER(s.title) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(s.description) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(s.tags) LIKE LOWER(CONCAT('%', :search, '%')))")
+           "(:category IS NULL OR :category = '' OR LOWER(s.category) = LOWER(:category)) AND " +
+           "(:search IS NULL OR :search = '' OR LOWER(s.title) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(s.description) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(s.tags) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<StoreResource> findActiveWithFilters(
             @Param("search") String search,
             @Param("category") String category,

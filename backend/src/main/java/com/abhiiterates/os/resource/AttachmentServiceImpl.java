@@ -106,8 +106,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         String downloadUrl = attachment.getDownloadUrl();
         String uniqueFileName = downloadUrl.substring(
                 downloadUrl.lastIndexOf("/attachments/") + 13,
-                downloadUrl.lastIndexOf("/download")
-        );
+                downloadUrl.lastIndexOf("/download"));
 
         try {
             Path filePath = this.fileStorageLocation.resolve(uniqueFileName).normalize();
@@ -136,14 +135,14 @@ public class AttachmentServiceImpl implements AttachmentService {
         String downloadUrl = attachment.getDownloadUrl();
         String uniqueFileName = downloadUrl.substring(
                 downloadUrl.lastIndexOf("/attachments/") + 13,
-                downloadUrl.lastIndexOf("/download")
-        );
+                downloadUrl.lastIndexOf("/download"));
 
         // Delete from disk
         try {
             Path filePath = this.fileStorageLocation.resolve(uniqueFileName).normalize();
             Files.deleteIfExists(filePath);
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
 
         // Delete from DB
         attachmentRepository.delete(attachment);

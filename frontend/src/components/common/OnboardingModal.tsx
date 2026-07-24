@@ -191,12 +191,15 @@ export function OnboardingModal() {
   const [isOpen, setIsOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
 
-  // Auto-open modal on first sign-up / login if not completed
+  // Auto-open modal ONLY on fresh user sign-up if not already completed
   useEffect(() => {
     if (isAuthenticated) {
+      const isNewSignup = sessionStorage.getItem('abhi_os_new_signup') === 'true'
       const hasCompleted = localStorage.getItem(storageKey)
-      if (!hasCompleted) {
+
+      if (isNewSignup && !hasCompleted) {
         setIsOpen(true)
+        sessionStorage.removeItem('abhi_os_new_signup')
       }
     }
   }, [isAuthenticated, storageKey])
@@ -243,11 +246,13 @@ export function OnboardingModal() {
 
   const handleSkip = () => {
     localStorage.setItem(storageKey, 'true')
+    sessionStorage.removeItem('abhi_os_new_signup')
     setIsOpen(false)
   }
 
   const handleComplete = () => {
     localStorage.setItem(storageKey, 'true')
+    sessionStorage.removeItem('abhi_os_new_signup')
     setIsOpen(false)
   }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   useAdminMarketplaceQuery,
@@ -23,6 +23,10 @@ import {
   Layers,
   X,
   BookOpen,
+  Upload,
+  Link as LinkIcon,
+  FileText,
+  Paperclip,
 } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -36,18 +40,43 @@ export default function AdminMarketplace() {
   // Moderation filter
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'ACTIVE' | 'REJECTED' | 'ARCHIVED'>('ALL')
 
-  // Create store modal
+  // Create store modal & Drag/Drop state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [attachmentMode, setAttachmentMode] = useState<'FILE' | 'LINK'>('FILE')
+  const [dragActive, setDragActive] = useState<boolean>(false)
+  const [isReadingFile, setIsReadingFile] = useState<boolean>(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const [formData, setFormData] = useState<StoreResourceRequest>({
     title: '',
     description: '',
-    category: 'Placement',
-    priceInRupees: 99,
+    category: '',
+    priceInRupees: 0,
     expiryDate: '',
     fileUrl: '',
     fileName: '',
     tags: '',
   })
+  const [priceInputText, setPriceInputText] = useState<string>('')
+
+  const handleFileSelect = (file: File) => {
+    setIsReadingFile(true)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string
+      setFormData((prev) => ({
+        ...prev,
+        fileUrl: dataUrl || URL.createObjectURL(file),
+        fileName: file.name,
+        fileSize: file.size,
+      }))
+      setIsReadingFile(false)
+    }
+    reader.onerror = () => {
+      setIsReadingFile(false)
+    }
+    reader.readAsDataURL(file)
+  }
 
   // Queries & Mutations
   const { data: listings, isLoading: isListingsLoading } = useAdminMarketplaceQuery()
@@ -67,9 +96,11 @@ export default function AdminMarketplace() {
     e.preventDefault()
     if (!formData.title || !formData.category || !formData.fileUrl) return
 
+    const finalPrice = priceInputText === '' ? 0 : Number(priceInputText)
+
     const payload: StoreResourceRequest = {
       ...formData,
-      priceInRupees: Number(formData.priceInRupees),
+      priceInRupees: finalPrice,
       expiryDate: formData.expiryDate ? new Date(formData.expiryDate).toISOString() : null,
     }
 
@@ -79,13 +110,14 @@ export default function AdminMarketplace() {
         setFormData({
           title: '',
           description: '',
-          category: 'Placement',
-          priceInRupees: 99,
+          category: '',
+          priceInRupees: 0,
           expiryDate: '',
           fileUrl: '',
           fileName: '',
           tags: '',
         })
+        setPriceInputText('')
       },
     })
   }
@@ -421,11 +453,10 @@ export default function AdminMarketplace() {
                     <label className="font-semibold text-foreground">Price in INR (₹) *</label>
                     <Input
                       type="number"
-                      required
                       min="0"
-                      placeholder="e.g. 99"
-                      value={formData.priceInRupees}
-                      onChange={(e) => setFormData({ ...formData, priceInRupees: Number(e.target.value) })}
+                      placeholder="0 for Free, or enter price (e.g. 99)"
+                      value={priceInputText}
+                      onChange={(e) => setPriceInputText(e.target.value)}
                       className="h-9 text-xs font-mono"
                     />
                   </div>
@@ -441,21 +472,146 @@ export default function AdminMarketplace() {
                     type="date"
                     value={formData.expiryDate || ''}
                     onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                    className="h-9 text-xs"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    onFocus={(e) => e.currentTarget.showPicker?.()}
+                    className="h-9 text-xs cursor-pointer [color-scheme:dark]"
                   />
                 </div>
 
-                {/* File URL / Document Link */}
-                <div className="space-y-1">
-                  <label className="font-semibold text-foreground">Document / PDF File Link *</label>
-                  <Input
-                    type="url"
-                    required
-                    placeholder="https://... / link to PDF document"
-                    value={formData.fileUrl}
-                    onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
-                    className="h-9 text-xs font-mono"
-                  />
+                {/* Document Attachment: Drag & Drop PDF or Link */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-foreground flex items-center gap-1.5">
+                      <Paperclip className="size-3.5 text-emerald-400" />
+                      <span>Document / PDF Source *</span>
+                    </label>
+
+                    <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/60 border border-border/50 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setAttachmentMode('FILE')}
+                        className={`px-2 py-0.5 rounded-md font-semibold transition-all ${
+                          attachmentMode === 'FILE'
+                            ? 'bg-card text-emerald-400 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        📄 Drag & Drop PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAttachmentMode('LINK')}
+                        className={`px-2 py-0.5 rounded-md font-semibold transition-all ${
+                          attachmentMode === 'LINK'
+                            ? 'bg-card text-emerald-400 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        🔗 External URL
+                      </button>
+                    </div>
+                  </div>
+
+                  {attachmentMode === 'FILE' ? (
+                    <div>
+                      {formData.fileName && formData.fileUrl ? (
+                        /* Selected File Preview Card */
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
+                              <FileText className="size-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-foreground truncate">{formData.fileName}</p>
+                              <p className="text-[10px] text-emerald-400/90 font-mono">
+                                {formData.fileSize ? `${(formData.fileSize / (1024 * 1024)).toFixed(2)} MB` : 'PDF Document Ready'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => {
+                              if (fileInputRef.current) fileInputRef.current.value = ''
+                              setFormData((prev) => ({ ...prev, fileUrl: '', fileName: '', fileSize: undefined }))
+                            }}
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="size-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        /* Drag and Drop Zone */
+                        <div
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            setDragActive(true)
+                          }}
+                          onDragLeave={() => setDragActive(false)}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            setDragActive(false)
+                            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                              handleFileSelect(e.dataTransfer.files[0])
+                            }
+                          }}
+                          onClick={() => fileInputRef.current?.click()}
+                          className={`relative border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
+                            dragActive
+                              ? 'border-emerald-400 bg-emerald-500/10 scale-[0.99]'
+                              : 'border-border/80 hover:border-emerald-500/50 bg-muted/20 hover:bg-muted/40'
+                          }`}
+                        >
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleFileSelect(e.target.files[0])
+                              }
+                            }}
+                          />
+                          <div className="flex flex-col items-center justify-center gap-1.5">
+                            <div className="p-2.5 rounded-full bg-emerald-500/10 text-emerald-400">
+                              <Upload className="size-5" />
+                            </div>
+                            <div className="space-y-0.5">
+                              <p className="text-xs font-semibold text-foreground">
+                                <span className="text-emerald-400 underline underline-offset-2">Click to browse</span> or drag & drop PDF notes file
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Supports PDF, DOCX, PNG (Max 50MB)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Link URL Input */
+                    <div className="relative">
+                      <Input
+                        type="url"
+                        required
+                        placeholder="https://... / paste link to PDF document"
+                        value={formData.fileUrl}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setFormData((prev) => ({
+                            ...prev,
+                            fileUrl: val,
+                            fileName: val ? val.substring(val.lastIndexOf('/') + 1) || 'PDF Document' : '',
+                          }))
+                        }}
+                        className="h-9 text-xs font-mono pl-8"
+                      />
+                      <LinkIcon className="size-3.5 text-muted-foreground absolute left-2.5 top-3" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -485,7 +641,7 @@ export default function AdminMarketplace() {
                 <div className="pt-2">
                   <Button
                     type="submit"
-                    disabled={createStoreMutation.isPending}
+                    disabled={createStoreMutation.isPending || isReadingFile}
                     className="w-full text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
                     {createStoreMutation.isPending ? (
@@ -493,10 +649,15 @@ export default function AdminMarketplace() {
                         <Loader2 className="size-4 animate-spin" />
                         Publishing to Marketplace…
                       </>
+                    ) : isReadingFile ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Processing Attached PDF…
+                      </>
                     ) : (
                       <>
                         <Plus className="size-4" />
-                        Publish Store Resource (₹{formData.priceInRupees})
+                        Publish Store Resource {priceInputText && Number(priceInputText) > 0 ? `(₹${priceInputText})` : '(Free / ₹0)'}
                       </>
                     )}
                   </Button>

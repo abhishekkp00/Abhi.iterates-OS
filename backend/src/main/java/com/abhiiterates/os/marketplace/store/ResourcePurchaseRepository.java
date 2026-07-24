@@ -13,11 +13,15 @@ import java.util.UUID;
 @Repository
 public interface ResourcePurchaseRepository extends JpaRepository<ResourcePurchase, UUID> {
 
+    List<ResourcePurchase> findByUserIdOrderByCreatedAtDesc(UUID userId);
+
     List<ResourcePurchase> findByUserOrderByCreatedAtDesc(User user);
+
+    Optional<ResourcePurchase> findByUserIdAndStoreResourceId(UUID userId, UUID storeResourceId);
 
     Optional<ResourcePurchase> findByUserAndStoreResource(User user, StoreResource storeResource);
 
-    boolean existsByUserAndStoreResource(User user, StoreResource storeResource);
+    boolean existsByUserIdAndStoreResourceId(UUID userId, UUID storeResourceId);
 
     @Query("SELECT p.storeResource.id FROM ResourcePurchase p WHERE p.user.id = :userId")
     List<UUID> findPurchasedResourceIdsByUserId(@Param("userId") UUID userId);

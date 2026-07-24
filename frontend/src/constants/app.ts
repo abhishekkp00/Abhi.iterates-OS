@@ -89,9 +89,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: 'study',
     label: 'Study',
     items: [
-      { id: 'library',   label: 'Library',      href: '/library',   icon: 'BookOpen'  },
-      { id: 'resources', label: 'My Resources',  href: '/resources', icon: 'FolderOpen' },
-      { id: 'ai',        label: 'AI Workspace',  href: '/ai',        icon: 'Sparkles'  },
+      { id: 'library',     label: 'Library',          href: '/library',     icon: 'BookOpen'  },
+      { id: 'resources',   label: 'My Resources',      href: '/resources',   icon: 'FolderOpen' },
+      { id: 'marketplace', label: 'Store Marketplace', href: '/marketplace', icon: 'ShoppingBag' },
+      { id: 'ai',          label: 'AI Workspace',      href: '/ai',          icon: 'Sparkles'  },
     ],
   },
 ] as const

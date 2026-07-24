@@ -25,7 +25,7 @@ public class StoreResource extends BaseAuditEntity {
     @Column(nullable = false)
     private String title;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false)
@@ -37,7 +37,7 @@ public class StoreResource extends BaseAuditEntity {
     @Column(name = "expiry_date")
     private Instant expiryDate; // Date after which access expires
 
-    @Column(name = "file_url", nullable = false, length = 1000)
+    @Column(name = "file_url", nullable = false, columnDefinition = "TEXT")
     private String fileUrl;
 
     @Column(name = "file_name")
@@ -46,7 +46,7 @@ public class StoreResource extends BaseAuditEntity {
     @Column(name = "file_size")
     private Long fileSize;
 
-    @Column(name = "preview_url", length = 1000)
+    @Column(name = "preview_url", columnDefinition = "TEXT")
     private String previewUrl;
 
     @Builder.Default

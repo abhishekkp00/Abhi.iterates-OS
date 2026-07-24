@@ -3,9 +3,14 @@ import { storeApi, StoreResourceRequest, UpiPurchasePayload } from '../api/store
 import { toast } from 'sonner'
 
 export function useStoreResourcesQuery(params?: { search?: string; category?: string; page?: number; size?: number }) {
+  const searchKey = params?.search ?? ''
+  const categoryKey = params?.category ?? ''
+  const pageKey = params?.page ?? 0
+
   return useQuery({
-    queryKey: ['store-resources', params],
+    queryKey: ['store-resources', searchKey, categoryKey, pageKey],
     queryFn: () => storeApi.getStoreResources(params),
+    staleTime: 1000 * 30, // 30 seconds
   })
 }
 
@@ -13,6 +18,7 @@ export function useStoreCategoriesQuery() {
   return useQuery({
     queryKey: ['store-categories'],
     queryFn: () => storeApi.getCategories(),
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -20,6 +26,7 @@ export function useMyPurchasesQuery() {
   return useQuery({
     queryKey: ['my-purchases'],
     queryFn: () => storeApi.getMyPurchases(),
+    staleTime: 1000 * 30,
   })
 }
 
