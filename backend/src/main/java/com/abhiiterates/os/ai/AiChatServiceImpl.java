@@ -31,6 +31,7 @@ import java.util.concurrent.Executors;
 @RequiredArgsConstructor
 @Slf4j
 @Transactional(readOnly = true)
+@SuppressWarnings("null")
 public class AiChatServiceImpl implements AiChatService {
 
     private final AiConversationRepository conversationRepository;

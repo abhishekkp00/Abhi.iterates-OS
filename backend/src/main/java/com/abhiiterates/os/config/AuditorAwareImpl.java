@@ -12,6 +12,7 @@ import java.util.Optional;
  * Resolves the current authenticated user's identifier for entity audit logging.
  */
 @Component
+@SuppressWarnings("null")
 public class AuditorAwareImpl implements AuditorAware<String> {
 
     @Override

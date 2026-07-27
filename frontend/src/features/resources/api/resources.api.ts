@@ -105,6 +105,14 @@ export const resourcesApi = {
   },
 
   /**
+   * Toggle star status on a resource.
+   */
+  toggleStar: async (id: string): Promise<Resource> => {
+    const response = await api.patch<ApiResponseEnvelope<Resource>>(`/resources/${id}/star`)
+    return response.data.data
+  },
+
+  /**
    * Upload an attachment to a resource.
    */
   uploadAttachment: async (

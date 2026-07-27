@@ -15,12 +15,14 @@ import {
   Bookmark,
   MessageSquare,
   Eye,
+  Star,
 } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import {
   useResourceDetailQuery,
   useDeleteResourceMutation,
   useArchiveResourceMutation,
+  useToggleStarResourceMutation,
 } from '@/features/resources/hooks/useResources'
 import { ResourceActivityTimeline } from '@/features/resources/components/ResourceActivityTimeline'
 import { staggerParentVariants, staggerChildVariants } from '@/lib/animations'
@@ -57,6 +59,7 @@ export default function ResourceDetailPage() {
   // Mutation hooks
   const deleteMutation = useDeleteResourceMutation()
   const archiveMutation = useArchiveResourceMutation()
+  const toggleStarMutation = useToggleStarResourceMutation()
 
   async function handleDelete() {
     if (!id) return
@@ -165,6 +168,19 @@ export default function ResourceDetailPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "gap-1.5 cursor-pointer transition-colors",
+                resource.starred ? "border-amber-400/40 bg-amber-500/10 text-amber-400 font-bold" : "text-muted-foreground hover:text-foreground"
+              )}
+              onClick={() => toggleStarMutation.mutate(resource.id)}
+              disabled={toggleStarMutation.isPending}
+            >
+              <Star className={cn("size-4", resource.starred && "fill-amber-400 text-amber-400")} />
+              <span>{resource.starred ? 'Starred' : 'Star'}</span>
+            </Button>
             {resource.status !== 'ARCHIVED' && (
               <Button
                 variant="outline"

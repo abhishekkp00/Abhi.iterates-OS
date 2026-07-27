@@ -24,5 +24,6 @@ export interface Resource {
   updatedAt: string // ISO date string
   attachments: ResourceAttachment[]
   tags?: string
+  starred?: boolean
   userId: string
 }

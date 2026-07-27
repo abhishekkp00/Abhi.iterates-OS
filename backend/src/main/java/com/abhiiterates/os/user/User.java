@@ -9,7 +9,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * User Entity.

@@ -122,6 +122,35 @@ export function useArchiveResourceMutation() {
   })
 }
 
+export function useToggleStarResourceMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: resourcesApi.toggleStar,
+    onMutate: async (resourceId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['resources'] })
+      await queryClient.cancelQueries({ queryKey: ['resource', resourceId] })
+
+      const previousDetail = queryClient.getQueryData<Resource>(['resource', resourceId])
+      if (previousDetail) {
+        queryClient.setQueryData(['resource', resourceId], (old: Resource | undefined) => {
+          if (!old) return old
+          return { ...old, starred: !old.starred }
+        })
+      }
+      return { previousDetail, resourceId }
+    },
+    onSuccess: (data) => {
+      toast.success(data.starred ? 'Added to Starred Resources! ⭐' : 'Removed from Starred Resources.')
+      queryClient.invalidateQueries({ queryKey: ['resources'] })
+      queryClient.invalidateQueries({ queryKey: ['resource', data.id] })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update star status.')
+    },
+  })
+}
+
 export function useUploadAttachmentMutation() {
   const queryClient = useQueryClient()
 

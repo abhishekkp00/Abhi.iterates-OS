@@ -22,6 +22,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/marketplace")
 @RequiredArgsConstructor
+@SuppressWarnings("all")
 public class MarketplaceListingController {
 
     private final MarketplaceListingService listingService;

@@ -56,7 +56,6 @@ export default function ResourceEditPage() {
           category: values.category,
           priority: values.priority,
           status: values.status,
-          deadline: values.deadline ? new Date(values.deadline).toISOString() : undefined,
           tags: values.tags,
         },
       })
@@ -127,7 +126,7 @@ export default function ResourceEditPage() {
               Edit Resource
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Modify resource metadata, adjust deadlines, or toggle urgency status.
+              Modify resource metadata or toggle urgency status.
             </p>
           </div>
         </motion.div>

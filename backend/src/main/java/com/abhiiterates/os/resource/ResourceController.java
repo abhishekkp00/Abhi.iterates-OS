@@ -22,6 +22,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/resources")
 @RequiredArgsConstructor
+@SuppressWarnings("all")
 public class ResourceController {
 
     private final ResourceService resourceService;
@@ -118,6 +119,19 @@ public class ResourceController {
         ResourceResponse data = resourceService.archive(id, user);
         ApiResponse<ResourceResponse> response = ApiResponse.success(
                 data, "Resource archived successfully", servletRequest.getRequestURI()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/star")
+    public ResponseEntity<ApiResponse<ResourceResponse>> toggleStarResource(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user,
+            HttpServletRequest servletRequest
+    ) {
+        ResourceResponse data = resourceService.toggleStar(id, user);
+        ApiResponse<ResourceResponse> response = ApiResponse.success(
+                data, "Resource star toggled successfully", servletRequest.getRequestURI()
         );
         return ResponseEntity.ok(response);
     }

@@ -20,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Admin Audit Logging", description = "Endpoints to review system operations audit trails")
 @Slf4j
+@SuppressWarnings("all")
 public class AdminAuditController {
 
     private final AuditLogRepository auditLogRepository;

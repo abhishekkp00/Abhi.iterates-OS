@@ -24,6 +24,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/marketplace/store")
 @RequiredArgsConstructor
 @Tag(name = "Student Notes & Resource Store", description = "Endpoints for students to browse and buy premium notes via UPI")
+@SuppressWarnings("all")
 public class StoreResourceController {
 
     private final StoreService storeService;

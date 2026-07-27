@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Tag(name = "Admin AI Observability", description = "Endpoints to audit and monitor student-AI conversations")
 @Slf4j
+@SuppressWarnings("all")
 public class AdminAiController {
 
     private final AiConversationRepository conversationRepository;

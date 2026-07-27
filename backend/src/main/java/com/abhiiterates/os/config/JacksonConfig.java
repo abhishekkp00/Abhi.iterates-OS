@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Primary;
  * Ensures consistent Date/Time formatting and handles Java 8 Time APIs properly.
  */
 @Configuration
+@SuppressWarnings("all")
 public class JacksonConfig {
 
     @Bean

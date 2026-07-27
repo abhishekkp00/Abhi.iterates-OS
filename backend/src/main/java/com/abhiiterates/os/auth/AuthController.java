@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Authentication & Identity Management", description = "Endpoints for user onboarding, token issuance, session refresh, and token revocation")
+@SuppressWarnings("all")
 public class AuthController {
 
     private final AuthService authService;

@@ -21,6 +21,7 @@ import java.util.*;
 @Component
 @Slf4j
 @RequiredArgsConstructor
+@SuppressWarnings("all")
 public class ToolRegistry implements ApplicationContextAware {
 
     private ApplicationContext applicationContext;

@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { Resource } from '@/types/resources'
-import { FileText, File, Calendar, Paperclip, AlertTriangle } from '@/lib/icons'
+import { FileText, File, Calendar, Paperclip, AlertTriangle, Star } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { useToggleStarResourceMutation } from '../hooks/useResources'
 
 interface ResourceCardProps {
   resource: Resource
@@ -29,6 +30,7 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 export function ResourceCard({ resource }: ResourceCardProps) {
+  const toggleStarMutation = useToggleStarResourceMutation()
   const Icon = CATEGORY_ICONS[resource.category] ?? File
   const hasDeadline = !!resource.deadline
   const isOverdue = hasDeadline && new Date(resource.deadline!) < new Date() && resource.status !== 'ARCHIVED'
@@ -44,8 +46,31 @@ export function ResourceCard({ resource }: ResourceCardProps) {
       <div className="space-y-3">
         {/* Category Icon & Badges */}
         <div className="flex items-start justify-between">
-          <div className="rounded-lg bg-primary/10 p-2 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
-            <Icon className="size-4" />
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-primary/10 p-2 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
+              <Icon className="size-4" />
+            </div>
+            {/* Star toggle button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                toggleStarMutation.mutate(resource.id)
+              }}
+              disabled={toggleStarMutation.isPending}
+              title={resource.starred ? 'Unstar resource' : 'Star resource'}
+              className="p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
+            >
+              <Star
+                className={cn(
+                  'size-4 transition-all duration-150',
+                  resource.starred
+                    ? 'fill-amber-400 text-amber-400 scale-110'
+                    : 'text-muted-foreground/60 hover:text-amber-400'
+                )}
+              />
+            </button>
           </div>
 
           <div className="flex gap-1.5">

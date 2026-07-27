@@ -22,11 +22,13 @@ import java.util.UUID;
 
 /**
  * Authentication Service Implementation.
- * Orchestrates business logic for registrations, logins, rotations, and logouts.
+ * Orchestrates business logic for registrations, logins, rotations, and
+ * logouts.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -54,7 +56,8 @@ public class AuthServiceImpl implements AuthService {
 
         // Fetch the default ROLE_USER
         Role userRole = roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new ResourceNotFoundException("Default User Role not found in database. Seeding failure?"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Default User Role not found in database. Seeding failure?"));
 
         // Create new User entity
         User user = User.builder()
@@ -81,11 +84,10 @@ public class AuthServiceImpl implements AuthService {
 
         // Authenticate credentials via Spring AuthenticationManager
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
         User user = (User) authentication.getPrincipal();
-        
+
         if (!user.isEnabled()) {
             throw new BadRequestException("This account is currently deactivated or deleted.");
         }
@@ -101,7 +103,7 @@ public class AuthServiceImpl implements AuthService {
                 .expiryDate(Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs()))
                 .revoked(false)
                 .build();
-        
+
         refreshTokenRepository.save(refreshToken);
 
         // 3. Track User Session
@@ -113,7 +115,7 @@ public class AuthServiceImpl implements AuthService {
                 .active(true)
                 .lastActive(Instant.now())
                 .build();
-        
+
         userSessionRepository.save(session);
 
         log.info("Successful login for user: {}. Session tracked.", user.getEmail());
@@ -139,13 +141,15 @@ public class AuthServiceImpl implements AuthService {
 
         // ── Security Check: Check if token has been revoked
         if (oldToken.isRevoked()) {
-            log.warn("SECURITY ALERT: Revoked refresh token presented for user: {}! Revoking all sessions.", user.getEmail());
-            
-            // Revoke all existing non-revoked refresh tokens for this user (Breach detection)
+            log.warn("SECURITY ALERT: Revoked refresh token presented for user: {}! Revoking all sessions.",
+                    user.getEmail());
+
+            // Revoke all existing non-revoked refresh tokens for this user (Breach
+            // detection)
             List<RefreshToken> activeTokens = refreshTokenRepository.findByUserAndRevokedFalse(user);
             activeTokens.forEach(t -> t.setRevoked(true));
             refreshTokenRepository.saveAll(activeTokens);
-            
+
             throw new BadRequestException("Security Breach Warning: This token has been previously used and revoked.");
         }
 
@@ -168,7 +172,7 @@ public class AuthServiceImpl implements AuthService {
                 .expiryDate(Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs()))
                 .revoked(false)
                 .build();
-        
+
         refreshTokenRepository.save(newToken);
 
         log.info("Token refresh completed successfully. Tokens rotated.");
@@ -205,7 +209,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String parseDeviceType(String userAgent) {
-        if (userAgent == null) return "UNKNOWN";
+        if (userAgent == null)
+            return "UNKNOWN";
         String ua = userAgent.toLowerCase();
         if (ua.contains("mobile") || ua.contains("android") || ua.contains("iphone")) {
             return "MOBILE";
@@ -215,4 +220,3 @@ public class AuthServiceImpl implements AuthService {
         return "DESKTOP";
     }
 }
-

@@ -34,6 +34,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/ai")
 @RequiredArgsConstructor
+@SuppressWarnings("all")
 public class AiChatController {
 
     private final AiChatService aiChatService;

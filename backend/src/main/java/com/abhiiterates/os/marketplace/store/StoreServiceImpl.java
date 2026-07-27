@@ -22,6 +22,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class StoreServiceImpl implements StoreService {
 
     private final StoreResourceRepository storeResourceRepository;
@@ -63,8 +64,10 @@ public class StoreServiceImpl implements StoreService {
         resource.setPriceInRupees(request.getPriceInRupees());
         resource.setExpiryDate(request.getExpiryDate());
         resource.setFileUrl(request.getFileUrl());
-        if (request.getFileName() != null) resource.setFileName(request.getFileName());
-        if (request.getPreviewUrl() != null) resource.setPreviewUrl(request.getPreviewUrl());
+        if (request.getFileName() != null)
+            resource.setFileName(request.getFileName());
+        if (request.getPreviewUrl() != null)
+            resource.setPreviewUrl(request.getPreviewUrl());
         resource.setTags(request.getTags());
 
         StoreResource saved = storeResourceRepository.save(resource);
@@ -91,7 +94,8 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<StoreResourceDto> getStoreResourcesForStudent(String search, String category, User currentUser, Pageable pageable) {
+    public Page<StoreResourceDto> getStoreResourcesForStudent(String search, String category, User currentUser,
+            Pageable pageable) {
         String cat = (category != null && !category.trim().isEmpty() && !"ALL".equalsIgnoreCase(category))
                 ? category.trim()
                 : "";
@@ -105,14 +109,17 @@ public class StoreServiceImpl implements StoreService {
     @Transactional(readOnly = true)
     public List<String> getCategories() {
         List<String> categories = storeResourceRepository.findDistinctActiveCategories();
-        if (!categories.contains("Placement")) categories.add(0, "Placement");
-        if (!categories.contains("General")) categories.add("General");
+        if (!categories.contains("Placement"))
+            categories.add(0, "Placement");
+        if (!categories.contains("General"))
+            categories.add("General");
         return categories.stream().distinct().toList();
     }
 
     @Override
     @Transactional
-    public StoreResourceDto purchaseResourceWithUpi(UUID resourceId, UpiPurchaseRequest purchaseRequest, User currentUser) {
+    public StoreResourceDto purchaseResourceWithUpi(UUID resourceId, UpiPurchaseRequest purchaseRequest,
+            User currentUser) {
         StoreResource resource = storeResourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store resource not found: " + resourceId));
 
@@ -138,7 +145,8 @@ public class StoreServiceImpl implements StoreService {
         }
 
         ResourcePurchase savedPurchase = purchaseRepository.save(purchase);
-        log.info("Student {} purchased resource '{}' via UPI ref {}", currentUser.getEmail(), resource.getTitle(), purchaseRequest.getPaymentRefId());
+        log.info("Student {} purchased resource '{}' via UPI ref {}", currentUser.getEmail(), resource.getTitle(),
+                purchaseRequest.getPaymentRefId());
 
         try {
             notificationService.createNotification(
@@ -146,8 +154,7 @@ public class StoreServiceImpl implements StoreService {
                     NotificationType.MARKETPLACE_SOLD,
                     "Successfully unlocked notes: \"" + resource.getTitle() + "\"",
                     "/marketplace",
-                    resource.getId()
-            );
+                    resource.getId());
         } catch (Exception e) {
             log.warn("Failed to send purchase notification: {}", e.getMessage());
         }
@@ -180,7 +187,8 @@ public class StoreServiceImpl implements StoreService {
         String paymentRef = null;
 
         if (currentUser != null && currentUser.getId() != null) {
-            Optional<ResourcePurchase> purchase = purchaseRepository.findByUserIdAndStoreResourceId(currentUser.getId(), resource.getId());
+            Optional<ResourcePurchase> purchase = purchaseRepository.findByUserIdAndStoreResourceId(currentUser.getId(),
+                    resource.getId());
             if (purchase.isPresent()) {
                 isPurchased = true;
                 paymentRef = purchase.get().getPaymentRefId();

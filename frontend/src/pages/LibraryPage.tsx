@@ -27,6 +27,7 @@ import {
   Sparkles,
   Tag,
   AlertCircle,
+  Star,
 } from '@/lib/icons'
 
 // Icon registry for collection tags
@@ -102,8 +103,13 @@ export default function LibraryPage() {
   // Delete mutation
   const deleteMutation = useDeleteResourceMutation()
 
+  const starredCount = allResources.filter((r) => r.starred).length
+
   // Client-side filtering when a collection is selected
   const filteredResources = allResources.filter((res) => {
+    if (activeCollection === 'starred') {
+      return res.starred === true
+    }
     if (!activeCollection) return true
     const activeCol = collections.find((c) => c.id === activeCollection)
     if (!activeCol) return true
@@ -229,6 +235,23 @@ export default function LibraryPage() {
                 </Badge>
               </button>
 
+              <button
+                onClick={() => setActiveCollection('starred')}
+                className={`w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
+                  activeCollection === 'starred'
+                    ? 'border-amber-400/30 bg-amber-500/10 text-amber-400 font-bold'
+                    : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                  <span>Starred Items</span>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-bold border-amber-400/30 text-amber-400">
+                  {starredCount}
+                </Badge>
+              </button>
+
               {collections.map((c) => {
                 const IconComponent = ICON_MAP[c.icon] || Tag
                 const isActive = activeCollection === c.id
@@ -263,14 +286,14 @@ export default function LibraryPage() {
                   const [field, order] = e.target.value.split('-')
                   setSort(field as any, order as any)
                 }}
-                className="h-10 px-3 text-xs font-bold rounded-xl border border-border/80 bg-background/50 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer text-muted-foreground hover:text-foreground transition-all"
+                className="h-10 px-3 text-xs font-bold rounded-xl border border-border/80 bg-background focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer text-muted-foreground hover:text-foreground transition-all"
               >
-                <option value="createdAt-desc">Newest First</option>
-                <option value="createdAt-asc">Oldest First</option>
-                <option value="title-asc">Title (A-Z)</option>
-                <option value="title-desc">Title (Z-A)</option>
-                <option value="deadline-asc">Deadline (Soonest)</option>
-                <option value="deadline-desc">Deadline (Latest)</option>
+                <option value="createdAt-desc" className="bg-slate-900 text-slate-100">Newest First</option>
+                <option value="createdAt-asc" className="bg-slate-900 text-slate-100">Oldest First</option>
+                <option value="title-asc" className="bg-slate-900 text-slate-100">Title (A-Z)</option>
+                <option value="title-desc" className="bg-slate-900 text-slate-100">Title (Z-A)</option>
+                <option value="deadline-asc" className="bg-slate-900 text-slate-100">Deadline (Soonest)</option>
+                <option value="deadline-desc" className="bg-slate-900 text-slate-100">Deadline (Latest)</option>
               </select>
 
               <Button

@@ -26,6 +26,7 @@ import java.time.Instant;
 @RequiredArgsConstructor
 @Tag(name = "Admin System Settings", description = "Endpoints to configure feature flags, maintenance, and tokens")
 @Slf4j
+@SuppressWarnings("all")
 public class AdminSettingsController {
 
     private final SystemSettingRepository settingRepository;

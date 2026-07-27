@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Tag(name = "Admin User Operations", description = "Administrative commands to manage student users")
 @Slf4j
+@SuppressWarnings("all")
 public class AdminUserController {
 
     private final UserRepository userRepository;

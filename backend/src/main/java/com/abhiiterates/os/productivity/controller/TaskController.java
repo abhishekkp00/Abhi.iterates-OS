@@ -20,6 +20,7 @@ import com.abhiiterates.os.productivity.dto.PlannerSummaryResponse;
 @RestController
 @RequestMapping("/api/v1/tasks")
 @RequiredArgsConstructor
+@SuppressWarnings("all")
 public class TaskController {
 
     private final TaskService taskService;

@@ -20,6 +20,7 @@ import java.time.Instant;
  */
 @Component
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper;

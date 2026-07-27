@@ -21,18 +21,6 @@ const resourceFormSchema = z.object({
   category: z.enum(['LECTURE', 'BOOK', 'CHEATSHEET', 'PAST_PAPER', 'OTHER']),
   priority: z.enum(['HIGH', 'MEDIUM', 'LOW']),
   status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED']),
-  deadline: z
-    .string()
-    .optional()
-    .refine(
-      (val) => {
-        if (!val) return true
-        const date = new Date(val)
-        return !isNaN(date.getTime())
-      },
-      { message: 'Please enter a valid date.' }
-    )
-    .or(z.literal('')),
   tags: z
     .string()
     .optional()
@@ -72,7 +60,6 @@ export function ResourceForm({
       category: initialData?.category ?? 'LECTURE',
       priority: initialData?.priority ?? 'MEDIUM',
       status: initialData?.status ?? 'ACTIVE',
-      deadline: initialData?.deadline ? new Date(initialData.deadline).toISOString().split('T')[0] : '',
       tags: initialData?.tags ?? '',
     },
   })
@@ -162,7 +149,7 @@ export function ResourceForm({
       </div>
 
       {/* Inputs Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* Category Select */}
         <div className="space-y-1">
           <label htmlFor="category" className="text-xs font-semibold text-foreground">
@@ -170,14 +157,14 @@ export function ResourceForm({
           </label>
           <select
             id="category"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+            className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-foreground cursor-pointer"
             {...register('category')}
           >
-            <option value="LECTURE">Lecture Slides</option>
-            <option value="BOOK">Textbook</option>
-            <option value="CHEATSHEET">Cheat Sheet</option>
-            <option value="PAST_PAPER">Past Paper</option>
-            <option value="OTHER">Other</option>
+            <option value="LECTURE" className="bg-slate-900 text-slate-100 py-1">Lecture Slides</option>
+            <option value="BOOK" className="bg-slate-900 text-slate-100 py-1">Textbook</option>
+            <option value="CHEATSHEET" className="bg-slate-900 text-slate-100 py-1">Cheat Sheet</option>
+            <option value="PAST_PAPER" className="bg-slate-900 text-slate-100 py-1">Past Paper</option>
+            <option value="OTHER" className="bg-slate-900 text-slate-100 py-1">Other</option>
           </select>
           {errors.category && (
             <p className="text-xs text-destructive mt-1 font-medium">{errors.category.message}</p>
@@ -191,12 +178,12 @@ export function ResourceForm({
           </label>
           <select
             id="priority"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+            className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-foreground cursor-pointer"
             {...register('priority')}
           >
-            <option value="HIGH">High Priority</option>
-            <option value="MEDIUM">Medium Priority</option>
-            <option value="LOW">Low Priority</option>
+            <option value="HIGH" className="bg-slate-900 text-slate-100 py-1">High Priority</option>
+            <option value="MEDIUM" className="bg-slate-900 text-slate-100 py-1">Medium Priority</option>
+            <option value="LOW" className="bg-slate-900 text-slate-100 py-1">Low Priority</option>
           </select>
           {errors.priority && (
             <p className="text-xs text-destructive mt-1 font-medium">{errors.priority.message}</p>
@@ -210,33 +197,15 @@ export function ResourceForm({
           </label>
           <select
             id="status"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+            className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-foreground cursor-pointer"
             {...register('status')}
           >
-            <option value="ACTIVE">Active</option>
-            <option value="DRAFT">Draft</option>
-            <option value="ARCHIVED">Archived</option>
+            <option value="ACTIVE" className="bg-slate-900 text-slate-100 py-1">Active</option>
+            <option value="DRAFT" className="bg-slate-900 text-slate-100 py-1">Draft</option>
+            <option value="ARCHIVED" className="bg-slate-900 text-slate-100 py-1">Archived</option>
           </select>
           {errors.status && (
             <p className="text-xs text-destructive mt-1 font-medium">{errors.status.message}</p>
-          )}
-        </div>
-
-        {/* Target Deadline */}
-        <div className="space-y-1">
-          <label htmlFor="deadline" className="text-xs font-semibold text-foreground">
-            Target Completion Deadline
-          </label>
-          <input
-            id="deadline"
-            type="date"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring text-foreground cursor-pointer [color-scheme:dark]"
-            {...register('deadline')}
-            onClick={(e) => e.currentTarget.showPicker?.()}
-            onFocus={(e) => e.currentTarget.showPicker?.()}
-          />
-          {errors.deadline && (
-            <p className="text-xs text-destructive mt-1 font-medium">{errors.deadline.message}</p>
           )}
         </div>
       </div>

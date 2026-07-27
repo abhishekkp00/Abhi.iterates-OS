@@ -35,4 +35,6 @@ public class ResourceRequest {
     private Instant deadline;
 
     private String tags;
+
+    private Boolean starred;
 }

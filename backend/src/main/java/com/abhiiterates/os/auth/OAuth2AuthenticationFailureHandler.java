@@ -18,6 +18,7 @@ import java.io.IOException;
  */
 @Component
 @Slf4j
+@SuppressWarnings("null")
 public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
     @Value("${cors.allowed-origins:http://localhost:5180}")

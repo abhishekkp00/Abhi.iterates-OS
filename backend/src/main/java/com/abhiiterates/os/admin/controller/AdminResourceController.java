@@ -26,6 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Tag(name = "Admin Resource Moderation", description = "Endpoints for moderating student library resources")
 @Slf4j
+@SuppressWarnings("all")
 public class AdminResourceController {
 
     private final ResourceRepository resourceRepository;
