@@ -1,6 +1,11 @@
 package com.abhiiterates.os.config;
 
-import com.abhiiterates.os.user.*;
+import com.abhiiterates.os.user.Permission;
+import com.abhiiterates.os.user.PermissionRepository;
+import com.abhiiterates.os.user.Role;
+import com.abhiiterates.os.user.RoleRepository;
+import com.abhiiterates.os.user.User;
+import com.abhiiterates.os.user.UserRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +28,7 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class DatabaseSeeder implements CommandLineRunner {
 
     private final PermissionRepository permissionRepository;
@@ -30,7 +36,6 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
-    private final com.abhiiterates.os.marketplace.store.StoreResourceRepository storeResourceRepository;
 
     /** Loaded from ADMIN_EMAIL env variable — never hardcoded in source */
     @Value("${app.admin.email}")
@@ -75,9 +80,6 @@ public class DatabaseSeeder implements CommandLineRunner {
         // 4. Purge All Non-Admin Student Logins (reassigning content to primary admin)
         cleanupStudentLogins(adminUser);
 
-        // 5. Seed Initial Store Resources for Student Marketplace
-        seedStoreResources();
-
         log.info("Database seeding and user cleanup successfully completed.");
     }
 
@@ -94,17 +96,18 @@ public class DatabaseSeeder implements CommandLineRunner {
             log.info("Admin user verified and updated.");
             return userRepository.save(user);
         }).orElseGet(() -> {
+            String defaultUsername = adminEmail.contains("@") ? adminEmail.split("@")[0] : "admin";
             User adminUser = User.builder()
                     .email(adminEmail)
-                    .username("abhishek")
+                    .username(defaultUsername)
                     .passwordHash(passwordEncoder.encode(adminPassword))
-                    .firstName("Abhishek")
-                    .lastName("Admin")
+                    .firstName("System")
+                    .lastName("Administrator")
                     .roles(roles)
                     .active(true)
                     .emailVerified(true)
                     .build();
-            log.info("Seeded primary admin user from environment configuration.");
+            log.info("Creating primary system admin user from environment configuration: {}", adminEmail);
             return userRepository.save(adminUser);
         });
     }
@@ -166,65 +169,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         }
     }
 
-    private void seedStoreResources() {
-        if (storeResourceRepository.count() == 0) {
-            log.info("Seeding initial premium store notes & resources...");
-            java.time.Instant oneYear = java.time.Instant.now().plus(365, java.time.temporal.ChronoUnit.DAYS);
-            java.time.Instant sixMonths = java.time.Instant.now().plus(180, java.time.temporal.ChronoUnit.DAYS);
 
-            storeResourceRepository.save(com.abhiiterates.os.marketplace.store.StoreResource.builder()
-                    .title("Placement Prep Masterkit 2026 (DSA + System Design)")
-                    .description("Complete curated handbook for MAANG and top product company interviews. Covers 150+ standard DSA patterns, mock interview questions, and System Design templates.")
-                    .category("Placement")
-                    .priceInRupees(new java.math.BigDecimal("149.00"))
-                    .expiryDate(oneYear)
-                    .fileUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
-                    .fileName("Placement_Prep_Masterkit_2026.pdf")
-                    .fileSize(12500000L)
-                    .tags("Placement, DSA, System Design, Java, C++, Interview")
-                    .active(true)
-                    .build());
-
-            storeResourceRepository.save(com.abhiiterates.os.marketplace.store.StoreResource.builder()
-                    .title("DBMS & SQL Query Optimization Handwritten Notes")
-                    .description("Comprehensive handwritten notes covering Normalization, B+ Trees, Indexing, Transactions, and top 50 SQL queries asked in campus placements.")
-                    .category("Placement")
-                    .priceInRupees(new java.math.BigDecimal("99.00"))
-                    .expiryDate(sixMonths)
-                    .fileUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
-                    .fileName("DBMS_SQL_Placement_Notes.pdf")
-                    .fileSize(8400000L)
-                    .tags("DBMS, SQL, Database, Placement, Core CS")
-                    .active(true)
-                    .build());
-
-            storeResourceRepository.save(com.abhiiterates.os.marketplace.store.StoreResource.builder()
-                    .title("Full Stack Web Development & Microservices Architecture Sheet")
-                    .description("Architecture blueprints, React + Spring Boot REST API integration guides, Docker deployment cheat sheet, and security best practices.")
-                    .category("General")
-                    .priceInRupees(new java.math.BigDecimal("79.00"))
-                    .expiryDate(sixMonths)
-                    .fileUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
-                    .fileName("FullStack_Architecture_Sheet.pdf")
-                    .fileSize(9600000L)
-                    .tags("Web Dev, React, Spring Boot, Microservices, General")
-                    .active(true)
-                    .build());
-
-            storeResourceRepository.save(com.abhiiterates.os.marketplace.store.StoreResource.builder()
-                    .title("GATE CS/IT 10-Year Topic-wise Solved Question Bank")
-                    .description("Topic-wise sorted 10-year GATE questions with step-by-step mathematical solutions and shortcut formulas for OS, TOC, Compiler Design, and CN.")
-                    .category("General")
-                    .priceInRupees(new java.math.BigDecimal("49.00"))
-                    .expiryDate(oneYear)
-                    .fileUrl("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
-                    .fileName("GATE_CS_Solved_Question_Bank.pdf")
-                    .fileSize(15200000L)
-                    .tags("GATE, Core CS, OS, TOC, Algorithms, General")
-                    .active(true)
-                    .build());
-        }
-    }
 
     private Permission getOrCreatePermission(String name, String description) {
         return permissionRepository.findByName(name)

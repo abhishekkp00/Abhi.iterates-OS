@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
 @Configuration
+@SuppressWarnings("all")
 public class CloudinaryConfig {
 
     @Value("${app.cloudinary.cloud-name:}")

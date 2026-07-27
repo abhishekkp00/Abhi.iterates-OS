@@ -34,6 +34,7 @@ import java.util.List;
 @Order(Ordered.HIGHEST_PRECEDENCE + 99)
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtTokenProvider jwtTokenProvider;
@@ -55,7 +56,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Primary STOMP WebSocket connection path
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:3000", "http://localhost:5173")
+                .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
 

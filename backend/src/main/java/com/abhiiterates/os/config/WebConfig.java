@@ -15,6 +15,7 @@ import java.util.List;
  * Global Web Configuration for CORS mappings and Jackson payload limits.
  */
 @Configuration
+@SuppressWarnings({"null", "unused"})
 public class WebConfig implements WebMvcConfigurer {
 
     @Value("${cors.allowed-origins:http://localhost:5180}")

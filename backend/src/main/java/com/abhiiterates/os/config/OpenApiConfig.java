@@ -14,6 +14,7 @@ import java.util.List;
  * Swagger / OpenAPI Specification Configuration.
  */
 @Configuration
+@SuppressWarnings("all")
 public class OpenApiConfig {
 
     @Value("${openapi.server-url:http://localhost:8080}")
