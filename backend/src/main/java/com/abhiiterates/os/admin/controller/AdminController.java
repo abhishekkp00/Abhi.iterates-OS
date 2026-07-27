@@ -36,6 +36,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Admin Portal", description = "Administration and platform monitoring endpoints")
 @Slf4j
+@SuppressWarnings("all")
 public class AdminController {
 
     private final UserRepository userRepository;

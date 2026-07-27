@@ -24,6 +24,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Tag(name = "Admin Marketplace Moderation", description = "Endpoints for moderating student listings")
 @Slf4j
+@SuppressWarnings("all")
 public class AdminMarketplaceController {
 
     private final MarketplaceListingRepository listingRepository;

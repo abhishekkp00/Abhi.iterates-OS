@@ -23,6 +23,7 @@ import java.util.UUID;
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 @Tag(name = "Admin Store & Notes Management", description = "Endpoints for Admin to upload and manage premium notes and prices in INR")
+@SuppressWarnings("all")
 public class AdminStoreResourceController {
 
     private final StoreService storeService;
