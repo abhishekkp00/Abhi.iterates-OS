@@ -3,11 +3,9 @@ package com.abhiiterates.os.auth;
 import com.abhiiterates.os.config.JwtProperties;
 import com.abhiiterates.os.user.User;
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -19,10 +17,12 @@ import java.util.function.Function;
 
 /**
  * JWT Token Provider.
- * Handles generation, signing, parsing, and verification of access and refresh JSON Web Tokens.
+ * Handles generation, signing, parsing, and verification of access and refresh
+ * JSON Web Tokens.
  */
 @Component
 @Slf4j
+@SuppressWarnings("null")
 public class JwtTokenProvider {
 
     private final JwtProperties jwtProperties;
@@ -35,7 +35,8 @@ public class JwtTokenProvider {
 
     private SecretKey getSigningKey(String secret) {
         if (secret == null || secret.trim().isEmpty()) {
-            throw new IllegalStateException("JWT Secret Key is not configured. Please define JWT_SECRET in your environment/.env file.");
+            throw new IllegalStateException(
+                    "JWT Secret Key is not configured. Please define JWT_SECRET in your environment/.env file.");
         }
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {

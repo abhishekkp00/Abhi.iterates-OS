@@ -20,6 +20,7 @@ import java.time.Instant;
  */
 @Component
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
