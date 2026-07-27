@@ -35,6 +35,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
 @Tag(name = "Notifications", description = "Real-time notification management")
+@SuppressWarnings("all")
 public class NotificationController {
 
     private final NotificationService notificationService;

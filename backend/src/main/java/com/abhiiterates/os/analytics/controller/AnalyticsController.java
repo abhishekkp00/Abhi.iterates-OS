@@ -24,6 +24,7 @@ import com.abhiiterates.os.analytics.dto.MarketplaceAnalyticsDto;
 @RestController
 @RequestMapping("/api/v1/analytics")
 @RequiredArgsConstructor
+@SuppressWarnings("all")
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;

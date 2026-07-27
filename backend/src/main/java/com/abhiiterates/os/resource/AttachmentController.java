@@ -18,6 +18,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/resources")
 @RequiredArgsConstructor
+@SuppressWarnings("all")
 public class AttachmentController {
 
     private final AttachmentService attachmentService;

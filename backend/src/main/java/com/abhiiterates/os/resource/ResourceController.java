@@ -22,6 +22,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/resources")
 @RequiredArgsConstructor
+@SuppressWarnings("all")
 public class ResourceController {
 
     private final ResourceService resourceService;

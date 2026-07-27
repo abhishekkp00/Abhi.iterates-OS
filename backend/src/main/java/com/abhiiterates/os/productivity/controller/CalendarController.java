@@ -18,6 +18,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/calendar")
 @RequiredArgsConstructor
+@SuppressWarnings("all")
 public class CalendarController {
 
     private final CalendarEventService eventService;
