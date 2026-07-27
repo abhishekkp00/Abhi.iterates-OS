@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@SuppressWarnings("null")
 public class ResourceServiceImpl implements ResourceService {
 
     private final ResourceRepository resourceRepository;
@@ -30,8 +31,7 @@ public class ResourceServiceImpl implements ResourceService {
             Collection<ResourceCategory> categories,
             Collection<ResourcePriority> priorities,
             Collection<ResourceStatus> statuses,
-            Pageable pageable
-    ) {
+            Pageable pageable) {
         // Map empty parameters to null so they are skipped in JPQL COALESCE
         Collection<ResourceCategory> cats = (categories == null || categories.isEmpty()) ? null : categories;
         Collection<ResourcePriority> pris = (priorities == null || priorities.isEmpty()) ? null : priorities;
@@ -63,15 +63,14 @@ public class ResourceServiceImpl implements ResourceService {
                 .build();
 
         Resource saved = resourceRepository.save(resource);
-        
+
         try {
             notificationService.createNotification(
                     user,
                     com.abhiiterates.os.notification.domain.NotificationType.RESOURCE_SHARED,
                     "New resource uploaded: \"" + saved.getTitle() + "\"",
                     "/resources/" + saved.getId(),
-                    saved.getId()
-            );
+                    saved.getId());
         } catch (Exception ex) {
             // Resilient
         }

@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@SuppressWarnings("null")
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
@@ -27,14 +28,14 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public List<TaskResponse> getAllTasks(User user) {
         return taskRepository.findAllByUser(user).stream()
-            .map(TaskResponse::fromEntity)
-            .collect(Collectors.toList());
+                .map(TaskResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @Override
     public TaskResponse getTaskById(UUID id, User user) {
         Task task = taskRepository.findByIdAndUser(id, user)
-            .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
         return TaskResponse.fromEntity(task);
     }
 
@@ -42,24 +43,23 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public TaskResponse createTask(TaskRequest request, User user) {
         Task task = Task.builder()
-            .title(request.title())
-            .description(request.description())
-            .status(request.status())
-            .priority(request.priority())
-            .category(request.category())
-            .dueDate(request.dueDate())
-            .user(user)
-            .build();
+                .title(request.title())
+                .description(request.description())
+                .status(request.status())
+                .priority(request.priority())
+                .category(request.category())
+                .dueDate(request.dueDate())
+                .user(user)
+                .build();
         Task saved = taskRepository.save(task);
-        
+
         try {
             notificationService.createNotification(
                     user,
                     com.abhiiterates.os.notification.domain.NotificationType.TASK_DUE_SOON,
                     "New task created: \"" + saved.getTitle() + "\"",
                     "/tasks",
-                    saved.getId()
-            );
+                    saved.getId());
         } catch (Exception ex) {
             // Keep task creation resilient to notification failures
         }
@@ -71,7 +71,7 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public TaskResponse updateTask(UUID id, TaskRequest request, User user) {
         Task task = taskRepository.findByIdAndUser(id, user)
-            .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
 
         task.setTitle(request.title());
         task.setDescription(request.description());
@@ -88,7 +88,7 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public void deleteTask(UUID id, User user) {
         Task task = taskRepository.findByIdAndUser(id, user)
-            .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
         taskRepository.delete(task);
     }
 
@@ -96,34 +96,38 @@ public class TaskServiceImpl implements TaskService {
     public PlannerSummaryResponse getPlannerSummary(User user) {
         List<Task> tasks = taskRepository.findAllByUser(user);
         long total = tasks.size();
-        long completed = tasks.stream().filter(t -> t.getStatus() == com.abhiiterates.os.productivity.domain.TaskStatus.COMPLETED).count();
+        long completed = tasks.stream()
+                .filter(t -> t.getStatus() == com.abhiiterates.os.productivity.domain.TaskStatus.COMPLETED).count();
         long pending = total - completed;
         double rate = total > 0 ? ((double) completed / total) * 100.0 : 0.0;
-        
+
         long highPriorityPending = tasks.stream()
-            .filter(t -> t.getStatus() != com.abhiiterates.os.productivity.domain.TaskStatus.COMPLETED && t.getPriority() == com.abhiiterates.os.productivity.domain.TaskPriority.HIGH)
-            .count();
+                .filter(t -> t.getStatus() != com.abhiiterates.os.productivity.domain.TaskStatus.COMPLETED
+                        && t.getPriority() == com.abhiiterates.os.productivity.domain.TaskPriority.HIGH)
+                .count();
 
         Instant now = Instant.now();
         Instant sevenDaysLater = now.plus(7, java.time.temporal.ChronoUnit.DAYS);
         long upcomingDeadlines = tasks.stream()
-            .filter(t -> t.getStatus() != com.abhiiterates.os.productivity.domain.TaskStatus.COMPLETED && t.getDueDate() != null &&
-                         !t.getDueDate().isBefore(now) && t.getDueDate().isBefore(sevenDaysLater))
-            .count();
+                .filter(t -> t.getStatus() != com.abhiiterates.os.productivity.domain.TaskStatus.COMPLETED
+                        && t.getDueDate() != null &&
+                        !t.getDueDate().isBefore(now) && t.getDueDate().isBefore(sevenDaysLater))
+                .count();
 
         Instant endOfToday = now.plus(24, java.time.temporal.ChronoUnit.HOURS);
         long todayTasks = tasks.stream()
-            .filter(t -> t.getDueDate() != null && !t.getDueDate().isBefore(now) && t.getDueDate().isBefore(endOfToday))
-            .count();
+                .filter(t -> t.getDueDate() != null && !t.getDueDate().isBefore(now)
+                        && t.getDueDate().isBefore(endOfToday))
+                .count();
 
         return PlannerSummaryResponse.builder()
-            .totalTasks(total)
-            .completedTasks(completed)
-            .pendingTasks(pending)
-            .completionRate(rate)
-            .highPriorityPendingCount(highPriorityPending)
-            .upcomingDeadlinesCount(upcomingDeadlines)
-            .todayTasksCount(todayTasks)
-            .build();
+                .totalTasks(total)
+                .completedTasks(completed)
+                .pendingTasks(pending)
+                .completionRate(rate)
+                .highPriorityPendingCount(highPriorityPending)
+                .upcomingDeadlinesCount(upcomingDeadlines)
+                .todayTasksCount(todayTasks)
+                .build();
     }
 }

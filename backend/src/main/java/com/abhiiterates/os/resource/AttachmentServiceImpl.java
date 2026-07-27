@@ -1,9 +1,13 @@
 package com.abhiiterates.os.resource;
 
+import com.abhiiterates.os.config.CloudinaryConfig;
 import com.abhiiterates.os.exception.ResourceNotFoundException;
 import com.abhiiterates.os.resource.dto.AttachmentResponse;
 import com.abhiiterates.os.user.User;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,16 +20,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@SuppressWarnings("null")
 public class AttachmentServiceImpl implements AttachmentService {
 
     private final ResourceRepository resourceRepository;
     private final ResourceAttachmentRepository attachmentRepository;
+    private final Cloudinary cloudinary;
+    private final CloudinaryConfig cloudinaryConfig;
 
     private final Path fileStorageLocation = Paths.get("uploads").toAbsolutePath().normalize();
 
@@ -46,30 +55,45 @@ public class AttachmentServiceImpl implements AttachmentService {
             throw new IllegalArgumentException("Filename contains invalid path sequence: " + originalFileName);
         }
 
-        // Create storage directory if it doesn't exist
-        try {
-            Files.createDirectories(this.fileStorageLocation);
-        } catch (IOException ex) {
-            throw new RuntimeException("Could not create the upload directory.", ex);
+        String downloadUrl = null;
+
+        // Cloudinary Cloud Storage strategy
+        if (cloudinary != null && cloudinaryConfig != null && cloudinaryConfig.isConfigured()) {
+            try {
+                Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                        "resource_type", "auto",
+                        "folder", "resources"));
+                downloadUrl = (String) uploadResult.get("secure_url");
+                log.info("File successfully uploaded to Cloudinary: {}", downloadUrl);
+            } catch (Exception ex) {
+                log.warn("Cloudinary upload failed, falling back to local storage: {}", ex.getMessage());
+            }
         }
 
-        // Generate unique filename to prevent collisions
-        String fileExtension = "";
-        int extensionIndex = originalFileName.lastIndexOf('.');
-        if (extensionIndex >= 0) {
-            fileExtension = originalFileName.substring(extensionIndex);
-        }
-        String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
-        Path targetLocation = this.fileStorageLocation.resolve(uniqueFileName);
+        // Fallback to local file storage if Cloudinary wasn't used or failed
+        if (downloadUrl == null) {
+            try {
+                Files.createDirectories(this.fileStorageLocation);
+            } catch (IOException ex) {
+                throw new RuntimeException("Could not create the upload directory.", ex);
+            }
 
-        try {
-            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ex) {
-            throw new RuntimeException("Could not store file " + originalFileName + ". Please try again!", ex);
-        }
+            String fileExtension = "";
+            int extensionIndex = originalFileName.lastIndexOf('.');
+            if (extensionIndex >= 0) {
+                fileExtension = originalFileName.substring(extensionIndex);
+            }
+            String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+            Path targetLocation = this.fileStorageLocation.resolve(uniqueFileName);
 
-        // Formulate the download URL pointing to the download controller mapping
-        String downloadUrl = "/api/v1/resources/attachments/" + uniqueFileName + "/download";
+            try {
+                Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                throw new RuntimeException("Could not store file " + originalFileName + ". Please try again!", ex);
+            }
+
+            downloadUrl = "/api/v1/resources/attachments/" + uniqueFileName + "/download";
+        }
 
         // Save metadata record
         ResourceAttachment attachment = ResourceAttachment.builder()
