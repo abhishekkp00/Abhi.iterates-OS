@@ -144,7 +144,7 @@ public class StoreServiceImpl implements StoreService {
                     .build();
         }
 
-        ResourcePurchase savedPurchase = purchaseRepository.save(purchase);
+        purchaseRepository.save(purchase);
         log.info("Student {} purchased resource '{}' via UPI ref {}", currentUser.getEmail(), resource.getTitle(),
                 purchaseRequest.getPaymentRefId());
 
