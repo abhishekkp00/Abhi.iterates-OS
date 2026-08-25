@@ -58,6 +58,9 @@ class DocumentIngestionControllerTest {
     @MockBean
     private DocumentIngestionService ingestionService;
 
+    @MockBean
+    private com.abhiiterates.os.ai.embedding.service.DocumentEmbeddingService embeddingService;
+
     private String userToken;
     private User testUser;
     private Resource testResource;
@@ -100,6 +103,7 @@ class DocumentIngestionControllerTest {
                 .fileName("syllabus.pdf")
                 .contentType("application/pdf")
                 .status(IngestionStatus.COMPLETED)
+                .embeddingStatus(IngestionStatus.PENDING)
                 .contentHash("hash123")
                 .pageCount(5)
                 .extractedCharCount(1500L)
@@ -121,6 +125,30 @@ class DocumentIngestionControllerTest {
     }
 
     @Test
+    @DisplayName("generateEmbeddings_withValidToken_returnsStatusMetadataWithoutExposingRawVectors")
+    void generateEmbeddings_withValidToken_returnsStatusMetadataWithoutExposingRawVectors() throws Exception {
+        IngestionResponse mockResponse = IngestionResponse.builder()
+                .documentId(UUID.randomUUID())
+                .resourceId(testResource.getId())
+                .attachmentId(attachmentId)
+                .fileName("syllabus.pdf")
+                .status(IngestionStatus.COMPLETED)
+                .embeddingStatus(IngestionStatus.COMPLETED)
+                .pageCount(5)
+                .chunkCount(2)
+                .build();
+
+        when(embeddingService.generateEmbeddingsForDocument(eq(testResource.getId()), eq(attachmentId), any())).thenReturn(mockResponse);
+
+        mockMvc.perform(post("/api/v1/resources/" + testResource.getId() + "/attachments/" + attachmentId + "/ingest/embed")
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.embeddingStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.vector").doesNotExist())
+                .andExpect(jsonPath("$.embedding").doesNotExist());
+    }
+
+    @Test
     @DisplayName("getIngestionStatus_withValidToken_returnsStatus")
     void getIngestionStatus_withValidToken_returnsStatus() throws Exception {
         IngestionResponse mockResponse = IngestionResponse.builder()
@@ -129,6 +157,7 @@ class DocumentIngestionControllerTest {
                 .attachmentId(attachmentId)
                 .fileName("syllabus.pdf")
                 .status(IngestionStatus.PROCESSING)
+                .embeddingStatus(IngestionStatus.PENDING)
                 .pageCount(0)
                 .chunkCount(0)
                 .build();
@@ -138,6 +167,7 @@ class DocumentIngestionControllerTest {
         mockMvc.perform(get("/api/v1/resources/" + testResource.getId() + "/attachments/" + attachmentId + "/ingest/status")
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PROCESSING"));
+                .andExpect(jsonPath("$.status").value("PROCESSING"))
+                .andExpect(jsonPath("$.embeddingStatus").value("PENDING"));
     }
 }
