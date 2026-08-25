@@ -15,6 +15,8 @@ import com.abhiiterates.os.common.ApiResponse;
 import com.abhiiterates.os.planner.domain.PlannedStudySession;
 import com.abhiiterates.os.planner.domain.StudyPlan;
 import com.abhiiterates.os.planner.domain.StudyPlanStatus;
+import com.abhiiterates.os.academic.repository.LearningActivityRepository;
+import com.abhiiterates.os.academic.repository.StudySessionRepository;
 import com.abhiiterates.os.planner.repository.StudyPlanRepository;
 import com.abhiiterates.os.user.User;
 import com.abhiiterates.os.user.UserRepository;
@@ -59,6 +61,9 @@ class AcademicDashboardIntegrationTest {
     private StudySessionRepository studySessionRepository;
 
     @Autowired
+    private LearningActivityRepository learningActivityRepository;
+
+    @Autowired
     private AcademicGoalRepository academicGoalRepository;
 
     @Autowired
@@ -73,6 +78,9 @@ class AcademicDashboardIntegrationTest {
     @Autowired
     private AssessmentAttemptRepository assessmentAttemptRepository;
 
+    @Autowired
+    private TopicProgressRepository topicProgressRepository;
+
     private User userA;
     private User userB;
 
@@ -82,11 +90,13 @@ class AcademicDashboardIntegrationTest {
     @BeforeEach
     void setUp() {
         studyPlanRepository.deleteAll();
+        learningActivityRepository.deleteAll();
         studySessionRepository.deleteAll();
         academicGoalRepository.deleteAll();
         examRepository.deleteAll();
         assessmentAttemptRepository.deleteAll();
         assessmentRepository.deleteAll();
+        topicProgressRepository.deleteAll();
         topicRepository.deleteAll();
         subjectRepository.deleteAll();
 

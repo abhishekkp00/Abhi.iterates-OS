@@ -199,24 +199,34 @@ export function StudySessionWidget() {
             />
           </div>
 
-          <div className="flex gap-2 justify-end pt-1">
-            <button
-              onClick={handleCancel}
-              disabled={isLoading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 text-xs font-medium transition-colors"
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40">
+            <a
+              href={`/ai?topicId=${activeSession.topicId}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-semibold transition-colors"
             >
-              <X className="size-3.5" />
-              <span>Cancel</span>
-            </button>
+              <Activity className="size-3.5 text-indigo-600" />
+              <span>Need Help? Open Tutor</span>
+            </a>
 
-            <button
-              onClick={handleComplete}
-              disabled={isLoading}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium shadow-sm transition-colors"
-            >
-              <Check className="size-3.5" />
-              <span>Complete Session</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancel}
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 text-xs font-medium transition-colors"
+              >
+                <X className="size-3.5" />
+                <span>Cancel</span>
+              </button>
+
+              <button
+                onClick={handleComplete}
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold shadow-sm transition-colors"
+              >
+                <Check className="size-3.5" />
+                <span>Complete Session</span>
+              </button>
+            </div>
           </div>
         </div>
       ) : (

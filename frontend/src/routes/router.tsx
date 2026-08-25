@@ -25,6 +25,7 @@ import MarketplacePage from '@/pages/MarketplacePage'
 const DashboardPage   = lazy(() => import('@/pages/DashboardPage'))
 const AcademicCommandCenterPage = lazy(() => import('@/pages/AcademicCommandCenterPage'))
 const ExamDetailPage = lazy(() => import('@/pages/ExamDetailPage'))
+const TopicDetailPage = lazy(() => import('@/pages/TopicDetailPage').then((m) => ({ default: m.TopicDetailPage })))
 const LibraryPage     = lazy(() => import('@/pages/LibraryPage'))
 const StudyRoomPage = lazy(() => import('@/pages/StudyRoomPage'))
 const ResourcesLayout = lazy(() => import('@/layouts/ResourcesLayout'))
@@ -153,6 +154,10 @@ const router = createBrowserRouter([
           {
             path: '/academic/exams/:id',
             element: <Suspense fallback={<PageLoader />}><ExamDetailPage /></Suspense>,
+          },
+          {
+            path: '/academic/topics/:id',
+            element: <Suspense fallback={<PageLoader />}><TopicDetailPage /></Suspense>,
           },
           {
             path: '/library',

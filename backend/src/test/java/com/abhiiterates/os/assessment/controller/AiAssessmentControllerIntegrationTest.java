@@ -3,6 +3,7 @@ package com.abhiiterates.os.assessment.controller;
 import com.abhiiterates.os.academic.domain.Subject;
 import com.abhiiterates.os.academic.domain.Topic;
 import com.abhiiterates.os.academic.repository.SubjectRepository;
+import com.abhiiterates.os.academic.repository.TopicProgressRepository;
 import com.abhiiterates.os.academic.repository.TopicRepository;
 import com.abhiiterates.os.academic.service.LearningStateService;
 import com.abhiiterates.os.assessment.domain.*;
@@ -56,6 +57,9 @@ class AiAssessmentControllerIntegrationTest {
     private TopicRepository topicRepository;
 
     @Autowired
+    private TopicProgressRepository topicProgressRepository;
+
+    @Autowired
     private AssessmentRepository assessmentRepository;
 
     @Autowired
@@ -67,15 +71,24 @@ class AiAssessmentControllerIntegrationTest {
     @MockBean
     private AiAssessmentGeneratorService generatorService;
 
+    @Autowired
+    private com.abhiiterates.os.academic.repository.LearningActivityRepository learningActivityRepository;
+
     private User testUser;
     private String token;
     private Subject subject;
     private Topic topic;
 
+    @Autowired
+    private com.abhiiterates.os.academic.repository.StudySessionRepository studySessionRepository;
+
     @BeforeEach
     void setUp() {
         attemptRepository.deleteAll();
         assessmentRepository.deleteAll();
+        learningActivityRepository.deleteAll();
+        studySessionRepository.deleteAll();
+        topicProgressRepository.deleteAll();
         topicRepository.deleteAll();
         subjectRepository.deleteAll();
 

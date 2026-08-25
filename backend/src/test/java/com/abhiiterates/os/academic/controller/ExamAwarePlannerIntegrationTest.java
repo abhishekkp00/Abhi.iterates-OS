@@ -8,6 +8,7 @@ import com.abhiiterates.os.academic.dto.ExamCoverageResponse;
 import com.abhiiterates.os.academic.repository.ExamRepository;
 import com.abhiiterates.os.academic.repository.StudySessionRepository;
 import com.abhiiterates.os.academic.repository.SubjectRepository;
+import com.abhiiterates.os.academic.repository.TopicProgressRepository;
 import com.abhiiterates.os.academic.repository.TopicRepository;
 import com.abhiiterates.os.auth.AuthService;
 import com.abhiiterates.os.auth.dto.AuthResponse;
@@ -54,6 +55,9 @@ class ExamAwarePlannerIntegrationTest {
     private TopicRepository topicRepository;
 
     @Autowired
+    private TopicProgressRepository topicProgressRepository;
+
+    @Autowired
     private ExamRepository examRepository;
 
     @Autowired
@@ -65,6 +69,9 @@ class ExamAwarePlannerIntegrationTest {
     @Autowired
     private StudySessionRepository studySessionRepository;
 
+    @Autowired
+    private com.abhiiterates.os.academic.repository.LearningActivityRepository learningActivityRepository;
+
     private User testUser;
     private String token;
     private Subject subject;
@@ -74,9 +81,11 @@ class ExamAwarePlannerIntegrationTest {
     @BeforeEach
     void setUp() {
         plannedStudySessionRepository.deleteAll();
+        learningActivityRepository.deleteAll();
         studySessionRepository.deleteAll();
         planRepository.deleteAll();
         examRepository.deleteAll();
+        topicProgressRepository.deleteAll();
         topicRepository.deleteAll();
         subjectRepository.deleteAll();
 

@@ -60,7 +60,13 @@ class IdorSecurityIntegrationTest {
     private TopicRepository topicRepository;
 
     @Autowired
+    private TopicProgressRepository topicProgressRepository;
+
+    @Autowired
     private StudySessionRepository studySessionRepository;
+
+    @Autowired
+    private com.abhiiterates.os.academic.repository.LearningActivityRepository learningActivityRepository;
 
     @Autowired
     private AcademicGoalRepository academicGoalRepository;
@@ -98,12 +104,14 @@ class IdorSecurityIntegrationTest {
     @BeforeEach
     void setUp() {
         studyPlanRepository.deleteAll();
+        learningActivityRepository.deleteAll();
         studySessionRepository.deleteAll();
         academicGoalRepository.deleteAll();
         examRepository.deleteAll();
         assessmentAttemptRepository.deleteAll();
         assessmentRepository.deleteAll();
         resourceRepository.deleteAll();
+        topicProgressRepository.deleteAll();
         topicRepository.deleteAll();
         subjectRepository.deleteAll();
 

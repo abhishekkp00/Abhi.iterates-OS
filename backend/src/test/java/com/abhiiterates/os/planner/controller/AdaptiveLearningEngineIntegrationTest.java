@@ -60,6 +60,9 @@ class AdaptiveLearningEngineIntegrationTest {
     private com.abhiiterates.os.academic.repository.StudySessionRepository studySessionRepository;
 
     @Autowired
+    private com.abhiiterates.os.academic.repository.TopicProgressRepository topicProgressRepository;
+
+    @Autowired
     private StudyPlannerService plannerService;
 
     private User testUser;
@@ -68,11 +71,16 @@ class AdaptiveLearningEngineIntegrationTest {
     private Topic topic1;
     private Topic topic2;
 
+    @Autowired
+    private com.abhiiterates.os.academic.repository.LearningActivityRepository learningActivityRepository;
+
     @BeforeEach
     void setUp() {
         plannedStudySessionRepository.deleteAll();
+        learningActivityRepository.deleteAll();
         studySessionRepository.deleteAll();
         planRepository.deleteAll();
+        topicProgressRepository.deleteAll();
         topicRepository.deleteAll();
         subjectRepository.deleteAll();
 
