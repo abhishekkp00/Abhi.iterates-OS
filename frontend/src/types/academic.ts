@@ -9,6 +9,12 @@ export type StudySessionType =
   | 'ASSIGNMENT'
   | 'MOCK_TEST'
 
+export type LearningState = 'STRONG' | 'DEVELOPING' | 'WEAK' | 'INSUFFICIENT_DATA'
+
+export type LearningTrend = 'IMPROVING' | 'STABLE' | 'DECLINING' | 'INSUFFICIENT_DATA'
+
+export type EvidenceLevel = 'LOW' | 'MEDIUM' | 'HIGH'
+
 export interface AcademicSubject {
   id: string
   name: string
@@ -58,6 +64,37 @@ export interface TopicProgress {
   averageSessionMinutes: number
   lastStudiedAt?: string
   updatedAt?: string
+}
+
+export interface LearningStateResult {
+  topicId: string
+  topicName: string
+  subjectId: string
+  subjectName: string
+  state: LearningState
+  trend: LearningTrend
+  recentAveragePercentage?: number
+  historicalAveragePercentage?: number
+  assessmentAttemptCount: number
+  totalStudyMinutes: number
+  studySessionCount: number
+  lastStudiedAt?: string
+  lastAssessmentAt?: string
+  daysSinceLastStudied?: number
+  daysSinceLastAssessment?: number
+  evidenceLevel: EvidenceLevel
+  reason: string
+}
+
+export interface SubjectLearningStateSummary {
+  subjectId: string
+  subjectName: string
+  totalTopics: number
+  strongCount: number
+  developingCount: number
+  weakCount: number
+  insufficientDataCount: number
+  topicResults: LearningStateResult[]
 }
 
 export interface StartStudySessionPayload {

@@ -7,6 +7,7 @@ import { CalendarGrid } from '@/features/productivity/components/CalendarGrid'
 import { AgendaList } from '@/features/productivity/components/AgendaList'
 import { QuickAddDialog } from '@/features/productivity/components/QuickAddDialog'
 import { StudySessionWidget } from '@/features/academic/components/StudySessionWidget'
+import { LearningStateWidget } from '@/features/academic/components/LearningStateWidget'
 import { AssessmentManagerWidget } from '@/features/assessment/components/AssessmentManagerWidget'
 
 export default function PlannerPage() {
@@ -34,6 +35,9 @@ export default function PlannerPage() {
           Quick Add
         </button>
       </div>
+
+      {/* Topic Learning State Analysis Widget */}
+      <LearningStateWidget />
 
       {/* Academic Study Session & Progress Tracking Widget */}
       <StudySessionWidget />

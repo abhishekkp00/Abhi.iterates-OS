@@ -4,6 +4,8 @@ import type {
   AcademicTopic,
   StudySession,
   TopicProgress,
+  LearningStateResult,
+  SubjectLearningStateSummary,
   StartStudySessionPayload,
   CompleteStudySessionPayload,
   ManualStudySessionPayload,
@@ -77,6 +79,23 @@ export const academicApi = {
 
   getTopicProgress: async (topicId: string): Promise<TopicProgress> => {
     const res = await api.get<TopicProgress>(`/v1/study-sessions/topics/${topicId}/progress`)
+    return res.data
+  },
+
+  // Learning State Analysis
+  getTopicLearningState: async (topicId: string): Promise<LearningStateResult> => {
+    const res = await api.get<LearningStateResult>(`/v1/academic/topics/${topicId}/learning-state`)
+    return res.data
+  },
+
+  getUserTopicsLearningState: async (subjectId?: string): Promise<LearningStateResult[]> => {
+    const url = `/v1/academic/learning-state/topics${subjectId ? `?subjectId=${subjectId}` : ''}`
+    const res = await api.get<LearningStateResult[]>(url)
+    return res.data
+  },
+
+  getSubjectLearningStateSummary: async (subjectId: string): Promise<SubjectLearningStateSummary> => {
+    const res = await api.get<SubjectLearningStateSummary>(`/v1/academic/subjects/${subjectId}/learning-state`)
     return res.data
   },
 }
