@@ -30,21 +30,21 @@ The codebase follows a **Modular Package Structure** (Package-by-Feature) to fac
 
 ### Base Package: `com.abhiiterates.os`
 
-*   **`config/`**: Holds infrastructure configurations (Security, CORS, Jackson, OpenAPI, DB configs).
-*   **`common/`**: Holds generic models (such as `ApiResponse`), base controllers, and shared utilities.
+*   **`config/`**: Holds infrastructure configurations (Security, CORS, Jackson, OpenAPI, Cloudinary, WebSocket, DB seeder).
+*   **`common/`**: Holds generic models (`ApiResponse`, `BaseAuditEntity`), health controller, and shared utilities.
 *   **`exception/`**: Centralized `@RestControllerAdvice` exception handler and custom HTTP status exceptions.
-*   **`security/`**: JWT filters, authentication helpers, and credential rotation mechanisms (Day 5).
-*   **Bounded Contexts / Business Modules:**
-    *   **`user/`**: User profiles, accounts, registration, and onboarding.
-    *   **`workspace/`**: Core student workspace subjects, notes metadata, and folders.
-    *   **`subject/`**: Subject management and course trackers.
-    *   **`resource/`**: PDF files metadata, page counting, and object storage links.
-    *   **`marketplace/`**: Listings, transaction purchases, price indices, and creator payouts.
-    *   **`library/`**: Personal student libraries, bookmarks, and folder groupings.
-    *   **`pdf/`**: PDF annotations, coordinates, highlights, and custom pages.
-    *   **`ai/`**: Retrieval-Augmented Generation (RAG) chat sessions, flashcards, MCQs, and token limits.
-    *   **`notification/`**: System alerts, email notifications, and web sockets.
-    *   **`admin/`**: Content moderation, billing analytics, and system audit logs.
+*   **Bounded Contexts / Business Modules (current actual packages):**
+    *   **`auth/`**: JWT authentication, refresh token rotation, OAuth2 (Google), password reset, email verification, user sessions.
+    *   **`user/`**: User profiles, accounts, roles, permissions.
+    *   **`resource/`**: PDF and resource management, Cloudinary-backed attachments.
+    *   **`marketplace/`**: Listings, store resources, transactions, seller/buyer flows.
+    *   **`productivity/`**: Task management, calendar events.
+    *   **`notification/`**: WebSocket-based real-time notifications.
+    *   **`analytics/`**: Usage analytics endpoints.
+    *   **`admin/`**: Administrator management, audit logs, system settings.
+    *   **`ai/`**: Spring AI chat sessions, conversation persistence, SSE streaming, tool calling.
+        *   **`ai/agent/`**: Custom ToolRegistry, ExecutionContext, @AgentTool annotations.
+        *   **`ai/agent/tools/`**: Registered tool implementations (searchResources, searchMarketplace, etc.).
 
 ### Layer Division Within Each Module
 For example, inside `com.abhiiterates.os.user`:
@@ -178,31 +178,39 @@ backend/
     │   │   └── com/
     │   │       └── abhiiterates/
     │   │           └── os/
-    │   │               ├── OsApplication.java   # Main entry point (UTC default)
-    │   │               ├── config/              # Infra and Swagger configurations
+    │   │               ├── OsApplication.java          # Main entry point (UTC default)
+    │   │               ├── config/                     # Infra and Swagger configurations
+    │   │               │   ├── AuditorAwareImpl.java
+    │   │               │   ├── CloudinaryConfig.java
+    │   │               │   ├── DatabaseSeeder.java
     │   │               │   ├── JacksonConfig.java
+    │   │               │   ├── JwtProperties.java
+    │   │               │   ├── MapperConfig.java
     │   │               │   ├── OpenApiConfig.java
+    │   │               │   ├── PasswordEncoderConfig.java
     │   │               │   ├── SecurityConfig.java
-    │   │               │   └── WebConfig.java
-    │   │               ├── common/              # Common controllers and response envelopes
+    │   │               │   ├── WebConfig.java
+    │   │               │   └── WebSocketConfig.java
+    │   │               ├── common/                     # Shared models and utilities
     │   │               │   ├── ApiResponse.java
+    │   │               │   ├── BaseAuditEntity.java
     │   │               │   ├── HealthController.java
     │   │               │   └── ValidationTestDto.java
-    │   │               ├── exception/           # Centralized exception mappings
+    │   │               ├── exception/                  # Centralized exception handler
     │   │               │   ├── BadRequestException.java
     │   │               │   ├── GlobalExceptionHandler.java
     │   │               │   └── ResourceNotFoundException.java
-    │   │               ├── security/            # Security filters (future JWT)
-    │   │               ├── user/                # User management module
-    │   │               ├── workspace/           # Student workspaces module
-    │   │               ├── subject/             # Academic subjects tracker
-    │   │               ├── resource/            # PDF and resource store
-    │   │               ├── marketplace/         # Commercial digital notes store
-    │   │               ├── library/             # User library manager
-    │   │               ├── pdf/                 # PDF highlights & annotations
-    │   │               ├── ai/                  # Flashcards & RAG AI chatbot
-    │   │               ├── notification/        # System notification module
-    │   │               └── admin/               # Administrator management
+    │   │               ├── auth/                       # JWT, OAuth2, refresh token rotation
+    │   │               ├── user/                       # User profiles, roles, permissions
+    │   │               ├── resource/                   # Library, PDFs, Cloudinary attachments
+    │   │               ├── marketplace/                # Listings, store, transactions
+    │   │               ├── productivity/               # Tasks, calendar events
+    │   │               ├── notification/               # WebSocket-based notifications
+    │   │               ├── analytics/                  # Usage analytics endpoints
+    │   │               ├── admin/                      # Admin panel, audit logs, settings
+    │   │               └── ai/                         # Spring AI chat, conversations, tools
+    │   │                   └── agent/                  # Tool registry, execution context
+    │   │                       └── tools/              # Registered @AgentTool methods
     │   └── resources/
     │       ├── application.yml                  # Base configuration profiles
     │       ├── application-dev.yml              # Local development values
@@ -212,7 +220,12 @@ backend/
             └── com/
                 └── abhiiterates/
                     └── os/
-                        └── OsApplicationTests.java # Context loading verification tests
+                        ├── OsApplicationTests.java         # Context loading verification
+                        ├── ai/
+                        │   └── agent/
+                        │       └── ToolRegistryTest.java   # Tool discovery and execution
+                        └── auth/
+                            └── AuthControllerIntegrationTest.java # Auth endpoint integration tests
 ```
 
 ---

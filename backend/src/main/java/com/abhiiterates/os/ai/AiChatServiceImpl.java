@@ -44,6 +44,27 @@ public class AiChatServiceImpl implements AiChatService {
     /** Virtual thread executor — won't block a carrier thread during LLM I/O */
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
+    // ── Security contract for ToolRegistry ThreadLocal ─────────────────────────
+    // ExecutionContext is stored in a ThreadLocal and cleared in doFinally/finally.
+    // Virtual threads are used here (not platform threads), so the ThreadLocal is
+    // isolated to each virtual thread's task. The context MUST be cleared after
+    // every tool execution path (both success and error) to prevent context leakage
+    // across requests. See ToolRegistry.clearContext() calls in this class.
+    //
+    // ── Future RAG integration boundary ───────────────────────────────────────
+    // The intended integration point for the upcoming RAG layer is inside
+    // buildMessageHistory(), where document context is injected into the system
+    // prompt. Replace the current extractPdfContext() method with a call to
+    // a future RetrievalService that performs vector similarity search:
+    //
+    //   String ragContext = retrievalService.retrieveContext(resourceId, userQuery, user);
+    //
+    // The RetrievalService will be responsible for:
+    //   - Chunk retrieval from pgvector or a dedicated vector store
+    //   - Relevance scoring and re-ranking
+    //   - Access control validation (user owns the resource)
+    // ──────────────────────────────────────────────────────────────────────────
+
     // ── Streaming ─────────────────────────────────────────────────────────────
 
     @Override

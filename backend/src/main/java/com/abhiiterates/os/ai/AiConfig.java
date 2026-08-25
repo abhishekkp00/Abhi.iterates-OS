@@ -19,7 +19,6 @@ import org.springframework.context.annotation.Configuration;
  *  - Prompt template repository
  */
 @Configuration
-@SuppressWarnings("all")
 public class AiConfig {
 
     /**
