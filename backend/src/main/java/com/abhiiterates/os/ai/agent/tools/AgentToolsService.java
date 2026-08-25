@@ -96,13 +96,12 @@ public class AgentToolsService {
     ) {
         log.info("Agent tool 'searchKnowledgeBase' called with query: {}", query);
         try {
-            // Find attachments owned by the current student
-            List<ResourceAttachment> attachments = attachmentRepository.findAll().stream()
-                    .filter(att -> att.getResource().getUser().getId().equals(context.getUser().getId()))
-                    .filter(att -> att.getFileName().toLowerCase().contains(query.toLowerCase()) || 
-                                   att.getResource().getTitle().toLowerCase().contains(query.toLowerCase()))
-                    .collect(Collectors.toList());
-                    
+            // DB-level query: ownership and search term filtering happen in a single
+            // SQL WHERE clause — no full table scan, no in-memory ownership risk.
+            List<ResourceAttachment> attachments =
+                    attachmentRepository.findByResourceUserIdAndSearchQuery(
+                            context.getUser().getId(), query);
+
             return attachments.stream().map(att -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("attachmentId", att.getId());
