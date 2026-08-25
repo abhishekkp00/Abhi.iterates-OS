@@ -15,11 +15,13 @@ public record IngestionResponse(
         String fileName,
         String contentType,
         IngestionStatus status,
+        IngestionStatus embeddingStatus,
         String contentHash,
         int pageCount,
         long extractedCharCount,
         int chunkCount,
         String failureReason,
+        String embeddingFailureReason,
         Instant createdAt,
         Instant updatedAt,
         List<ChunkResponse> chunks

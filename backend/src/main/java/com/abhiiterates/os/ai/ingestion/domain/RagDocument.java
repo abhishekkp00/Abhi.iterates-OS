@@ -59,6 +59,14 @@ public class RagDocument extends BaseAuditEntity {
     @Column(name = "failure_reason", length = 1000)
     private String failureReason;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "embedding_status", nullable = false, length = 50)
+    @Builder.Default
+    private IngestionStatus embeddingStatus = IngestionStatus.PENDING;
+
+    @Column(name = "embedding_failure_reason", length = 1000)
+    private String embeddingFailureReason;
+
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<RagDocumentChunk> chunks = new ArrayList<>();
