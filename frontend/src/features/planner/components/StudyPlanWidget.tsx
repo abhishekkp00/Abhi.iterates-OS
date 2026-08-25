@@ -4,15 +4,17 @@ import {
   Sparkles,
   Calendar,
   Clock,
-  AlertTriangle,
   CheckCircle2,
   SlidersHorizontal,
   Info,
-  Play,
   Bot,
+  BarChart2,
+  BookOpen,
+  X,
 } from 'lucide-react'
 import { usePlannerStore } from '../store/planner.store'
-import { plannerApi, type PlannedStudySession } from '../api/planner.api'
+import { plannerApi, type PlannedStudySession, type TopicPriorityBreakdown } from '../api/planner.api'
+import { GenerateAdaptiveAssessmentModal } from '@/features/assessment/components/GenerateAdaptiveAssessmentModal'
 
 export function StudyPlanWidget() {
   const navigate = useNavigate()
@@ -37,6 +39,14 @@ export function StudyPlanWidget() {
   const [availableMinutes, setAvailableMinutes] = useState(120)
   const [sessionLength, setSessionLength] = useState(45)
   const [horizonDays, setHorizonDays] = useState(7)
+
+  // Plan Inspector Modal
+  const [showInspector, setShowInspector] = useState(false)
+  const [breakdown, setBreakdown] = useState<TopicPriorityBreakdown[]>([])
+  const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false)
+
+  // AI Assessment Modal Deep-Link
+  const [selectedAssessmentTopicId, setSelectedAssessmentTopicId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchActiveOrLatestPlan()
@@ -88,6 +98,20 @@ export function StudyPlanWidget() {
     setShowPreferences(false)
   }
 
+  const handleOpenInspector = async () => {
+    if (!activePlanToDisplay?.id) return
+    setIsLoadingBreakdown(true)
+    setShowInspector(true)
+    try {
+      const data = await plannerApi.getPriorityBreakdown(activePlanToDisplay.id)
+      setBreakdown(data)
+    } catch (err) {
+      setBreakdown([])
+    } finally {
+      setIsLoadingBreakdown(false)
+    }
+  }
+
   const activePlanToDisplay = previewPlan || currentPlan
 
   // Group sessions by day
@@ -101,98 +125,105 @@ export function StudyPlanWidget() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-5">
-      {/* Header Bar */}
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+      {/* Widget Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
         <div className="flex items-center space-x-2.5">
-          <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+          <div className="p-2 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-600">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h3 className="font-bold text-slate-800 text-base">Adaptive Study Planner</h3>
-              {previewPlan && (
-                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 font-medium text-[10px] rounded-full uppercase tracking-wider">
-                  Preview Mode
-                </span>
-              )}
-              {currentPlan && currentPlan.status === 'ACTIVE' && !previewPlan && (
-                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-medium text-[10px] rounded-full uppercase tracking-wider flex items-center space-x-1">
-                  <CheckCircle2 className="w-3 h-3 inline" />
-                  <span>Active Plan</span>
+              <h2 className="text-base font-bold text-slate-800">Adaptive Learning Engine</h2>
+              {activePlanToDisplay && (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    activePlanToDisplay.status === 'ACTIVE'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : activePlanToDisplay.status === 'DRAFT'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {previewPlan ? 'PREVIEW' : activePlanToDisplay.status}
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-500">
-              Deterministic priority calculator & constraint-aware schedule engine
+              Deterministic time allocation grounded in mastery evidence, upcoming exams, and prerequisite dependencies.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        {/* Action Buttons */}
+        <div className="flex items-center space-x-2 shrink-0">
+          {activePlanToDisplay?.id && (
+            <button
+              onClick={handleOpenInspector}
+              className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors inline-flex items-center space-x-1.5"
+            >
+              <BarChart2 className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Inspect Factors</span>
+            </button>
+          )}
+
           <button
             onClick={() => setShowPreferences(!showPreferences)}
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-            title="Planner Settings & Availability"
+            className="p-2 text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+            title="Planner Preferences"
           >
             <SlidersHorizontal className="w-4 h-4" />
           </button>
 
           {previewPlan ? (
-            <>
+            <div className="flex items-center space-x-2">
               <button
                 onClick={clearPreview}
-                className="text-xs text-slate-600 hover:text-slate-800 font-medium px-3 py-2 rounded-lg border border-slate-200 transition-colors"
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg"
               >
-                Discard Preview
+                Discard
               </button>
               <button
                 onClick={handleSaveAndActivate}
                 disabled={isGenerating}
-                className="flex items-center space-x-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+                className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-xs flex items-center space-x-1"
               >
-                <Play className="w-3.5 h-3.5" />
-                <span>Activate Plan</span>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Save & Activate</span>
               </button>
-            </>
+            </div>
           ) : (
             <button
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="flex items-center space-x-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+              className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors shadow-xs flex items-center space-x-1.5 disabled:opacity-50"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{isGenerating ? 'Calculating...' : 'Generate New Plan'}</span>
+              <span>{isGenerating ? 'Calculating...' : 'Regenerate Plan'}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Error Alert */}
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-xs flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-          <button onClick={clearError} className="text-red-500 hover:text-red-700 text-xs">
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-xs flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={clearError} className="text-rose-500 hover:text-rose-700 font-bold">
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Preferences Panel */}
+      {/* Preferences Drawer */}
       {showPreferences && (
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4 text-xs">
-          <h4 className="font-semibold text-slate-700 flex items-center space-x-1">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Planner Constraints & Preferences</span>
-          </h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 text-xs">
+          <h3 className="font-semibold text-slate-800 border-b border-slate-200 pb-1.5">
+            Planner Preferences & Availability Constraints
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block font-medium text-slate-600 mb-1">
-                Daily Availability: <span className="text-indigo-600 font-bold">{availableMinutes} min/day</span>
+                Daily Study Time: <span className="text-indigo-600 font-bold">{availableMinutes} min</span>
               </label>
               <input
                 type="range"
@@ -212,14 +243,14 @@ export function StudyPlanWidget() {
               </label>
               <input
                 type="range"
-                min="25"
-                max="90"
+                min="20"
+                max="60"
                 step="5"
                 value={sessionLength}
                 onChange={(e) => setSessionLength(Number(e.target.value))}
                 className="w-full accent-indigo-600"
               />
-              <span className="text-[10px] text-slate-400">(Bounds: 25–90 min)</span>
+              <span className="text-[10px] text-slate-400">(Bounds: 20–60 min)</span>
             </div>
 
             <div>
@@ -240,10 +271,7 @@ export function StudyPlanWidget() {
           </div>
 
           <div className="flex justify-end space-x-2 pt-1">
-            <button
-              onClick={() => setShowPreferences(false)}
-              className="px-3 py-1.5 text-slate-600 hover:text-slate-800"
-            >
+            <button onClick={() => setShowPreferences(false)} className="px-3 py-1.5 text-slate-600 hover:text-slate-800">
               Cancel
             </button>
             <button
@@ -256,48 +284,6 @@ export function StudyPlanWidget() {
         </div>
       )}
 
-      {/* Capacity Warning Banner */}
-      {activePlanToDisplay?.capacityWarning && (
-        <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs space-y-1">
-          <div className="flex items-center space-x-1.5 font-semibold">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>Capacity Warning</span>
-          </div>
-          <p className="text-[11px] text-amber-700 leading-relaxed">
-            {activePlanToDisplay.capacityWarningMsg}
-          </p>
-        </div>
-      )}
-
-      {/* Plan Review Needed Banner */}
-      {activePlanToDisplay?.needsReview && !previewPlan && (
-        <div className="p-3 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-          <div className="space-y-0.5">
-            <div className="flex items-center space-x-1.5 font-bold text-indigo-900">
-              <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
-              <span>Study Plan May Need Review</span>
-            </div>
-            <p className="text-[11px] text-indigo-700 leading-relaxed">
-              {activePlanToDisplay.staleReason || 'New assessment evidence or topic mastery progress recorded. Update your plan to maintain optimal learning velocity.'}
-            </p>
-          </div>
-          <button
-            onClick={async () => {
-              try {
-                await plannerApi.regeneratePlan()
-                await fetchActiveOrLatestPlan()
-              } catch {
-                // Handled
-              }
-            }}
-            className="shrink-0 flex items-center space-x-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-lg transition-colors shadow-sm"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Regenerate Plan</span>
-          </button>
-        </div>
-      )}
-
       {/* Main Content Area */}
       {isLoadingPlan ? (
         <div className="text-xs text-slate-400 text-center py-8">Loading study plan...</div>
@@ -307,7 +293,7 @@ export function StudyPlanWidget() {
           <div className="space-y-1">
             <p className="text-sm font-semibold text-slate-700">No Active Study Plan</p>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Click &quot;Generate New Plan&quot; to calculate your personalized, topic-prioritized study schedule based on your mastery state, trends, and goals.
+              Click &quot;Generate Study Plan&quot; to calculate your personalized, topic-prioritized study schedule.
             </p>
           </div>
           <button
@@ -369,8 +355,8 @@ export function StudyPlanWidget() {
                             <div className="flex items-center space-x-2">
                               <span className="font-semibold text-slate-800">{session.topicName}</span>
                               <span className="text-[10px] text-slate-400">({session.subjectName})</span>
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
-                                {session.sessionType}
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700">
+                                {session.sessionType || 'STUDY'}
                               </span>
                               {session.isManualOverride && (
                                 <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
@@ -381,25 +367,44 @@ export function StudyPlanWidget() {
 
                             {/* Priority Reason Pill */}
                             <div className="relative group inline-block">
-                              <span className="text-[10px] text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full inline-flex items-center space-x-1 cursor-help">
+                              <span className="text-[10px] text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full inline-flex items-center space-x-1">
                                 <Info className="w-3 h-3 text-indigo-500 shrink-0" />
                                 <span className="truncate max-w-xs">{session.priorityReason}</span>
                               </span>
                             </div>
                           </div>
 
-                          <div className="flex items-center space-x-3 shrink-0">
-                            <button
-                              onClick={() => navigate(`/ai?topicId=${session.topicId}&mode=EXPLAIN`)}
-                              className="inline-flex items-center space-x-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium px-2.5 py-1 rounded-lg border border-indigo-200 transition-colors"
-                              title={`Study ${session.topicName} with Topic-Aware RAG AI Tutor`}
-                            >
-                              <Bot className="w-3.5 h-3.5 text-indigo-600" />
-                              <span>Study Topic</span>
-                            </button>
+                          {/* Strategy Deep-Link Buttons */}
+                          <div className="flex items-center space-x-2 shrink-0">
+                            {session.sessionType === 'PRACTICE' || session.sessionType === 'ASSIGNMENT' ? (
+                              <button
+                                onClick={() => setSelectedAssessmentTopicId(session.topicId)}
+                                className="inline-flex items-center space-x-1 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-2.5 py-1 rounded-lg border border-emerald-200 transition-colors"
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Take Practice Test</span>
+                              </button>
+                            ) : session.sessionType === 'READING' ? (
+                              <button
+                                onClick={() => navigate(`/ai?topicId=${session.topicId}&mode=EXPLAIN`)}
+                                className="inline-flex items-center space-x-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold px-2.5 py-1 rounded-lg border border-amber-200 transition-colors"
+                              >
+                                <BookOpen className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Prerequisite Review</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => navigate(`/ai?topicId=${session.topicId}&mode=EXPLAIN`)}
+                                className="inline-flex items-center space-x-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium px-2.5 py-1 rounded-lg border border-indigo-200 transition-colors"
+                              >
+                                <Bot className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>RAG Tutor</span>
+                              </button>
+                            )}
+
                             <span className="font-bold text-slate-700">{session.recommendedMinutes} min</span>
                             <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                              Score: {Math.round(session.priorityScore * 1000) / 1000}
+                              Score: {Math.round(session.priorityScore * 100) / 100}
                             </span>
                           </div>
                         </div>
@@ -410,6 +415,83 @@ export function StudyPlanWidget() {
               })}
           </div>
         </div>
+      )}
+
+      {/* Plan Inspector Modal */}
+      {showInspector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <BarChart2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">Topic Priority Engine Factors</h2>
+                  <p className="text-xs text-muted-foreground">Transparent multi-component breakdown used for deterministic allocation</p>
+                </div>
+              </div>
+              <button onClick={() => setShowInspector(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {isLoadingBreakdown ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">Calculating breakdown factors...</div>
+            ) : breakdown.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">No topic factors found.</div>
+            ) : (
+              <div className="space-y-4">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted text-muted-foreground font-semibold">
+                    <tr>
+                      <th className="p-2.5 rounded-l-lg">Topic</th>
+                      <th className="p-2.5">State</th>
+                      <th className="p-2.5">Weakness</th>
+                      <th className="p-2.5">Exam</th>
+                      <th className="p-2.5">Trend</th>
+                      <th className="p-2.5">Recency</th>
+                      <th className="p-2.5">Prereq</th>
+                      <th className="p-2.5">Raw Score</th>
+                      <th className="p-2.5 rounded-r-lg">Strategy</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {breakdown.map((item) => (
+                      <tr key={item.topicId} className="hover:bg-accent/50">
+                        <td className="p-2.5 font-bold text-foreground">
+                          {item.topicName}
+                          <span className="block text-[10px] font-normal text-muted-foreground">{item.subjectName}</span>
+                        </td>
+                        <td className="p-2.5 font-medium">{item.learningState}</td>
+                        <td className="p-2.5 font-mono">{Math.round(item.weaknessFactor * 100)}%</td>
+                        <td className="p-2.5 font-mono">{Math.round(item.examUrgencyFactor * 100)}%</td>
+                        <td className="p-2.5 font-mono">{Math.round(item.trendFactor * 100)}%</td>
+                        <td className="p-2.5 font-mono">{Math.round(item.recencyFactor * 100)}%</td>
+                        <td className="p-2.5 font-mono">{Math.round(item.prerequisiteImportanceFactor * 100)}%</td>
+                        <td className="p-2.5 font-bold text-primary font-mono">{(item.rawScore).toFixed(2)}</td>
+                        <td className="p-2.5 font-semibold text-indigo-600">{item.recommendedStrategy}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Adaptive Assessment Modal */}
+      {selectedAssessmentTopicId && (
+        <GenerateAdaptiveAssessmentModal
+          isOpen={!!selectedAssessmentTopicId}
+          onClose={() => setSelectedAssessmentTopicId(null)}
+          preselectedTopicId={selectedAssessmentTopicId}
+          onGenerated={(assessmentId) => {
+            setSelectedAssessmentTopicId(null)
+            navigate(`/academic/assessments/${assessmentId}`)
+          }}
+        />
       )}
     </div>
   )

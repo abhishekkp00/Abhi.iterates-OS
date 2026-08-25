@@ -51,9 +51,7 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         List<TopicPriorityFactor> factors = priorityCalculator.calculateAll(user);
 
         if (factors.isEmpty()) {
-            throw new BadRequestException(
-                "No topics found. Please create subjects and topics before generating a plan."
-            );
+            throw new BadRequestException("No topics found. Please create subjects and topics before generating a plan.");
         }
 
         List<UUID> topoOrder = resolveTopologicalOrder(factors, user);
@@ -63,7 +61,6 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
             prefs.availableMinutesPerDay(), prefs.planningHorizonDays(), prefs.preferredSessionLengthMinutes()
         );
 
-        // Preview mode: return without persisting (id = null)
         return toResponse(null, transientPlan, allocation.sessions(),
             allocation.totalPlannedMinutes(), allocation.totalAvailableMinutes(),
             allocation.capacityWarning(), allocation.capacityWarningMsg(),
@@ -77,14 +74,11 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         List<TopicPriorityFactor> factors = priorityCalculator.calculateAll(user);
 
         if (factors.isEmpty()) {
-            throw new BadRequestException(
-                "No topics found. Please create subjects and topics before generating a plan."
-            );
+            throw new BadRequestException("No topics found. Please create subjects and topics before generating a plan.");
         }
 
         List<UUID> topoOrder = resolveTopologicalOrder(factors, user);
 
-        // Build and persist the plan shell first (so sessions can FK reference it)
         StudyPlan plan = StudyPlan.builder()
             .user(user)
             .status(StudyPlanStatus.DRAFT)
@@ -98,7 +92,6 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
             prefs.availableMinutesPerDay(), prefs.planningHorizonDays(), prefs.preferredSessionLengthMinutes()
         );
 
-        // Update plan with allocation results
         plan.setTotalPlannedMinutes(allocation.totalPlannedMinutes());
         plan.setTotalAvailableMinutes(allocation.totalAvailableMinutes());
         plan.setCapacityWarning(allocation.capacityWarning());
@@ -123,17 +116,13 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         StudyPlan plan = loadPlanForUser(planId, user);
 
         if (plan.getStatus() != StudyPlanStatus.DRAFT) {
-            throw new BadRequestException(
-                "Only DRAFT plans can be activated. Current status: " + plan.getStatus()
-            );
+            throw new BadRequestException("Only DRAFT plans can be activated. Current status: " + plan.getStatus());
         }
 
-        // Expire any currently active plan
         planRepository.findActiveByUser(user).ifPresent(activePlan -> {
             activePlan.setStatus(StudyPlanStatus.EXPIRED);
             planRepository.save(activePlan);
-            log.info("[StudyPlannerService] Expired previous active plan [{}] for user [{}]",
-                activePlan.getId(), user.getId());
+            log.info("[StudyPlannerService] Expired previous active plan [{}] for user [{}]", activePlan.getId(), user.getId());
         });
 
         plan.setStatus(StudyPlanStatus.ACTIVE);
@@ -164,22 +153,26 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         List<TopicPriorityFactor> factors = priorityCalculator.calculateAll(user);
 
         if (factors.isEmpty()) {
-            throw new BadRequestException(
-                "No topics found. Please create subjects and topics before generating a plan."
-            );
+            throw new BadRequestException("No topics found. Please create subjects and topics before generating a plan.");
+        }
+
+        // Map manual overrides from current active plan to preserve user decisions
+        Map<UUID, PlannedStudySession> activeOverridesByTopic = new HashMap<>();
+        Optional<StudyPlan> activeOpt = planRepository.findActiveByUser(user);
+        if (activeOpt.isPresent()) {
+            StudyPlan activePlan = activeOpt.get();
+            for (PlannedStudySession s : activePlan.getPlannedSessions()) {
+                if (Boolean.TRUE.equals(s.getIsManualOverride()) && s.getTopic() != null) {
+                    activeOverridesByTopic.put(s.getTopic().getId(), s);
+                }
+            }
+            activePlan.setStatus(StudyPlanStatus.EXPIRED);
+            planRepository.save(activePlan);
+            log.info("[StudyPlannerService] Expired active plan [{}] during regeneration for user [{}]", activePlan.getId(), user.getId());
         }
 
         List<UUID> topoOrder = resolveTopologicalOrder(factors, user);
 
-        // Expire any currently active plan
-        planRepository.findActiveByUser(user).ifPresent(activePlan -> {
-            activePlan.setStatus(StudyPlanStatus.EXPIRED);
-            planRepository.save(activePlan);
-            log.info("[StudyPlannerService] Expired previous active plan [{}] during regeneration for user [{}]",
-                activePlan.getId(), user.getId());
-        });
-
-        // Build and persist the new active plan
         StudyPlan newPlan = StudyPlan.builder()
             .user(user)
             .status(StudyPlanStatus.ACTIVE)
@@ -196,7 +189,20 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
             prefs.availableMinutesPerDay(), prefs.planningHorizonDays(), prefs.preferredSessionLengthMinutes()
         );
 
-        newPlan.setTotalPlannedMinutes(allocation.totalPlannedMinutes());
+        // Apply preserved manual overrides to new plan sessions
+        for (PlannedStudySession s : allocation.sessions()) {
+            if (s.getTopic() != null && activeOverridesByTopic.containsKey(s.getTopic().getId())) {
+                PlannedStudySession prev = activeOverridesByTopic.get(s.getTopic().getId());
+                s.setRecommendedMinutes(prev.getRecommendedMinutes());
+                s.setIsManualOverride(true);
+                s.setOverrideNotes(prev.getOverrideNotes());
+                if (prev.getSessionType() != null) {
+                    s.setSessionType(prev.getSessionType());
+                }
+            }
+        }
+
+        newPlan.setTotalPlannedMinutes(allocation.sessions().stream().mapToInt(PlannedStudySession::getRecommendedMinutes).sum());
         newPlan.setTotalAvailableMinutes(allocation.totalAvailableMinutes());
         newPlan.setCapacityWarning(allocation.capacityWarning());
         newPlan.setCapacityWarningMsg(allocation.capacityWarningMsg());
@@ -204,17 +210,17 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         newPlan.getPlannedSessions().addAll(allocation.sessions());
         newPlan = planRepository.save(newPlan);
 
-        log.info("[StudyPlannerService] Regenerated new ACTIVE plan [{}] with {} sessions for user [{}]",
+        log.info("[StudyPlannerService] Regenerated ACTIVE plan [{}] with {} sessions for user [{}]",
             newPlan.getId(), allocation.sessions().size(), user.getId());
 
         return toResponse(newPlan.getId(), newPlan, allocation.sessions(),
-            allocation.totalPlannedMinutes(), allocation.totalAvailableMinutes(),
+            newPlan.getTotalPlannedMinutes(), allocation.totalAvailableMinutes(),
             allocation.capacityWarning(), allocation.capacityWarningMsg(),
             false, null, prefs.planningHorizonDays());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Plan Retrieval
+    // Plan Retrieval & Breakdown
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
@@ -233,16 +239,40 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
             .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TopicPriorityBreakdownResponse> getPriorityBreakdown(UUID planId, User user) {
+        loadPlanForUser(planId, user); // IDOR check
+        List<TopicPriorityFactor> factors = priorityCalculator.calculateAll(user);
+
+        return factors.stream().map(f -> TopicPriorityBreakdownResponse.builder()
+            .topicId(f.topicId())
+            .topicName(f.topicName())
+            .subjectId(f.subjectId())
+            .subjectName(f.subjectName())
+            .learningState(f.learningState())
+            .recommendedStrategy(f.recommendedStrategy())
+            .weaknessFactor(f.weaknessFactor())
+            .examUrgencyFactor(f.examUrgencyFactor())
+            .trendFactor(f.trendFactor())
+            .recencyFactor(f.recencyFactor())
+            .goalUrgencyFactor(f.goalUrgencyFactor())
+            .prerequisiteImportanceFactor(f.prerequisiteImportanceFactor())
+            .neglectFactor(f.neglectFactor())
+            .rawScore(f.rawScore())
+            .isHighEffortLowPerformance(f.isHighEffortLowPerformance())
+            .reason(f.reason())
+            .build()
+        ).toList();
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Session Override
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
     @Transactional
-    public PlannedStudySessionResponse overrideSession(UUID planId, UUID sessionId,
-        OverrideSessionRequest request, User user) {
-
-        // IDOR: plan must belong to user
+    public PlannedStudySessionResponse overrideSession(UUID planId, UUID sessionId, OverrideSessionRequest request, User user) {
         StudyPlan plan = loadPlanForUser(planId, user);
 
         if (plan.getStatus() == StudyPlanStatus.EXPIRED || plan.getStatus() == StudyPlanStatus.COMPLETED) {
@@ -266,8 +296,7 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         session.setOverrideNotes(request.overrideNotes());
 
         PlannedStudySession saved = sessionRepository.save(session);
-        log.info("[StudyPlannerService] Overrode session [{}] in plan [{}] for user [{}]",
-            sessionId, planId, user.getId());
+        log.info("[StudyPlannerService] Overrode session [{}] in plan [{}] for user [{}]", sessionId, planId, user.getId());
         return toSessionResponse(saved);
     }
 
@@ -314,9 +343,6 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         int planningHorizonDays
     ) {}
 
-    /**
-     * Resolve effective preferences: request overrides > saved preferences > system defaults.
-     */
     private EffectivePreferences resolveEffectivePreferences(GeneratePlanRequest request, User user) {
         PlannerPreferences saved = preferencesRepository.findByUser(user).orElse(null);
 
@@ -390,10 +416,6 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Mapping helpers
-    // ─────────────────────────────────────────────────────────────────────────
-
     private StudyPlanResponse toResponse(
         UUID id, StudyPlan plan,
         List<PlannedStudySession> sessions,
@@ -423,8 +445,7 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
     private StudyPlanResponse toPlanResponse(StudyPlan plan) {
         List<PlannedStudySession> sessions =
             sessionRepository.findByStudyPlanOrderByDayNumberAscDisplayOrderAsc(plan);
-        int horizon = (int) (plan.getPlanStartDate().until(plan.getPlanEndDate(),
-            java.time.temporal.ChronoUnit.DAYS) + 1);
+        int horizon = (int) (plan.getPlanStartDate().until(plan.getPlanEndDate(), java.time.temporal.ChronoUnit.DAYS) + 1);
         return toResponse(plan.getId(), plan, sessions,
             plan.getTotalPlannedMinutes(), plan.getTotalAvailableMinutes(),
             plan.getCapacityWarning(), plan.getCapacityWarningMsg(),

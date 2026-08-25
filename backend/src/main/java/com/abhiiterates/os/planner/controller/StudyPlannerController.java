@@ -105,6 +105,14 @@ public class StudyPlannerController {
         return ResponseEntity.ok(plannerService.getPlan(id, user));
     }
 
+    @GetMapping("/{id}/priority-breakdown")
+    public ResponseEntity<List<TopicPriorityBreakdownResponse>> getPriorityBreakdown(
+        @PathVariable UUID id,
+        @AuthenticationPrincipal User user
+    ) {
+        return ResponseEntity.ok(plannerService.getPriorityBreakdown(id, user));
+    }
+
     @GetMapping
     public ResponseEntity<List<StudyPlanSummaryResponse>> getUserPlans(
         @AuthenticationPrincipal User user
