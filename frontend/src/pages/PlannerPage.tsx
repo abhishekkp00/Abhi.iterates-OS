@@ -6,6 +6,7 @@ import { ProgressCard } from '@/features/productivity/components/ProgressCard'
 import { CalendarGrid } from '@/features/productivity/components/CalendarGrid'
 import { AgendaList } from '@/features/productivity/components/AgendaList'
 import { QuickAddDialog } from '@/features/productivity/components/QuickAddDialog'
+import { StudySessionWidget } from '@/features/academic/components/StudySessionWidget'
 
 export default function PlannerPage() {
   const { tasks, summary, isLoadingSummary, createTask } = useTasks()
@@ -19,9 +20,9 @@ export default function PlannerPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Productivity Planner</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Productivity Planner & Academic Tracker</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Track your tasks, assignments, schedules, and lectures.
+            Track planned tasks, schedules, active study sessions, and actual learning progress.
           </p>
         </div>
         <button
@@ -32,6 +33,9 @@ export default function PlannerPage() {
           Quick Add
         </button>
       </div>
+
+      {/* Academic Study Session & Progress Tracking Widget */}
+      <StudySessionWidget />
 
       {/* Progress & Quick Stats Card */}
       <ProgressCard summary={summary} isLoading={isLoadingSummary} />
