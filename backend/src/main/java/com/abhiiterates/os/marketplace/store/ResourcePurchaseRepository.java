@@ -17,9 +17,10 @@ public interface ResourcePurchaseRepository extends JpaRepository<ResourcePurcha
 
     List<ResourcePurchase> findByUserOrderByCreatedAtDesc(User user);
 
-    Optional<ResourcePurchase> findByUserIdAndStoreResourceId(UUID userId, UUID storeResourceId);
+    // Use findFirst to safely handle any accidental duplicate rows in the DB
+    Optional<ResourcePurchase> findFirstByUserIdAndStoreResourceIdOrderByCreatedAtDesc(UUID userId, UUID storeResourceId);
 
-    Optional<ResourcePurchase> findByUserAndStoreResource(User user, StoreResource storeResource);
+    Optional<ResourcePurchase> findFirstByUserAndStoreResourceOrderByCreatedAtDesc(User user, StoreResource storeResource);
 
     boolean existsByUserIdAndStoreResourceId(UUID userId, UUID storeResourceId);
 

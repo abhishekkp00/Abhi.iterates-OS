@@ -128,7 +128,7 @@ public class StoreServiceImpl implements StoreService {
         }
 
         // Check if already purchased
-        Optional<ResourcePurchase> existing = purchaseRepository.findByUserAndStoreResource(currentUser, resource);
+        Optional<ResourcePurchase> existing = purchaseRepository.findFirstByUserAndStoreResourceOrderByCreatedAtDesc(currentUser, resource);
         ResourcePurchase purchase;
         if (existing.isPresent()) {
             purchase = existing.get();
@@ -187,7 +187,7 @@ public class StoreServiceImpl implements StoreService {
         String paymentRef = null;
 
         if (currentUser != null && currentUser.getId() != null) {
-            Optional<ResourcePurchase> purchase = purchaseRepository.findByUserIdAndStoreResourceId(currentUser.getId(),
+            Optional<ResourcePurchase> purchase = purchaseRepository.findFirstByUserIdAndStoreResourceIdOrderByCreatedAtDesc(currentUser.getId(),
                     resource.getId());
             if (purchase.isPresent()) {
                 isPurchased = true;

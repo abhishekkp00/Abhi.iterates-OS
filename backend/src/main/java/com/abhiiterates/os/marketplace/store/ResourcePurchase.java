@@ -10,7 +10,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "resource_purchases")
+@Table(name = "resource_purchases",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_resource_purchase_user_resource",
+                columnNames = {"user_id", "store_resource_id"}
+        ))
 @Getter
 @Setter
 @NoArgsConstructor
