@@ -89,6 +89,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnauthorizedException(
+            UnauthorizedException ex, HttpServletRequest request) {
+        log.warn("Unauthorized access on path [{}]: {}", request.getRequestURI(), ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(
+                ex.getMessage(), 
+                HttpStatus.FORBIDDEN.value(), 
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
     /**
      * Handle Resource Not Found Exceptions.
      * Returns 404 Not Found.
