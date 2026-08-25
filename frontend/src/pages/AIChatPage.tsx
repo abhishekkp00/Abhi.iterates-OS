@@ -36,6 +36,7 @@ export default function AIChatPage() {
   const prependConversation = useAIStore((s) => s.prependConversation)
   const appendToolStartToLastMessage = useAIStore((s) => s.appendToolStartToLastMessage)
   const updateToolEndInLastMessage = useAIStore((s) => s.updateToolEndInLastMessage)
+  const attachSourcesToLastMessage = useAIStore((s) => s.attachSourcesToLastMessage)
 
   const [isLoading, setIsLoading] = useState(false)
 
@@ -85,7 +86,7 @@ export default function AIChatPage() {
   // ── Send message ──────────────────────────────────────────────────────────
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async (content: string, resourceId?: string) => {
       if (!content.trim() || streamingStatus === 'streaming') return
 
       const userMsg: ChatMessage = {
@@ -114,6 +115,7 @@ export default function AIChatPage() {
         {
           conversationId: resolvedConvId ?? undefined,
           message: content,
+          resourceId: resourceId || undefined,
         },
         {
           onToken: (chunk) => appendStreamingContent(chunk),
@@ -142,6 +144,7 @@ export default function AIChatPage() {
               updateConversationInList(id, { updatedAt: now })
             }
           },
+          onSources: (sources) => attachSourcesToLastMessage(sources),
           onToolStart: (name, args) => appendToolStartToLastMessage(name, args),
           onToolEnd: (name, result) => updateToolEndInLastMessage(name, result),
           onDone: () => {
@@ -171,6 +174,7 @@ export default function AIChatPage() {
       updateConversationInList,
       appendToolStartToLastMessage,
       updateToolEndInLastMessage,
+      attachSourcesToLastMessage,
     ]
   )
 

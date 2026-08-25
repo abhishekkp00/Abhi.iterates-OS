@@ -19,6 +19,18 @@ export interface ToolExecution {
   status: 'running' | 'completed' | 'failed'
 }
 
+export interface AiSource {
+  chunkId: string
+  documentId: string
+  resourceId?: string
+  title: string
+  filename?: string
+  pageNumber?: number
+  chunkIndex?: number
+  snippet?: string
+  similarityScore?: number
+}
+
 export interface ChatMessage {
   id: string
   role: MessageRole
@@ -33,6 +45,8 @@ export interface ChatMessage {
   tokenCount?: number
   /** Tool calling logs for the agent execution timeline */
   toolExecutions?: ToolExecution[]
+  /** Grounded RAG academic document source citations */
+  sources?: AiSource[]
 }
 
 // ── Conversation (session) ──────────────────────────────────────────────────
@@ -116,6 +130,7 @@ export interface AIStore {
   setStreamingContent: (content: string) => void
   appendStreamingContent: (chunk: string) => void
   commitStreamingMessage: () => void
+  attachSourcesToLastMessage: (sources: AiSource[]) => void
   appendToolStartToLastMessage: (name: string, args: string) => void
   updateToolEndInLastMessage: (name: string, result: string) => void
 

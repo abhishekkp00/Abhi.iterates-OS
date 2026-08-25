@@ -13,5 +13,6 @@ public record ContextSource(
         String filename,
         Integer pageNumber,
         Integer chunkIndex,
+        String snippet,
         double similarityScore
 ) {}

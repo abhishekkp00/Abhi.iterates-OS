@@ -47,6 +47,8 @@ export default function StudyRoomPage() {
   const [searchParams] = useSearchParams()
   const fileName = searchParams.get('file') || 'Document.pdf'
   const downloadUrl = searchParams.get('url') || ''
+  const pageParam = searchParams.get('page')
+  const targetPage = pageParam ? Math.max(1, parseInt(pageParam, 10) || 1) : 1
 
   // References and local states
   const containerRef = useRef<HTMLDivElement>(null)
@@ -108,14 +110,32 @@ export default function StudyRoomPage() {
   // ── Load PDF Attachment ──────────────────────────────────────────────────
   useEffect(() => {
     async function loadPdf() {
-      if (!downloadUrl) {
+      let targetUrl = downloadUrl
+
+      if (!targetUrl && resourceId) {
+        try {
+          const res = await api.get(`/resources/${resourceId}`)
+          const attachments = res.data?.data?.attachments
+          if (attachments && attachments.length > 0) {
+            const pdfAtt = attachments.find((a: any) => a.contentType?.toLowerCase().includes('pdf')) || attachments[0]
+            if (pdfAtt && pdfAtt.downloadUrl) {
+              targetUrl = pdfAtt.downloadUrl
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to fetch resource attachments for study room', e)
+        }
+      }
+
+      if (!targetUrl) {
         setIsPdfLoading(false)
         setRagStatus('ready')
         return
       }
 
-      if (downloadUrl.startsWith('data:') || downloadUrl.startsWith('http://') || downloadUrl.startsWith('https://') || downloadUrl.startsWith('blob:')) {
-        setPdfBlobUrl(downloadUrl)
+      if (targetUrl.startsWith('data:') || targetUrl.startsWith('http://') || targetUrl.startsWith('https://') || targetUrl.startsWith('blob:')) {
+        const finalUrl = targetUrl.includes('#page=') ? targetUrl : `${targetUrl}#page=${targetPage}`
+        setPdfBlobUrl(finalUrl)
         setIsPdfLoading(false)
         animateIngestion()
         return
@@ -123,12 +143,12 @@ export default function StudyRoomPage() {
 
       try {
         setIsPdfLoading(true)
-        const cleanUrl = downloadUrl.startsWith('/api/v1') ? downloadUrl.replace('/api/v1', '') : downloadUrl
+        const cleanUrl = targetUrl.startsWith('/api/v1') ? targetUrl.replace('/api/v1', '') : targetUrl
         const response = await api.get(cleanUrl, {
           responseType: 'blob',
         })
         const blob = new Blob([response.data], { type: 'application/pdf' })
-        const objectUrl = window.URL.createObjectURL(blob)
+        const objectUrl = window.URL.createObjectURL(blob) + `#page=${targetPage}`
         setPdfBlobUrl(objectUrl)
         setIsPdfLoading(false)
 
@@ -235,6 +255,8 @@ export default function StudyRoomPage() {
     return { scrollTop: 0, scrollLeft: 0 }
   }, [])
 
+  const isHighlightActive = searchParams.get('highlight') === 'true'
+
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -244,6 +266,25 @@ export default function StudyRoomPage() {
     const scroll = getScrollPos()
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Render target chunk highlight bounding box if source citation activated
+    if (isHighlightActive) {
+      const boxX = 40 - scroll.scrollLeft
+      const boxY = 80 - scroll.scrollTop
+      const boxWidth = Math.max(200, Math.min(canvas.width - 80, 680))
+      const boxHeight = 110
+
+      ctx.save()
+      ctx.fillStyle = 'rgba(234, 179, 8, 0.20)'
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.85)'
+      ctx.lineWidth = 2
+      ctx.setLineDash([4, 4])
+      ctx.beginPath()
+      ctx.roundRect ? ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 8) : ctx.rect(boxX, boxY, boxWidth, boxHeight)
+      ctx.fill()
+      ctx.stroke()
+      ctx.restore()
+    }
 
     strokes.forEach((stroke) => {
       const pts = stroke.points
@@ -266,7 +307,7 @@ export default function StudyRoomPage() {
       }
       ctx.stroke()
     })
-  }, [strokes, getScrollPos])
+  }, [strokes, getScrollPos, isHighlightActive])
 
   // Attach scroll listeners to container and iframe
   useEffect(() => {

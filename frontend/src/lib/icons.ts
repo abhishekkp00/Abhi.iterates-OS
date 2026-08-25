@@ -124,4 +124,5 @@ export {
   TrendingUp,
   TrendingDown,
   CheckSquare,
+  Quote,
 } from 'lucide-react'

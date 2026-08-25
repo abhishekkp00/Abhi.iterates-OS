@@ -119,6 +119,11 @@ public class AiContextBuilderImpl implements AiContextBuilder {
             currentCharacterCount = contextTextBuilder.length();
             chunkCount++;
 
+            String snippetText = result.text() != null ? result.text().trim() : "";
+            if (snippetText.length() > 250) {
+                snippetText = snippetText.substring(0, 247) + "...";
+            }
+
             sources.add(ContextSource.builder()
                     .chunkId(result.chunkId())
                     .documentId(result.documentId())
@@ -127,6 +132,7 @@ public class AiContextBuilderImpl implements AiContextBuilder {
                     .filename(result.filename())
                     .pageNumber(result.pageNumber())
                     .chunkIndex(result.chunkIndex())
+                    .snippet(snippetText)
                     .similarityScore(result.similarityScore())
                     .build());
         }

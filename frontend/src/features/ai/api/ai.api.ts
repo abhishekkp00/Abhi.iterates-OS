@@ -15,6 +15,7 @@ import type {
   SendMessageResponse,
   UpdateConversationTitleRequest,
   PagedResponse,
+  AiSource,
 } from '@/types/ai'
 
 const BASE = '/ai'
@@ -66,6 +67,7 @@ export interface StreamCallbacks {
   onConversationId: (id: string) => void
   onToolStart?: (name: string, args: string) => void
   onToolEnd?: (name: string, result: string) => void
+  onSources?: (sources: AiSource[]) => void
   onDone: () => void
   onError: (err: Error) => void
 }
@@ -79,6 +81,7 @@ export interface StreamCallbacks {
  * The backend emits events of the form:
  *   data: {"type":"token","content":"Hello"}
  *   data: {"type":"conversationId","content":"<uuid>"}
+ *   data: {"type":"sources","sources":[...]}
  *   data: {"type":"done"}
  *   data: {"type":"error","content":"<message>"}
  */
@@ -129,16 +132,19 @@ export function streamChat(
 
           try {
             const parsed = JSON.parse(data) as {
-              type: 'token' | 'conversationId' | 'done' | 'error' | 'tool_start' | 'tool_end'
+              type: 'token' | 'conversationId' | 'done' | 'error' | 'tool_start' | 'tool_end' | 'sources'
               content?: string
               name?: string
               arguments?: string
               result?: string
+              sources?: AiSource[]
             }
             if (parsed.type === 'token' && parsed.content) {
               callbacks.onToken(parsed.content)
             } else if (parsed.type === 'conversationId' && parsed.content) {
               callbacks.onConversationId(parsed.content)
+            } else if (parsed.type === 'sources' && parsed.sources) {
+              callbacks.onSources?.(parsed.sources)
             } else if (parsed.type === 'tool_start' && parsed.name && parsed.arguments) {
               callbacks.onToolStart?.(parsed.name, parsed.arguments)
             } else if (parsed.type === 'tool_end' && parsed.name && parsed.result) {
