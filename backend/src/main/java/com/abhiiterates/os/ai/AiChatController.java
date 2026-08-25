@@ -59,8 +59,8 @@ public class AiChatController {
      * Rate limited: {@code ai.rate-limit.stream-requests-per-minute} per user.
      * Returns HTTP 429 with X-RateLimit-* headers when the limit is exceeded.
      */
-    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<?> streamChat(
+    @PostMapping(value = "/chat/stream", produces = {MediaType.TEXT_EVENT_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<SseEmitter> streamChat(
             @Valid @RequestBody ChatRequest request,
             @AuthenticationPrincipal User user,
             HttpServletRequest servletRequest
@@ -68,7 +68,7 @@ public class AiChatController {
         boolean isAdmin = isAdmin(user);
         if (!rateLimiterService.tryConsumeStreamToken(user.getId(), isAdmin)) {
             long remaining = rateLimiterService.streamTokensRemaining(user.getId());
-            return buildRateLimitResponse(
+            return (ResponseEntity) buildRateLimitResponse(
                     aiProperties.getRateLimit().getStreamRequestsPerMinute(),
                     remaining,
                     "AI streaming rate limit exceeded. Please wait before sending another request.",
