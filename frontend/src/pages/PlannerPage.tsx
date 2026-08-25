@@ -7,6 +7,7 @@ import { CalendarGrid } from '@/features/productivity/components/CalendarGrid'
 import { AgendaList } from '@/features/productivity/components/AgendaList'
 import { QuickAddDialog } from '@/features/productivity/components/QuickAddDialog'
 import { StudySessionWidget } from '@/features/academic/components/StudySessionWidget'
+import { AssessmentManagerWidget } from '@/features/assessment/components/AssessmentManagerWidget'
 
 export default function PlannerPage() {
   const { tasks, summary, isLoadingSummary, createTask } = useTasks()
@@ -36,6 +37,9 @@ export default function PlannerPage() {
 
       {/* Academic Study Session & Progress Tracking Widget */}
       <StudySessionWidget />
+
+      {/* Assessment Engine Manager Widget */}
+      <AssessmentManagerWidget />
 
       {/* Progress & Quick Stats Card */}
       <ProgressCard summary={summary} isLoading={isLoadingSummary} />
