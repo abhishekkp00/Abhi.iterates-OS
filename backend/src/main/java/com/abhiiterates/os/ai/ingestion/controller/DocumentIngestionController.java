@@ -21,6 +21,7 @@ import java.util.UUID;
 public class DocumentIngestionController {
 
     private final DocumentIngestionService documentIngestionService;
+    private final com.abhiiterates.os.ai.embedding.service.DocumentEmbeddingService documentEmbeddingService;
 
     @PostMapping
     @Operation(summary = "Ingest PDF attachment", description = "Extracts page-aware text and chunks document for RAG indexing")
@@ -29,6 +30,16 @@ public class DocumentIngestionController {
             @PathVariable UUID attachmentId,
             @AuthenticationPrincipal User currentUser) {
         IngestionResponse response = documentIngestionService.ingestAttachment(resourceId, attachmentId, currentUser);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/embed")
+    @Operation(summary = "Generate chunk vector embeddings", description = "Generates and persists pgvector embeddings for ingested document chunks")
+    public ResponseEntity<IngestionResponse> generateEmbeddings(
+            @PathVariable UUID resourceId,
+            @PathVariable UUID attachmentId,
+            @AuthenticationPrincipal User currentUser) {
+        IngestionResponse response = documentEmbeddingService.generateEmbeddingsForDocument(resourceId, attachmentId, currentUser);
         return ResponseEntity.ok(response);
     }
 
