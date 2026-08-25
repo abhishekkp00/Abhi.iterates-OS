@@ -13,10 +13,10 @@ Architecture decisions are permanent record. They are never deleted — only sup
 **Status:** Accepted
 
 ### Context
-The project has three distinct runtimes: a React frontend, a Spring Boot backend, and a Python AI service. We needed to decide between a monorepo (all services in one repository) and a polyrepo (each service in its own repository).
+The project has two active runtimes: a React frontend and a Spring Boot backend. An `ai-service/` directory was reserved at project creation for a potential future Python/FastAPI AI service. That service has not been implemented — all AI functionality currently lives inside the Spring Boot monolith via Spring AI.
 
 ### Decision
-Use a monorepo with three top-level service directories: `frontend/`, `backend/`, `ai-service/`.
+Use a monorepo with top-level directories for each service. Currently active: `frontend/`, `backend/`. Reserved placeholder: `ai-service/` (empty — contains only `.gitkeep`).
 
 ### Reasoning
 - **Atomic commits:** A feature often spans frontend + backend. One PR, one commit, one review cycle.
@@ -113,32 +113,34 @@ Short-lived access tokens (15 minutes) + long-lived refresh tokens (30 days) wit
 
 ---
 
-## ADR-005: Supabase Storage for MVP, Cloudflare R2 for Production
+## ADR-005: Cloudinary for File Storage (Current Implementation)
 
 **Date:** 2026-07-04
-**Status:** Accepted
+**Status:** Superseded by current implementation
+**Original decision:** Supabase Storage (MVP) → Cloudflare R2 (Production)
+**Actual implementation:** Cloudinary SDK for all resource attachments and marketplace listing images.
 
 ### Context
-We need object storage for PDFs, user avatars, and creator-uploaded resources. The storage layer must support signed URLs (time-limited, authenticated access) for DRM-like protection.
+We need object storage for PDFs, user avatars, and creator-uploaded resources.
 
-### Decision
-Use **Supabase Storage** for MVP (free tier, RLS policies, signed URLs). Migrate to **Cloudflare R2** for production (no egress fees, S3-compatible API).
+### Decision (Revised)
+Use **Cloudinary** for MVP storage. The `cloudinary-http44` SDK is integrated into the Spring Boot backend. Files are uploaded via `CloudinaryConfig.java` and `AttachmentServiceImpl.java`.
 
 ### Reasoning
-- Supabase provides RLS (Row Level Security) on storage out of the box. We never serve raw public URLs for purchased content.
-- Signed URLs with short expiry (5–15 minutes) serve as a practical DRM deterrent. We cannot prevent screen recording in a browser, but we can prevent direct URL sharing.
-- Cloudflare R2 is chosen for production because it has zero egress fees. At scale, egress costs on AWS S3 or Supabase become significant.
-- The S3-compatible API of R2 means our backend code does not change during migration — only the endpoint and credentials change.
+- Cloudinary provides a generous free tier with CDN, transformation, and direct upload support.
+- No separate storage infrastructure setup is required — credentials are provided via environment variables.
+- The original Supabase/R2 plan was not implemented due to the simpler integration path offered by Cloudinary.
 
 ### Consequences
-- Migration from Supabase to R2 requires a one-time data migration script and credential swap. Planned and documented before reaching that scale.
+- Migration to R2 or Supabase remains an option if egress costs become a concern at scale.
+- Cloudinary does not provide Row-Level Security; resource access control is enforced at the Spring Security layer.
 
 ---
 
 ## ADR-006: Redis for Caching and Rate Limiting
 
 **Date:** 2026-07-04
-**Status:** Accepted
+**Status:** Planned — NOT YET IMPLEMENTED
 
 ### Context
 We need in-memory caching for frequently accessed data (resource listings, user profiles) and rate limiting for authentication endpoints and AI calls.
@@ -146,14 +148,16 @@ We need in-memory caching for frequently accessed data (resource listings, user 
 ### Decision
 Use **Redis** via **Upstash** (serverless Redis, HTTP-based, no persistent connection management).
 
-### Reasoning
+### Current State
+Redis is **not implemented** in the current codebase. There is no `spring-boot-starter-data-redis` dependency in `pom.xml`, no Redis configuration class, and no rate limiting on any endpoint. This is a planned addition for Phase 2 when abuse prevention and caching become necessary.
+
+### Reasoning (Planned)
 - Authentication endpoints (login, register) must be rate-limited to prevent brute force.
 - AI Chat endpoints consume LLM tokens. Rate limiting prevents cost abuse.
-- Resource listing pages are expensive database queries. Redis cache with 60-second TTL dramatically reduces DB load.
-- Upstash is chosen over self-hosted Redis because it requires zero infrastructure management at MVP stage.
+- Resource listing pages are expensive database queries. A cache layer reduces DB load.
 
 ### Consequences
-- Cache invalidation must be handled carefully. Stale reads are a risk on write operations. We use a **cache-aside** pattern with explicit invalidation.
+- Until Redis is added, authentication endpoints have no rate limiting. This is an accepted risk at MVP scale with low traffic.
 
 ---
 
