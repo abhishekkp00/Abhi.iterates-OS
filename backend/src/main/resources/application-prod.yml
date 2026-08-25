@@ -12,6 +12,10 @@ spring:
       connection-timeout: 20000
       leak-detection-threshold: 2000
       pool-name: AbhiIteratesOS-HikariPool
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
   jpa:
     hibernate:
       ddl-auto: validate

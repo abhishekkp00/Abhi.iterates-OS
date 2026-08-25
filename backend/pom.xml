@@ -60,6 +60,16 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Flyway Database Migration Core & PostgreSQL support -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
         <!-- Spring Validation: Enforcing Jakarta Validation constraints on input DTOs -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

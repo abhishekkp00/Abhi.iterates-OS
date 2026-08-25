@@ -114,3 +114,10 @@ ai:
     # Buckets not accessed within this window are removed from memory.
     bucket-idle-eviction-minutes: 60
 
+# ── RAG Document Ingestion Config ──────────────────────────────────────────────
+rag:
+  ingestion:
+    chunk-size: 1000
+    chunk-overlap: 150
+
+
