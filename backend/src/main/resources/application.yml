@@ -1,7 +1,7 @@
 server:
   port: ${PORT:8095}
   tomcat:
-    max-http-post-size: 100MB
+    max-http-form-post-size: 100MB
     max-swallow-size: 100MB
   error:
     # Never expose internal exception messages to clients in production
@@ -100,3 +100,17 @@ ai:
     - Career and academic advice
     Be concise, supportive, and academically accurate. Format responses using Markdown
     where helpful (lists, code blocks, headers). Never provide harmful or off-topic content.
+
+  rate-limit:
+    # Maximum SSE streaming requests per user per minute.
+    # Each stream call holds an LLM connection open and consumes token quota.
+    # Increase this if legitimate users are being throttled in production.
+    stream-requests-per-minute: 10
+
+    # Maximum blocking /chat requests per user per minute.
+    chat-requests-per-minute: 20
+
+    # Idle bucket eviction TTL in minutes.
+    # Buckets not accessed within this window are removed from memory.
+    bucket-idle-eviction-minutes: 60
+
