@@ -7,6 +7,7 @@ import { Bot, User, Copy, RotateCcw, Check } from '@/lib/icons'
 import type { ChatMessage } from '@/types/ai'
 import { StreamingCursor } from './StreamingCursor'
 import { ToolTimeline } from './ToolTimeline'
+import { MessageSources } from './MessageSources'
 
 interface MessageBubbleProps {
   message: ChatMessage
@@ -114,6 +115,9 @@ export function MessageBubble({ message, isLast, onRegenerate }: MessageBubblePr
                 {message.content}
               </ReactMarkdown>
               {isStreaming && <StreamingCursor />}
+              {!isUser && message.sources && message.sources.length > 0 && (
+                <MessageSources sources={message.sources} />
+              )}
             </div>
           )}
         </div>
