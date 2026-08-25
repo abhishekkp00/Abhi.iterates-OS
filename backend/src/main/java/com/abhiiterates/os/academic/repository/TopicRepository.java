@@ -20,4 +20,9 @@ public interface TopicRepository extends JpaRepository<Topic, UUID> {
 
     @Query("SELECT t FROM Topic t WHERE t.subject.id = :subjectId AND t.subject.user.id = :userId ORDER BY t.name ASC")
     List<Topic> findBySubjectIdAndUserId(@Param("subjectId") UUID subjectId, @Param("userId") UUID userId);
+
+    List<Topic> findBySubjectIdOrderByNameAsc(UUID subjectId);
+
+    @Query("SELECT t FROM Topic t WHERE t.subject.user.id = :userId ORDER BY t.name ASC")
+    List<Topic> findBySubjectUserIdOrderByNameAsc(@Param("userId") UUID userId);
 }
