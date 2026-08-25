@@ -135,6 +135,23 @@ cp .env.example .env
 
 ---
 
+## Database Migrations
+
+Schema evolution is managed using version-controlled Flyway migrations located in [`backend/src/main/resources/db/migration/`](file:///home/abhishek/Projects/Abhi.Iterates-OS/backend/src/main/resources/db/migration/).
+
+### Migration Workflow & Rules
+
+1. **Flyway Execution:** On startup, Flyway automatically applies pending migrations (`V1__initial_schema.sql`, `V2__...sql`).
+2. **Schema Validation:** JPA/Hibernate is configured with `spring.jpa.hibernate.ddl-auto=validate` to enforce schema parity without mutating the database structure.
+3. **RULE 1 — Immutability:** Never modify an already-applied migration file after it has been executed in any environment.
+4. **RULE 2 — New Versioning:** Create a new migration file (`V2__add_starred_column.sql`) for every schema change.
+5. **RULE 3 — No Dynamic Schema Mutation:** Never use `ddl-auto=update` or `ddl-auto=create` in production or development as a substitute for versioned migrations.
+6. **RULE 4 — Automated Parity Testing:** Every schema migration must pass automated verification (`FlywaySchemaValidationTest`) against PostgreSQL/H2.
+7. **RULE 5 — Safe & Non-Destructive:** Avoid `DROP TABLE`, `DROP COLUMN`, or `TRUNCATE` without explicit architecture review.
+8. **RULE 6 — Local Database Baselining:** Existing local development databases are safely baselined using `spring.flyway.baseline-on-migrate=true`.
+
+---
+
 ## Service Ports (Development)
 
 | Service | Port |

@@ -14,9 +14,9 @@ public interface MarketplaceListingRepository extends JpaRepository<MarketplaceL
 
     @Query("SELECT m FROM MarketplaceListing m WHERE " +
            "(:search IS NULL OR :search = '' OR LOWER(m.title) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(m.description) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (COALESCE(:categories, null) IS NULL OR m.category IN :categories) " +
-           "AND (COALESCE(:conditions, null) IS NULL OR m.condition IN :conditions) " +
-           "AND (COALESCE(:statuses, null) IS NULL OR m.status IN :statuses)")
+           "AND (:categories IS NULL OR m.category IN :categories) " +
+           "AND (:conditions IS NULL OR m.condition IN :conditions) " +
+           "AND (:statuses IS NULL OR m.status IN :statuses)")
     Page<MarketplaceListing> findAllWithFilters(
             @Param("search") String search,
             @Param("categories") Collection<ListingCategory> categories,

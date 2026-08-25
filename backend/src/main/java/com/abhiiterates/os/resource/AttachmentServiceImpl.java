@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -125,24 +126,41 @@ public class AttachmentServiceImpl implements AttachmentService {
             throw new ResourceNotFoundException("Attachment not found with ID: " + attachmentId);
         }
 
-        // The downloadUrl contains the stored unique file name at the end
-        // e.g. "/api/v1/resources/attachments/{uniqueFileName}/download"
         String downloadUrl = attachment.getDownloadUrl();
-        String uniqueFileName = downloadUrl.substring(
-                downloadUrl.lastIndexOf("/attachments/") + 13,
-                downloadUrl.lastIndexOf("/download"));
 
-        try {
-            Path filePath = this.fileStorageLocation.resolve(uniqueFileName).normalize();
-            org.springframework.core.io.Resource springResource = new UrlResource(filePath.toUri());
-            if (springResource.exists()) {
-                return springResource;
-            } else {
-                throw new ResourceNotFoundException("File not found on disk: " + attachment.getFileName());
+        // 1. Cloudinary / Remote HTTP(S) URL strategy
+        if (downloadUrl.startsWith("http://") || downloadUrl.startsWith("https://")) {
+            try {
+                org.springframework.core.io.Resource springResource = new UrlResource(downloadUrl);
+                if (springResource.exists()) {
+                    // Verify stream readable
+                    try (InputStream is = springResource.getInputStream()) {
+                        return springResource;
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("Remote attachment stream unavailable from URL [{}]: {}", downloadUrl, ex.getMessage());
             }
-        } catch (MalformedURLException ex) {
-            throw new ResourceNotFoundException("File not found: " + attachment.getFileName());
         }
+
+        // 2. Local File System fallback strategy
+        if (downloadUrl.contains("/attachments/") && downloadUrl.contains("/download")) {
+            String uniqueFileName = downloadUrl.substring(
+                    downloadUrl.lastIndexOf("/attachments/") + 13,
+                    downloadUrl.lastIndexOf("/download"));
+
+            try {
+                Path filePath = this.fileStorageLocation.resolve(uniqueFileName).normalize();
+                org.springframework.core.io.Resource springResource = new UrlResource(filePath.toUri());
+                if (springResource.exists()) {
+                    return springResource;
+                }
+            } catch (MalformedURLException ex) {
+                throw new ResourceNotFoundException("File not found: " + attachment.getFileName());
+            }
+        }
+
+        throw new ResourceNotFoundException("File content unavailable for attachment ID: " + attachmentId);
     }
 
     @Override
@@ -157,15 +175,17 @@ public class AttachmentServiceImpl implements AttachmentService {
         }
 
         String downloadUrl = attachment.getDownloadUrl();
-        String uniqueFileName = downloadUrl.substring(
-                downloadUrl.lastIndexOf("/attachments/") + 13,
-                downloadUrl.lastIndexOf("/download"));
+        if (downloadUrl != null && downloadUrl.contains("/attachments/") && downloadUrl.contains("/download")) {
+            String uniqueFileName = downloadUrl.substring(
+                    downloadUrl.lastIndexOf("/attachments/") + 13,
+                    downloadUrl.lastIndexOf("/download"));
 
-        // Delete from disk
-        try {
-            Path filePath = this.fileStorageLocation.resolve(uniqueFileName).normalize();
-            Files.deleteIfExists(filePath);
-        } catch (IOException ignored) {
+            // Delete from disk
+            try {
+                Path filePath = this.fileStorageLocation.resolve(uniqueFileName).normalize();
+                Files.deleteIfExists(filePath);
+            } catch (IOException ignored) {
+            }
         }
 
         // Delete from DB

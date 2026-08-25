@@ -44,4 +44,7 @@ public interface ResourceAttachmentRepository extends JpaRepository<ResourceAtta
             @Param("userId") UUID userId,
             @Param("query") String query
     );
+
+    @Query("SELECT a FROM ResourceAttachment a JOIN FETCH a.resource r JOIN FETCH r.user WHERE a.id = :id")
+    Optional<ResourceAttachment> findByIdWithResourceAndUser(@Param("id") UUID id);
 }

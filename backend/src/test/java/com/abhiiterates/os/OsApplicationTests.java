@@ -9,7 +9,7 @@ import org.springframework.test.context.ActiveProfiles;
  * Ensures the Spring container starts without configuration or dependency errors.
  */
 @SpringBootTest
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 class OsApplicationTests {
 
     @Test

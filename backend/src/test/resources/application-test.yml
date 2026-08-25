@@ -1,0 +1,50 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    placeholders:
+      vector-extension-init: "CREATE DOMAIN IF NOT EXISTS vector AS VARCHAR(10000);"
+      hnsw-index-init: "CREATE INDEX IF NOT EXISTS idx_rag_emb_vector_idx ON rag_document_chunk_embeddings (embedding_model);"
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+  ai:
+    openai:
+      api-key: test-mock-openai-api-key-for-unit-testing
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-google-client-id
+            client-secret: test-google-client-secret
+
+app:
+  frontend-url: http://localhost:5180
+  security:
+    jwt:
+      secret: test-jwt-secret-key-that-is-at-least-32-bytes-long-for-security
+      expiration-ms: 900000
+      refresh-expiration-ms: 604800000
+  admin:
+    email: admin@abhiiterates.os
+    password: SecureAdminP@ss123
+
+ai:
+  rate-limit:
+    stream-requests-per-minute: 10
+    chat-requests-per-minute: 20
+    bucket-idle-eviction-minutes: 60
+
+  cloudinary:
+    cloud-name: ""
+    api-key: ""
+    api-secret: ""
+

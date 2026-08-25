@@ -12,6 +12,13 @@ spring:
       connection-timeout: 20000
       leak-detection-threshold: 2000
       pool-name: AbhiIteratesOS-HikariPool
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    placeholders:
+      vector-extension-init: "CREATE EXTENSION IF NOT EXISTS vector;"
+      hnsw-index-init: "CREATE INDEX IF NOT EXISTS idx_rag_emb_vector_hnsw ON rag_document_chunk_embeddings USING hnsw (vector vector_cosine_ops);"
+    baseline-on-migrate: false
   jpa:
     hibernate:
       ddl-auto: validate

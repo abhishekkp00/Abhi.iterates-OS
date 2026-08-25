@@ -14,9 +14,9 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
 
     @Query("SELECT r FROM Resource r WHERE r.user = :user " +
            "AND (:search IS NULL OR :search = '' OR LOWER(r.title) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(r.description) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (COALESCE(:categories, null) IS NULL OR r.category IN :categories) " +
-           "AND (COALESCE(:priorities, null) IS NULL OR r.priority IN :priorities) " +
-           "AND (COALESCE(:statuses, null) IS NULL OR r.status IN :statuses)")
+           "AND (:categories IS NULL OR r.category IN :categories) " +
+           "AND (:priorities IS NULL OR r.priority IN :priorities) " +
+           "AND (:statuses IS NULL OR r.status IN :statuses)")
     Page<Resource> findAllWithFilters(
             @Param("user") User user,
             @Param("search") String search,
