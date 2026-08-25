@@ -10,5 +10,7 @@ public record RetrievalRequest(
         Integer topK,
         Double similarityThreshold,
         UUID resourceId,
-        UUID documentId
+        UUID documentId,
+        UUID subjectId,
+        UUID topicId
 ) {}

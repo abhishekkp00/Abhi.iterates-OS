@@ -55,6 +55,14 @@ public class Resource extends BaseAuditEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id")
+    private com.abhiiterates.os.academic.domain.Subject subject;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "topic_id")
+    private com.abhiiterates.os.academic.domain.Topic topic;
+
     @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ResourceAttachment> attachments = new ArrayList<>();

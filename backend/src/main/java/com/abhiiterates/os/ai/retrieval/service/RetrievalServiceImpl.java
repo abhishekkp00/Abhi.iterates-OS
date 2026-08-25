@@ -74,7 +74,9 @@ public class RetrievalServiceImpl implements RetrievalService {
                 resolvedTopK,
                 resolvedThreshold,
                 request.resourceId(),
-                request.documentId()
+                request.documentId(),
+                request.subjectId(),
+                request.topicId()
         );
 
         if (results.isEmpty()) {

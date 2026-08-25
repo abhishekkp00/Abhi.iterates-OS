@@ -15,6 +15,25 @@ public interface VectorSearchRepository {
             int topK,
             double similarityThreshold,
             UUID resourceIdFilter,
-            UUID documentIdFilter
+            UUID documentIdFilter,
+            UUID subjectIdFilter,
+            UUID topicIdFilter
     );
+
+    default List<RetrievalResult> searchSimilarChunks(
+            UUID userId,
+            String queryVectorString,
+            float[] queryVector,
+            String embeddingModel,
+            int topK,
+            double similarityThreshold,
+            UUID resourceIdFilter,
+            UUID documentIdFilter
+    ) {
+        return searchSimilarChunks(
+                userId, queryVectorString, queryVector, embeddingModel,
+                topK, similarityThreshold, resourceIdFilter, documentIdFilter,
+                null, null
+        );
+    }
 }

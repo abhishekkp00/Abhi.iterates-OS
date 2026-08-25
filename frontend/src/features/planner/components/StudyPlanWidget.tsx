@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Sparkles,
   Calendar,
@@ -8,11 +9,13 @@ import {
   SlidersHorizontal,
   Info,
   Play,
+  Bot,
 } from 'lucide-react'
 import { usePlannerStore } from '../store/planner.store'
 import type { PlannedStudySession } from '../api/planner.api'
 
 export function StudyPlanWidget() {
+  const navigate = useNavigate()
   const {
     currentPlan,
     previewPlan,
@@ -357,6 +360,14 @@ export function StudyPlanWidget() {
                           </div>
 
                           <div className="flex items-center space-x-3 shrink-0">
+                            <button
+                              onClick={() => navigate(`/ai?topicId=${session.topicId}&mode=EXPLAIN`)}
+                              className="inline-flex items-center space-x-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium px-2.5 py-1 rounded-lg border border-indigo-200 transition-colors"
+                              title={`Study ${session.topicName} with Topic-Aware RAG AI Tutor`}
+                            >
+                              <Bot className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Study Topic</span>
+                            </button>
                             <span className="font-bold text-slate-700">{session.recommendedMinutes} min</span>
                             <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
                               Score: {Math.round(session.priorityScore * 1000) / 1000}
