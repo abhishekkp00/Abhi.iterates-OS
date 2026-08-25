@@ -19,6 +19,8 @@ public record StudyPlanSummaryResponse(
     int totalPlannedMinutes,
     int sessionCount,
     boolean capacityWarning,
+    boolean needsReview,
+    String staleReason,
     Instant createdAt,
     Instant updatedAt
 ) {}

@@ -12,7 +12,7 @@ import type { ChatMessage, TutorMode } from '@/types/ai'
 export default function AIChatPage() {
   const { conversationId } = useParams<{ conversationId: string }>()
   const location = useLocation()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
 
   const topicIdParam = searchParams.get('topicId') || undefined
   const [tutorMode, setTutorMode] = useState<TutorMode>(

@@ -22,7 +22,10 @@ public enum TutorMode {
     REVISION("Exam Revision"),
 
     /** Answer the student's specific question directly */
-    QUESTION("Specific Question");
+    QUESTION("Specific Question"),
+
+    /** Target conceptual gaps following a weak assessment attempt */
+    REVIEW("Assessment Concept Gap Review");
 
     private final String description;
 }

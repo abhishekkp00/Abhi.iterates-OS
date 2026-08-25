@@ -29,6 +29,10 @@ public class StudySession extends BaseAuditEntity {
     @JoinColumn(name = "topic_id", nullable = false)
     private Topic topic;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "planned_study_session_id")
+    private com.abhiiterates.os.planner.domain.PlannedStudySession plannedStudySession;
+
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;
 

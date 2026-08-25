@@ -10,6 +10,7 @@ public class StartStudySessionRequest {
     @NotNull(message = "Topic ID is required")
     private UUID topicId;
 
+    private UUID plannedStudySessionId;
     private StudySessionType sessionType;
     private String notes;
 
@@ -21,8 +22,18 @@ public class StartStudySessionRequest {
         this.notes = notes;
     }
 
+    public StartStudySessionRequest(UUID topicId, UUID plannedStudySessionId, StudySessionType sessionType, String notes) {
+        this.topicId = topicId;
+        this.plannedStudySessionId = plannedStudySessionId;
+        this.sessionType = sessionType;
+        this.notes = notes;
+    }
+
     public UUID getTopicId() { return topicId; }
     public void setTopicId(UUID topicId) { this.topicId = topicId; }
+
+    public UUID getPlannedStudySessionId() { return plannedStudySessionId; }
+    public void setPlannedStudySessionId(UUID plannedStudySessionId) { this.plannedStudySessionId = plannedStudySessionId; }
 
     public StudySessionType getSessionType() { return sessionType; }
     public void setSessionType(StudySessionType sessionType) { this.sessionType = sessionType; }

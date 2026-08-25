@@ -12,7 +12,7 @@ import {
   Bot,
 } from 'lucide-react'
 import { usePlannerStore } from '../store/planner.store'
-import type { PlannedStudySession } from '../api/planner.api'
+import { plannerApi, type PlannedStudySession } from '../api/planner.api'
 
 export function StudyPlanWidget() {
   const navigate = useNavigate()
@@ -266,6 +266,35 @@ export function StudyPlanWidget() {
           <p className="text-[11px] text-amber-700 leading-relaxed">
             {activePlanToDisplay.capacityWarningMsg}
           </p>
+        </div>
+      )}
+
+      {/* Plan Review Needed Banner */}
+      {activePlanToDisplay?.needsReview && !previewPlan && (
+        <div className="p-3 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="space-y-0.5">
+            <div className="flex items-center space-x-1.5 font-bold text-indigo-900">
+              <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+              <span>Study Plan May Need Review</span>
+            </div>
+            <p className="text-[11px] text-indigo-700 leading-relaxed">
+              {activePlanToDisplay.staleReason || 'New assessment evidence or topic mastery progress recorded. Update your plan to maintain optimal learning velocity.'}
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                await plannerApi.regeneratePlan()
+                await fetchActiveOrLatestPlan()
+              } catch {
+                // Handled
+              }
+            }}
+            className="shrink-0 flex items-center space-x-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-lg transition-colors shadow-sm"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Regenerate Plan</span>
+          </button>
         </div>
       )}
 

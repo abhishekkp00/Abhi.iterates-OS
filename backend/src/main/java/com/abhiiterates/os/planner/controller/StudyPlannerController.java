@@ -64,6 +64,19 @@ public class StudyPlannerController {
             .body(plannerService.saveDraftPlan(request, user));
     }
 
+    /**
+     * Regenerate the active study plan based on fresh learning state evidence.
+     * Auto-expires previous active plan and creates a new ACTIVE plan.
+     */
+    @PostMapping("/regenerate")
+    public ResponseEntity<StudyPlanResponse> regeneratePlan(
+        @Valid @RequestBody(required = false) GeneratePlanRequest request,
+        @AuthenticationPrincipal User user
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(plannerService.regeneratePlan(request, user));
+    }
+
     // ── Plan Lifecycle ───────────────────────────────────────────────────────
 
     @PostMapping("/{id}/activate")

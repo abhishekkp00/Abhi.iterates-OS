@@ -68,7 +68,7 @@ export interface ConversationDetail extends Conversation {
 
 // ── API request / response shapes ───────────────────────────────────────────
 
-export type TutorMode = 'EXPLAIN' | 'SUMMARY' | 'DEEP_DIVE' | 'REVISION' | 'QUESTION'
+export type TutorMode = 'EXPLAIN' | 'SUMMARY' | 'DEEP_DIVE' | 'REVISION' | 'QUESTION' | 'REVIEW'
 
 export interface SendMessageRequest {
   conversationId?: string

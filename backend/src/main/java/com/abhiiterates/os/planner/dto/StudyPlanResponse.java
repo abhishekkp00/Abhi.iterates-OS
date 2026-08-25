@@ -22,6 +22,8 @@ public record StudyPlanResponse(
     int totalAvailableMinutes,
     boolean capacityWarning,
     String capacityWarningMsg,
+    boolean needsReview,
+    String staleReason,
     List<PlannedStudySessionResponse> sessions,
     Instant createdAt,
     Instant updatedAt

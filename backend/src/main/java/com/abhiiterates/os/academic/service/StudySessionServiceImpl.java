@@ -28,6 +28,7 @@ public class StudySessionServiceImpl implements StudySessionService {
     private final TopicProgressRepository topicProgressRepository;
     private final LearningActivityRepository learningActivityRepository;
     private final AcademicService academicService;
+    private final com.abhiiterates.os.planner.repository.PlannedStudySessionRepository plannedSessionRepository;
 
     private static final int MAX_MANUAL_SESSION_MINUTES = 1440; // 24 hours max
 
@@ -42,9 +43,16 @@ public class StudySessionServiceImpl implements StudySessionService {
             throw new IllegalArgumentException("User already has an active study session in progress. Complete or cancel it before starting a new one.");
         }
 
+        com.abhiiterates.os.planner.domain.PlannedStudySession plannedSession = null;
+        if (request.getPlannedStudySessionId() != null) {
+            plannedSession = plannedSessionRepository.findByIdAndUserId(request.getPlannedStudySessionId(), user.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Planned study session not found or access denied: " + request.getPlannedStudySessionId()));
+        }
+
         StudySession session = StudySession.builder()
                 .user(user)
                 .topic(topic)
+                .plannedStudySession(plannedSession)
                 .startedAt(Instant.now())
                 .status(StudySessionStatus.IN_PROGRESS)
                 .sessionType(request.getSessionType() != null ? request.getSessionType() : StudySessionType.STUDY)
@@ -83,6 +91,15 @@ public class StudySessionServiceImpl implements StudySessionService {
         }
 
         StudySession completedSession = studySessionRepository.save(session);
+
+        // If linked to a planned study session, record completed state and actual minutes
+        if (completedSession.getPlannedStudySession() != null) {
+            com.abhiiterates.os.planner.domain.PlannedStudySession pss = completedSession.getPlannedStudySession();
+            pss.setIsCompleted(true);
+            pss.setCompletedAt(endedAt);
+            pss.setActualMinutes((pss.getActualMinutes() != null ? pss.getActualMinutes() : 0) + durationMinutes);
+            plannedSessionRepository.save(pss);
+        }
 
         // Atomic update of derived TopicProgress projection
         updateTopicProgress(user, session.getTopic(), durationMinutes, endedAt);

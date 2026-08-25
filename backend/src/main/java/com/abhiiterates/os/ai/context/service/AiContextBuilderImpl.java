@@ -267,6 +267,10 @@ public class AiContextBuilderImpl implements AiContextBuilder {
             log.debug("Failed to load learning state for context builder: {}", e.getMessage());
         }
 
+        if (mode == TutorMode.REVIEW) {
+            sb.append("MODE INSTRUCTION: CONCEPT GAP REVIEW. The student is reviewing this topic after an assessment attempt. Identify core concepts, explain key formulas/principles step-by-step, address common misconceptions, and offer a short conceptual check question.\n");
+        }
+
         sb.append("</tutoring_context>");
         return sb.toString();
     }

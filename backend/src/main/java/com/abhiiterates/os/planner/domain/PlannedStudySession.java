@@ -87,6 +87,22 @@ public class PlannedStudySession {
     private String overrideNotes;
 
     /**
+     * Set to true when an actual study session completes for this planned session.
+     */
+    @Column(name = "is_completed", nullable = false)
+    @Builder.Default
+    private Boolean isCompleted = false;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    /**
+     * Actual minutes spent during completed study session(s).
+     */
+    @Column(name = "actual_minutes")
+    private Integer actualMinutes;
+
+    /**
      * Display ordering within a day (0-based). Lower = shown first.
      */
     @Column(name = "display_order", nullable = false)

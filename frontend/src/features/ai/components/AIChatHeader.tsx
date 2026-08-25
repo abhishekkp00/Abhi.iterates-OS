@@ -1,4 +1,4 @@
-import { Bot, StopCircle, PanelLeftOpen, GradCap, Sparkles } from '@/lib/icons'
+import { Bot, StopCircle, PanelLeftOpen, GraduationCap, Sparkles } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { useAIStore } from '@/features/ai/store/ai.store'
 import type { TutorMode } from '@/types/ai'
@@ -18,6 +18,7 @@ const TUTOR_MODES: { value: TutorMode; label: string }[] = [
   { value: 'DEEP_DIVE', label: 'Deep Dive' },
   { value: 'REVISION', label: 'Revision' },
   { value: 'QUESTION', label: 'Question' },
+  { value: 'REVIEW', label: 'Gap Review' },
 ]
 
 export function AIChatHeader({
@@ -69,7 +70,7 @@ export function AIChatHeader({
         {/* Tutor Mode Selector */}
         {topicId && onModeChange && (
           <div className="flex items-center space-x-1.5 bg-slate-100 px-2 py-1 rounded-lg text-xs">
-            <GradCap className="w-3.5 h-3.5 text-indigo-600" />
+            <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
             <select
               value={tutorMode}
               onChange={(e) => onModeChange(e.target.value as TutorMode)}

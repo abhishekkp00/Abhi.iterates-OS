@@ -31,6 +31,7 @@ public class AssessmentAttemptServiceImpl implements AssessmentAttemptService {
     private final AssessmentAnswerRepository answerRepository;
     private final TopicAssessmentPerformanceRepository topicPerformanceRepository;
     private final AcademicService academicService;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -144,10 +145,19 @@ public class AssessmentAttemptServiceImpl implements AssessmentAttemptService {
         AssessmentAttempt submittedAttempt = attemptRepository.save(attempt);
 
         // Record Topic Assessment Performance
-        recordTopicPerformance(user, submittedAttempt, topicAnswersMap, answeredAt);
+        Map<Topic, Double> topicPctMap = recordTopicPerformance(user, submittedAttempt, topicAnswersMap, answeredAt);
 
         log.info("Submitted assessment attempt [{}] for user [{}]: [{}/{}] marks ({}%)",
                 attemptId, user.getId(), obtainedMarks, totalMarks, percentage);
+
+        // Publish AssessmentSubmittedEvent for closed loop plan staleness evaluation
+        try {
+            eventPublisher.publishEvent(new com.abhiiterates.os.assessment.event.AssessmentSubmittedEvent(
+                    this, user, submittedAttempt, topicPctMap
+            ));
+        } catch (Exception ex) {
+            log.error("Failed to publish AssessmentSubmittedEvent for attempt [{}]: {}", attemptId, ex.getMessage(), ex);
+        }
 
         return mapAttemptToResponse(submittedAttempt, savedAnswers);
     }
@@ -226,7 +236,8 @@ public class AssessmentAttemptServiceImpl implements AssessmentAttemptService {
                 .build();
     }
 
-    private void recordTopicPerformance(User user, AssessmentAttempt attempt, Map<Topic, List<AssessmentAnswer>> topicAnswersMap, Instant evaluatedAt) {
+    private Map<Topic, Double> recordTopicPerformance(User user, AssessmentAttempt attempt, Map<Topic, List<AssessmentAnswer>> topicAnswersMap, Instant evaluatedAt) {
+        Map<Topic, Double> pctMap = new HashMap<>();
         for (Map.Entry<Topic, List<AssessmentAnswer>> entry : topicAnswersMap.entrySet()) {
             Topic topic = entry.getKey();
             List<AssessmentAnswer> answers = entry.getValue();
@@ -251,7 +262,9 @@ public class AssessmentAttemptServiceImpl implements AssessmentAttemptService {
                     .build();
 
             topicPerformanceRepository.save(perf);
+            pctMap.put(topic, pct);
         }
+        return pctMap;
     }
 
     private AssessmentAttemptResponse mapAttemptToResponse(AssessmentAttempt attempt, List<AssessmentAnswer> answers) {

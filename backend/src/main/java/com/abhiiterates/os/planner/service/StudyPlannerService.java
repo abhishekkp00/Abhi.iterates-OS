@@ -35,6 +35,12 @@ public interface StudyPlannerService {
     StudyPlanResponse expirePlan(UUID planId, User user);
 
     /**
+     * Regenerate the active study plan based on fresh learning state, exams, and goals evidence.
+     * Automatically expires the previous active plan and creates a new ACTIVE plan snapshot.
+     */
+    StudyPlanResponse regeneratePlan(GeneratePlanRequest request, User user);
+
+    /**
      * Get a plan by ID (IDOR-safe: only the owning user can access).
      */
     StudyPlanResponse getPlan(UUID planId, User user);

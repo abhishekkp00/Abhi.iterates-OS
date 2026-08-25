@@ -66,7 +66,8 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         // Preview mode: return without persisting (id = null)
         return toResponse(null, transientPlan, allocation.sessions(),
             allocation.totalPlannedMinutes(), allocation.totalAvailableMinutes(),
-            allocation.capacityWarning(), allocation.capacityWarningMsg(), prefs.planningHorizonDays());
+            allocation.capacityWarning(), allocation.capacityWarningMsg(),
+            false, null, prefs.planningHorizonDays());
     }
 
     @Override
@@ -111,7 +112,9 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
 
         return toResponse(plan.getId(), plan, allocation.sessions(),
             allocation.totalPlannedMinutes(), allocation.totalAvailableMinutes(),
-            allocation.capacityWarning(), allocation.capacityWarningMsg(), prefs.planningHorizonDays());
+            allocation.capacityWarning(), allocation.capacityWarningMsg(),
+            Boolean.TRUE.equals(plan.getNeedsReview()), plan.getStaleReason(),
+            prefs.planningHorizonDays());
     }
 
     @Override
@@ -152,6 +155,62 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         plan = planRepository.save(plan);
         log.info("[StudyPlannerService] Expired plan [{}] for user [{}]", planId, user.getId());
         return toPlanResponse(plan);
+    }
+
+    @Override
+    @Transactional
+    public StudyPlanResponse regeneratePlan(GeneratePlanRequest request, User user) {
+        EffectivePreferences prefs = resolveEffectivePreferences(request, user);
+        List<TopicPriorityFactor> factors = priorityCalculator.calculateAll(user);
+
+        if (factors.isEmpty()) {
+            throw new BadRequestException(
+                "No topics found. Please create subjects and topics before generating a plan."
+            );
+        }
+
+        List<UUID> topoOrder = resolveTopologicalOrder(factors, user);
+
+        // Expire any currently active plan
+        planRepository.findActiveByUser(user).ifPresent(activePlan -> {
+            activePlan.setStatus(StudyPlanStatus.EXPIRED);
+            planRepository.save(activePlan);
+            log.info("[StudyPlannerService] Expired previous active plan [{}] during regeneration for user [{}]",
+                activePlan.getId(), user.getId());
+        });
+
+        // Build and persist the new active plan
+        StudyPlan newPlan = StudyPlan.builder()
+            .user(user)
+            .status(StudyPlanStatus.ACTIVE)
+            .planStartDate(LocalDate.now())
+            .planEndDate(LocalDate.now().plusDays(prefs.planningHorizonDays() - 1))
+            .needsReview(false)
+            .staleReason(null)
+            .generatedAt(java.time.Instant.now())
+            .build();
+        newPlan = planRepository.save(newPlan);
+
+        TimeAllocator.AllocationResult allocation = timeAllocator.allocate(
+            factors, topoOrder, user, newPlan,
+            prefs.availableMinutesPerDay(), prefs.planningHorizonDays(), prefs.preferredSessionLengthMinutes()
+        );
+
+        newPlan.setTotalPlannedMinutes(allocation.totalPlannedMinutes());
+        newPlan.setTotalAvailableMinutes(allocation.totalAvailableMinutes());
+        newPlan.setCapacityWarning(allocation.capacityWarning());
+        newPlan.setCapacityWarningMsg(allocation.capacityWarningMsg());
+        newPlan.setGenerationContext(buildGenerationContext(prefs, factors));
+        newPlan.getPlannedSessions().addAll(allocation.sessions());
+        newPlan = planRepository.save(newPlan);
+
+        log.info("[StudyPlannerService] Regenerated new ACTIVE plan [{}] with {} sessions for user [{}]",
+            newPlan.getId(), allocation.sessions().size(), user.getId());
+
+        return toResponse(newPlan.getId(), newPlan, allocation.sessions(),
+            allocation.totalPlannedMinutes(), allocation.totalAvailableMinutes(),
+            allocation.capacityWarning(), allocation.capacityWarningMsg(),
+            false, null, prefs.planningHorizonDays());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -340,6 +399,7 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
         List<PlannedStudySession> sessions,
         int totalPlannedMinutes, int totalAvailableMinutes,
         boolean capacityWarning, String capacityWarningMsg,
+        boolean needsReview, String staleReason,
         int planningHorizonDays
     ) {
         return StudyPlanResponse.builder()
@@ -352,6 +412,8 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
             .totalAvailableMinutes(totalAvailableMinutes)
             .capacityWarning(capacityWarning)
             .capacityWarningMsg(capacityWarningMsg)
+            .needsReview(needsReview)
+            .staleReason(staleReason)
             .sessions(sessions.stream().map(this::toSessionResponse).toList())
             .createdAt(plan.getCreatedAt())
             .updatedAt(plan.getUpdatedAt())
@@ -365,7 +427,9 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
             java.time.temporal.ChronoUnit.DAYS) + 1);
         return toResponse(plan.getId(), plan, sessions,
             plan.getTotalPlannedMinutes(), plan.getTotalAvailableMinutes(),
-            plan.getCapacityWarning(), plan.getCapacityWarningMsg(), horizon);
+            plan.getCapacityWarning(), plan.getCapacityWarningMsg(),
+            Boolean.TRUE.equals(plan.getNeedsReview()), plan.getStaleReason(),
+            horizon);
     }
 
     private StudyPlanSummaryResponse toSummaryResponse(StudyPlan plan) {
@@ -377,6 +441,8 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
             .totalPlannedMinutes(plan.getTotalPlannedMinutes())
             .sessionCount(plan.getPlannedSessions().size())
             .capacityWarning(plan.getCapacityWarning())
+            .needsReview(Boolean.TRUE.equals(plan.getNeedsReview()))
+            .staleReason(plan.getStaleReason())
             .createdAt(plan.getCreatedAt())
             .updatedAt(plan.getUpdatedAt())
             .build();
@@ -397,6 +463,9 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
             .sessionType(session.getSessionType())
             .isManualOverride(session.getIsManualOverride())
             .overrideNotes(session.getOverrideNotes())
+            .isCompleted(Boolean.TRUE.equals(session.getIsCompleted()))
+            .completedAt(session.getCompletedAt())
+            .actualMinutes(session.getActualMinutes())
             .displayOrder(session.getDisplayOrder())
             .build();
     }

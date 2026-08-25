@@ -13,9 +13,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TopicTutorServiceTest {
 
     @Test
-    @DisplayName("TutorMode enum has all 5 controlled modes with non-empty descriptions")
+    @DisplayName("TutorMode enum has all 6 controlled modes with non-empty descriptions")
     void tutorMode_allModesDefined() {
-        assertThat(TutorMode.values()).hasSize(5);
+        assertThat(TutorMode.values()).hasSize(6);
 
         for (TutorMode mode : TutorMode.values()) {
             assertThat(mode.getDescription()).isNotBlank();

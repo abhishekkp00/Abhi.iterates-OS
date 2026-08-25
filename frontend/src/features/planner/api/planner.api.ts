@@ -17,6 +17,9 @@ export interface PlannedStudySession {
   sessionType: StudySessionType
   isManualOverride: boolean
   overrideNotes?: string
+  isCompleted?: boolean
+  completedAt?: string
+  actualMinutes?: number
   displayOrder: number
 }
 
@@ -30,6 +33,8 @@ export interface StudyPlan {
   totalAvailableMinutes: number
   capacityWarning: boolean
   capacityWarningMsg?: string
+  needsReview?: boolean
+  staleReason?: string
   sessions: PlannedStudySession[]
   createdAt?: string
   updatedAt?: string
@@ -43,6 +48,8 @@ export interface StudyPlanSummary {
   totalPlannedMinutes: number
   sessionCount: number
   capacityWarning: boolean
+  needsReview?: boolean
+  staleReason?: string
   createdAt: string
   updatedAt: string
 }
@@ -103,6 +110,11 @@ export const plannerApi = {
 
   saveDraftPlan: async (payload?: GeneratePlanPayload): Promise<StudyPlan> => {
     const res = await api.post<StudyPlan>('/v1/study-plans', payload || {})
+    return res.data
+  },
+
+  regeneratePlan: async (payload?: GeneratePlanPayload): Promise<StudyPlan> => {
+    const res = await api.post<StudyPlan>('/v1/study-plans/regenerate', payload || {})
     return res.data
   },
 

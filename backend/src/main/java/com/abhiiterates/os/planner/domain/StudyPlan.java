@@ -75,6 +75,21 @@ public class StudyPlan {
     @Column(name = "generation_context", columnDefinition = "TEXT")
     private String generationContext;
 
+    /**
+     * Set to true when new assessment evidence or material learning state changes
+     * suggest the plan may need review/regeneration.
+     */
+    @Column(name = "needs_review", nullable = false)
+    @Builder.Default
+    private Boolean needsReview = false;
+
+    @Column(name = "stale_reason", length = 500)
+    private String staleReason;
+
+    @Column(name = "generated_at")
+    @Builder.Default
+    private Instant generatedAt = Instant.now();
+
     @OneToMany(mappedBy = "studyPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("dayNumber ASC, displayOrder ASC")
     @Builder.Default

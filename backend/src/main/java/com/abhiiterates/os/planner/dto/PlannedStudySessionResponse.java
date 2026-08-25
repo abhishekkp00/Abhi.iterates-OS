@@ -3,6 +3,7 @@ package com.abhiiterates.os.planner.dto;
 import com.abhiiterates.os.academic.domain.StudySessionType;
 import lombok.Builder;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -22,5 +23,8 @@ public record PlannedStudySessionResponse(
     StudySessionType sessionType,
     boolean isManualOverride,
     String overrideNotes,
+    boolean isCompleted,
+    Instant completedAt,
+    Integer actualMinutes,
     int displayOrder
 ) {}
