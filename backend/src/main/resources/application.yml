@@ -116,6 +116,7 @@ ai:
 
 # ── RAG Document Ingestion Config ──────────────────────────────────────────────
 rag:
+  enabled: ${RAG_ENABLED:true}
   ingestion:
     chunk-size: 1000
     chunk-overlap: 150
@@ -128,6 +129,10 @@ rag:
     top-k: ${RAG_RETRIEVAL_TOP_K:5}
     max-top-k: ${RAG_RETRIEVAL_MAX_TOP_K:50}
     similarity-threshold: ${RAG_RETRIEVAL_SIMILARITY_THRESHOLD:0.60}
+  context:
+    max-chunks: ${RAG_CONTEXT_MAX_CHUNKS:5}
+    max-characters: ${RAG_CONTEXT_MAX_CHARACTERS:4000}
+
 
 
 
