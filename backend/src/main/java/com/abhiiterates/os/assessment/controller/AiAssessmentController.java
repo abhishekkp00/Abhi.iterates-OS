@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class AiAssessmentController {
 
     private final AiAssessmentGeneratorService generatorService;
+    private final com.abhiiterates.os.common.RateLimiterService rateLimiterService;
 
     @PostMapping("/generate")
     public ResponseEntity<ApiResponse<CreateAssessmentRequest.Response>> generateAssessment(
@@ -26,6 +27,7 @@ public class AiAssessmentController {
             @AuthenticationPrincipal User user,
             HttpServletRequest servletRequest
     ) {
+        rateLimiterService.checkRateLimit(user.getId(), "generateAssessment", 15);
         CreateAssessmentRequest.Response data = generatorService.generateAdaptiveAssessment(request, user);
         ApiResponse<CreateAssessmentRequest.Response> response = ApiResponse.success(
                 data,
