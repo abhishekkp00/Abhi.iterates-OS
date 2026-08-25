@@ -124,6 +124,11 @@ rag:
     model: ${RAG_EMBEDDING_MODEL:text-embedding-3-small}
     dimensions: ${RAG_EMBEDDING_DIMENSIONS:1536}
     batch-size: ${RAG_EMBEDDING_BATCH_SIZE:32}
+  retrieval:
+    top-k: ${RAG_RETRIEVAL_TOP_K:5}
+    max-top-k: ${RAG_RETRIEVAL_MAX_TOP_K:50}
+    similarity-threshold: ${RAG_RETRIEVAL_SIMILARITY_THRESHOLD:0.60}
+
 
 
 

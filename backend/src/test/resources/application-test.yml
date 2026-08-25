@@ -9,6 +9,7 @@ spring:
     locations: classpath:db/migration
     placeholders:
       vector-extension-init: "CREATE DOMAIN IF NOT EXISTS vector AS VARCHAR(10000);"
+      hnsw-index-init: "CREATE INDEX IF NOT EXISTS idx_rag_emb_vector_idx ON rag_document_chunk_embeddings (embedding_model);"
   jpa:
     hibernate:
       ddl-auto: validate
