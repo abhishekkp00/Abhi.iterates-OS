@@ -30,30 +30,27 @@ A single, production-grade academic OS that replaces:
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    Client (React)                    │
-│              Vite · TypeScript · Tailwind            │
+│            Vite · TypeScript · Tailwind CSS          │
 └─────────────────────┬───────────────────────────────┘
-                      │ HTTPS / REST / WebSocket
+                      │ HTTPS / REST / SSE
 ┌─────────────────────▼───────────────────────────────┐
-│               Backend (Spring Boot)                  │
-│     Modular Monolith · JWT · Spring Security         │
-│   auth · marketplace · library · ai · notification  │
-└──────┬──────────────┬──────────────────┬────────────┘
-       │              │                  │
-┌──────▼───┐  ┌───────▼──────┐  ┌───────▼──────┐
-│PostgreSQL│  │    Redis     │  │  AI Service  │
-│  (Neon)  │  │  (Sessions   │  │  (FastAPI +  │
-│          │  │   + Cache)   │  │  LangChain)  │
-└──────────┘  └──────────────┘  └──────────────┘
-                                        │
-                               ┌────────▼────────┐
-                               │ Supabase Storage │
-                               │ (MVP) / CF R2    │
-                               └─────────────────┘
+│            Spring Boot Modular Monolith               │
+│     auth · users · resources · ai · marketplace      │
+│   productivity · notifications · analytics · admin   │
+│                                                      │
+│  AI module: Spring AI → OpenAI-compatible endpoint   │
+│  SSE streaming · tool calling · conversation store   │
+└─────────────────────┬───────────────────────────────┘
+                      │
+              ┌───────▼───────┐
+              │  PostgreSQL   │
+              │  (Neon/local) │
+              └───────────────┘
 ```
 
-**Architecture Pattern:** Modular Monolith → extractable to microservices
+**Architecture Pattern:** Modular Monolith
 
-See [`docs/architecture.md`](docs/architecture.md) for full ADR.
+> See [`ARCHITECTURE.md`](ARCHITECTURE.md) for full ADR history.
 
 ---
 
@@ -61,22 +58,19 @@ See [`docs/architecture.md`](docs/architecture.md) for full ADR.
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS v4, shadcn/ui |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS v3, shadcn/ui (Radix) |
 | State | Zustand (global), TanStack Query (server) |
 | Forms | React Hook Form + Zod |
-| PDF | PDF.js |
 | Animations | Framer Motion |
-| Backend | Java 21, Spring Boot 3, Spring Security |
-| Auth | JWT + Refresh Tokens + OAuth2 (Google) |
+| Backend | Java 21, Spring Boot 3.3.1, Spring Security |
+| Auth | JWT + Refresh Token Rotation + OAuth2 (Google) |
 | ORM | Spring Data JPA + Hibernate |
-| AI Service | Python 3.12, FastAPI, LangChain, FAISS |
-| AI Models | Google Gemini / OpenAI GPT-4o |
-| Primary DB | PostgreSQL 16 (Neon) |
-| Cache | Redis (Upstash) |
-| Storage | Supabase Storage (MVP) → Cloudflare R2 (Production) |
+| AI | Spring AI 1.0.0 (OpenAI-compatible endpoint) |
+| AI Models | OpenAI GPT-4o-mini / Groq Llama (configurable via env) |
+| Primary DB | PostgreSQL (Neon serverless) |
+| Storage | Cloudinary (attachments & images) |
 | Frontend Deploy | Vercel |
 | Backend Deploy | Railway |
-| AI Deploy | Railway |
 
 ---
 
@@ -84,24 +78,41 @@ See [`docs/architecture.md`](docs/architecture.md) for full ADR.
 
 ```
 abhiiterates-os/
-├── frontend/          # React application
-├── backend/           # Spring Boot application
-├── ai-service/        # FastAPI AI service
+├── frontend/          # React application (Vite + TypeScript)
+├── backend/           # Spring Boot modular monolith
+│   └── src/main/java/com/abhiiterates/os/
+│       ├── ai/        # AI chat, conversations, tool calling
+│       ├── auth/      # JWT, OAuth2, refresh tokens
+│       ├── user/      # User profiles, roles, permissions
+│       ├── resource/  # Library, PDF attachments, Cloudinary
+│       ├── marketplace/
+│       ├── productivity/
+│       ├── notification/
+│       ├── analytics/
+│       ├── admin/
+│       ├── common/
+│       ├── config/
+│       └── exception/
+├── ai-service/        # Reserved placeholder (empty — AI lives in backend)
 ├── docs/              # Architecture, design system, API docs
-└── .github/           # PR templates, workflows
+└── .github/           # PR templates
 ```
+
+> **Note:** The `ai-service/` directory is an empty placeholder reserved for a future
+> dedicated service if scale demands it. All AI functionality currently runs inside
+> the Spring Boot monolith using Spring AI.
 
 ---
 
 ## Local Development Setup
 
-> Prerequisites: Node.js 20+, Java 21, Python 3.12, PostgreSQL 16, Redis
+> Prerequisites: Node.js 20+, Java 21, PostgreSQL 16
 
 ### Clone
 
 ```bash
-git clone https://github.com/your-username/abhiiterates-os.git
-cd abhiiterates-os
+git clone https://github.com/abhishekkp00/Abhi.iterates-OS.git
+cd Abhi.iterates-OS
 ```
 
 ### Frontend
@@ -118,18 +129,8 @@ npm run dev
 ```bash
 cd backend
 cp .env.example .env
+# Edit .env with your DB credentials, JWT secret, OpenAI/Groq API key
 ./mvnw spring-boot:run
-```
-
-### AI Service
-
-```bash
-cd ai-service
-cp .env.example .env
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload
 ```
 
 ---
@@ -138,11 +139,16 @@ uvicorn main:app --reload
 
 | Service | Port |
 |---|---|
-| Frontend | 3000 |
-| Backend | 8080 |
-| AI Service | 8000 |
+| Frontend | 5180 |
+| Backend | 8095 |
 | PostgreSQL | 5432 |
-| Redis | 6379 |
+
+---
+
+## Environment Variables
+
+See [`backend/.env.example`](backend/.env.example) for the complete list of required
+environment variables. No Redis, Python, or separate AI service is required.
 
 ---
 
@@ -154,11 +160,11 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for commit standards and branching stra
 
 ## Roadmap
 
-| Phase | Timeline | Focus |
-|---|---|---|
-| MVP | Weeks 1–4 | Auth, Library, Marketplace, PDF Viewer, AI Chat |
-| Phase 2 | Weeks 5–8 | Ratings, Creator Dashboard, Flashcards, Analytics |
-| Phase 3 | Weeks 9–12 | Voice AI, Mobile App, Institutions, AI Tutor |
+| Phase | Focus |
+|---|---|
+| MVP | Auth, Library, Marketplace, PDF Viewer, AI Chat (✅ Done) |
+| Phase 2 | RAG document Q&A, Academic Context, Study Planner AI |
+| Phase 3 | Voice AI, Mobile App, Institutions, Adaptive AI Tutor |
 
 See [`docs/mvp-scope.md`](docs/mvp-scope.md) for complete scope definition.
 
@@ -168,7 +174,8 @@ See [`docs/mvp-scope.md`](docs/mvp-scope.md) for complete scope definition.
 
 | Document | Description |
 |---|---|
-| [`docs/architecture.md`](docs/architecture.md) | Architecture decisions and reasoning |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Architecture decisions and ADR history |
+| [`docs/backend-foundation.md`](docs/backend-foundation.md) | Backend module structure and design |
 | [`docs/design-system.md`](docs/design-system.md) | Design tokens, typography, component rules |
 | [`docs/mvp-scope.md`](docs/mvp-scope.md) | MVP feature set, in/out of scope |
 | [`docs/api-conventions.md`](docs/api-conventions.md) | API naming, response format, error format |
