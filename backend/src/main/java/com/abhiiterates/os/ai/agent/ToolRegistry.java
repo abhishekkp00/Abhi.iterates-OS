@@ -21,7 +21,8 @@ import java.util.*;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-@SuppressWarnings("all")
+// Reflection-based tool dispatch (Method.invoke) produces unchecked cast warnings that cannot be avoided here.
+@SuppressWarnings("unchecked")
 public class ToolRegistry implements ApplicationContextAware {
 
     private ApplicationContext applicationContext;
