@@ -119,5 +119,11 @@ rag:
   ingestion:
     chunk-size: 1000
     chunk-overlap: 150
+  embedding:
+    enabled: ${RAG_EMBEDDING_ENABLED:true}
+    model: ${RAG_EMBEDDING_MODEL:text-embedding-3-small}
+    dimensions: ${RAG_EMBEDDING_DIMENSIONS:1536}
+    batch-size: ${RAG_EMBEDDING_BATCH_SIZE:32}
+
 
 
