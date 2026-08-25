@@ -67,6 +67,7 @@ export interface GeneratePlanPayload {
   availableMinutesPerDay?: number
   preferredSessionLengthMinutes?: number
   planningHorizonDays?: number
+  examId?: string
 }
 
 export interface AcademicGoal {

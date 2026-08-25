@@ -37,6 +37,7 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
     private final PlannedStudySessionRepository sessionRepository;
     private final PlannerPreferencesRepository preferencesRepository;
     private final TopicPrerequisiteRepository prerequisiteRepository;
+    private final com.abhiiterates.os.academic.repository.ExamRepository examRepository;
     private final PlannerWeightProperties plannerProps;
     private final ObjectMapper objectMapper;
 
@@ -49,6 +50,10 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
     public StudyPlanResponse previewPlan(GeneratePlanRequest request, User user) {
         EffectivePreferences prefs = resolveEffectivePreferences(request, user);
         List<TopicPriorityFactor> factors = priorityCalculator.calculateAll(user);
+
+        if (request != null && request.examId() != null) {
+            factors = applyExamContext(factors, request.examId(), user);
+        }
 
         if (factors.isEmpty()) {
             throw new BadRequestException("No topics found. Please create subjects and topics before generating a plan.");
@@ -72,6 +77,10 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
     public StudyPlanResponse saveDraftPlan(GeneratePlanRequest request, User user) {
         EffectivePreferences prefs = resolveEffectivePreferences(request, user);
         List<TopicPriorityFactor> factors = priorityCalculator.calculateAll(user);
+
+        if (request != null && request.examId() != null) {
+            factors = applyExamContext(factors, request.examId(), user);
+        }
 
         if (factors.isEmpty()) {
             throw new BadRequestException("No topics found. Please create subjects and topics before generating a plan.");
@@ -489,6 +498,35 @@ public class StudyPlannerServiceImpl implements StudyPlannerService {
             .actualMinutes(session.getActualMinutes())
             .displayOrder(session.getDisplayOrder())
             .build();
+    }
+
+    private List<TopicPriorityFactor> applyExamContext(List<TopicPriorityFactor> factors, UUID examId, User user) {
+        var exam = examRepository.findByIdAndUser(examId, user)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found with ID: " + examId));
+
+        Set<UUID> examTopicIds = exam.getTopics() != null
+                ? exam.getTopics().stream().map(Topic::getId).collect(Collectors.toSet())
+                : Collections.emptySet();
+
+        long daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), exam.getExamDate());
+
+        List<TopicPriorityFactor> updated = new ArrayList<>();
+        for (TopicPriorityFactor f : factors) {
+            boolean isExamTopic = examTopicIds.contains(f.topicId());
+            if (isExamTopic) {
+                String examReason = String.format("%s exam in %d days + %s", exam.getTitle(), Math.max(0, daysRemaining), f.reason());
+                double boostedScore = Math.min(1.0, f.rawScore() + 0.25);
+                updated.add(new TopicPriorityFactor(
+                        f.topicId(), f.topicName(), f.subjectId(), f.subjectName(),
+                        f.weaknessFactor(), f.examUrgencyFactor(), f.trendFactor(), f.recencyFactor(),
+                        f.goalUrgencyFactor(), f.prerequisiteImportanceFactor(), f.neglectFactor(),
+                        boostedScore, examReason, f.learningState(), f.recommendedStrategy(), f.isHighEffortLowPerformance()
+                ));
+            } else {
+                updated.add(f);
+            }
+        }
+        return updated;
     }
 
     private PlannerPreferencesDto.Response toPreferencesResponse(PlannerPreferences prefs) {

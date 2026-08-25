@@ -173,6 +173,19 @@ academic:
       high-effort-minutes-threshold: 300  # High effort threshold for strategy shift
     planning-horizon-default-days: 7
 
+  # ── Exam-Aware Revision Engine Config ──────────────────────────────────────────
+  exam-planner:
+    phase:
+      learning-days: 21
+      practice-days: 14
+      consolidation-days: 7
+      revision-days: 3
+    final-review:
+      max-session-minutes: 45
+    prerequisite:
+      max-depth: 2
+
+
 
 
 
