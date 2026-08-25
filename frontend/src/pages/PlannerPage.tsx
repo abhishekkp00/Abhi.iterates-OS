@@ -6,6 +6,8 @@ import { ProgressCard } from '@/features/productivity/components/ProgressCard'
 import { CalendarGrid } from '@/features/productivity/components/CalendarGrid'
 import { AgendaList } from '@/features/productivity/components/AgendaList'
 import { QuickAddDialog } from '@/features/productivity/components/QuickAddDialog'
+import { StudyPlanWidget } from '@/features/planner/components/StudyPlanWidget'
+import { AcademicGoalWidget } from '@/features/academic/components/AcademicGoalWidget'
 import { StudySessionWidget } from '@/features/academic/components/StudySessionWidget'
 import { LearningStateWidget } from '@/features/academic/components/LearningStateWidget'
 import { AssessmentManagerWidget } from '@/features/assessment/components/AssessmentManagerWidget'
@@ -35,6 +37,12 @@ export default function PlannerPage() {
           Quick Add
         </button>
       </div>
+
+      {/* Adaptive Study Planner Engine Widget */}
+      <StudyPlanWidget />
+
+      {/* Academic Deadline Goals Widget */}
+      <AcademicGoalWidget />
 
       {/* Topic Learning State Analysis Widget */}
       <LearningStateWidget />
