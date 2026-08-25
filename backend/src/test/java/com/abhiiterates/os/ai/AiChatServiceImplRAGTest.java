@@ -105,6 +105,8 @@ class AiChatServiceImplRAGTest {
 
         assertThat(response).isNotNull();
         assertThat(response.content()).contains("Deadlock occurs");
+        assertThat(response.sources()).hasSize(1);
+        assertThat(response.sources().get(0).title()).isEqualTo("OS Notes");
 
         ArgumentCaptor<List<Message>> captor = ArgumentCaptor.forClass(List.class);
         verify(requestSpec).messages(captor.capture());
@@ -128,6 +130,7 @@ class AiChatServiceImplRAGTest {
 
         assertThat(response).isNotNull();
         assertThat(response.content()).isEqualTo("Hello! How can I help you?");
+        assertThat(response.sources()).isEmpty();
 
         ArgumentCaptor<List<Message>> captor = ArgumentCaptor.forClass(List.class);
         verify(requestSpec).messages(captor.capture());
