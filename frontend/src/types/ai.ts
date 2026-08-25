@@ -27,6 +27,7 @@ export interface AiSource {
   filename?: string
   pageNumber?: number
   chunkIndex?: number
+  snippet?: string
   similarityScore?: number
 }
 

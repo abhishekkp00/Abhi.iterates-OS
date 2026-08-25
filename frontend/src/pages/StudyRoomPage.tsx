@@ -255,6 +255,8 @@ export default function StudyRoomPage() {
     return { scrollTop: 0, scrollLeft: 0 }
   }, [])
 
+  const isHighlightActive = searchParams.get('highlight') === 'true'
+
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -264,6 +266,25 @@ export default function StudyRoomPage() {
     const scroll = getScrollPos()
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Render target chunk highlight bounding box if source citation activated
+    if (isHighlightActive) {
+      const boxX = 40 - scroll.scrollLeft
+      const boxY = 80 - scroll.scrollTop
+      const boxWidth = Math.max(200, Math.min(canvas.width - 80, 680))
+      const boxHeight = 110
+
+      ctx.save()
+      ctx.fillStyle = 'rgba(234, 179, 8, 0.20)'
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.85)'
+      ctx.lineWidth = 2
+      ctx.setLineDash([4, 4])
+      ctx.beginPath()
+      ctx.roundRect ? ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 8) : ctx.rect(boxX, boxY, boxWidth, boxHeight)
+      ctx.fill()
+      ctx.stroke()
+      ctx.restore()
+    }
 
     strokes.forEach((stroke) => {
       const pts = stroke.points
@@ -286,7 +307,7 @@ export default function StudyRoomPage() {
       }
       ctx.stroke()
     })
-  }, [strokes, getScrollPos])
+  }, [strokes, getScrollPos, isHighlightActive])
 
   // Attach scroll listeners to container and iframe
   useEffect(() => {
