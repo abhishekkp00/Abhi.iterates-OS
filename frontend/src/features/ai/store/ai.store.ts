@@ -135,6 +135,22 @@ export const useAIStore = create<AIStore>()(
           }
         }),
 
+      attachSourcesToLastMessage: (sources) =>
+        set((state) => {
+          if (!state.activeConversation) return state
+          const messages = [...state.activeConversation.messages]
+          const lastIdx = messages.length - 1
+          if (lastIdx < 0) return state
+          const lastMsg = messages[lastIdx]!
+          messages[lastIdx] = {
+            ...lastMsg,
+            sources,
+          }
+          return {
+            activeConversation: { ...state.activeConversation, messages },
+          }
+        }),
+
       appendToolStartToLastMessage: (toolName: string, args: string) =>
         set((state) => {
           if (!state.activeConversation) return state
