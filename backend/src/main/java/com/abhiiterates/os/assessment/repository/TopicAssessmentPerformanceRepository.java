@@ -20,4 +20,9 @@ public interface TopicAssessmentPerformanceRepository extends JpaRepository<Topi
 
     @Query("SELECT p FROM TopicAssessmentPerformance p WHERE p.user = :user AND p.topic.id = :topicId ORDER BY p.evaluatedAt DESC")
     List<TopicAssessmentPerformance> findByUserAndTopicIdOrderByEvaluatedAtDesc(@Param("user") User user, @Param("topicId") UUID topicId);
+
+    List<TopicAssessmentPerformance> findByUser(User user);
+
+    @Query("SELECT DISTINCT p.topic.id FROM TopicAssessmentPerformance p WHERE p.user = :user")
+    List<UUID> findAssessedTopicIdsByUser(@Param("user") User user);
 }

@@ -38,4 +38,6 @@ public interface StudySessionRepository extends JpaRepository<StudySession, UUID
             @Param("topicId") UUID topicId,
             Pageable pageable
     );
+
+    List<StudySession> findByUserAndStatusAndStartedAtBetweenOrderByStartedAtDesc(User user, StudySessionStatus status, Instant start, Instant end);
 }
