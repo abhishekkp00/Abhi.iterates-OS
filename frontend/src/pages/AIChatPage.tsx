@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { useParams, useLocation } from 'react-router-dom'
+import { useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAIStore } from '@/features/ai/store/ai.store'
 import { aiApi, streamChat } from '@/features/ai/api/ai.api'
@@ -7,22 +7,17 @@ import { AIChatHeader } from '@/features/ai/components/AIChatHeader'
 import { MessageBubble } from '@/features/ai/components/MessageBubble'
 import { TypingIndicator } from '@/features/ai/components/TypingIndicator'
 import { PromptComposer } from '@/features/ai/components/PromptComposer'
-import type { ChatMessage } from '@/types/ai'
+import type { ChatMessage, TutorMode } from '@/types/ai'
 
-/**
- * AIChatPage — rendered at /ai/chat/:conversationId
- *
- * Lifecycle:
- *  1. On mount: load conversation from API (or use optimistic store data)
- *  2. User types + sends prompt
- *  3. Optimistically append user message to UI
- *  4. Open SSE stream to backend → append tokens to AI message
- *  5. On stream done → commit message, update conversation list
- *  6. Stop button → cancel() stream, mark message done
- */
 export default function AIChatPage() {
   const { conversationId } = useParams<{ conversationId: string }>()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+
+  const topicIdParam = searchParams.get('topicId') || undefined
+  const [tutorMode, setTutorMode] = useState<TutorMode>(
+    (searchParams.get('mode') as TutorMode) || 'EXPLAIN'
+  )
 
   const activeConversation = useAIStore((s) => s.activeConversation)
   const streamingStatus = useAIStore((s) => s.streamingStatus)
@@ -116,6 +111,8 @@ export default function AIChatPage() {
           conversationId: resolvedConvId ?? undefined,
           message: content,
           resourceId: resourceId || undefined,
+          topicId: topicIdParam,
+          tutorMode: tutorMode,
         },
         {
           onToken: (chunk) => appendStreamingContent(chunk),
@@ -175,6 +172,8 @@ export default function AIChatPage() {
       appendToolStartToLastMessage,
       updateToolEndInLastMessage,
       attachSourcesToLastMessage,
+      topicIdParam,
+      tutorMode,
     ]
   )
 
@@ -206,6 +205,9 @@ export default function AIChatPage() {
         title={activeConversation?.title ?? 'Chat'}
         isStreaming={isStreaming}
         onStop={handleStop}
+        topicId={topicIdParam}
+        tutorMode={tutorMode}
+        onModeChange={setTutorMode}
       />
 
       {/* Message list */}

@@ -27,4 +27,13 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
     );
 
     java.util.List<Resource> findByUser(User user);
+
+    @Query("SELECT r FROM Resource r WHERE r.user.id = :userId " +
+           "AND (r.topic.id = :topicId OR (r.topic IS NULL AND r.subject.id = :subjectId)) " +
+           "ORDER BY r.createdAt DESC")
+    java.util.List<Resource> findByUserAndTopicOrSubject(
+            @Param("userId") UUID userId,
+            @Param("topicId") UUID topicId,
+            @Param("subjectId") UUID subjectId
+    );
 }

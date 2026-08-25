@@ -6,6 +6,11 @@ import { ProgressCard } from '@/features/productivity/components/ProgressCard'
 import { CalendarGrid } from '@/features/productivity/components/CalendarGrid'
 import { AgendaList } from '@/features/productivity/components/AgendaList'
 import { QuickAddDialog } from '@/features/productivity/components/QuickAddDialog'
+import { StudyPlanWidget } from '@/features/planner/components/StudyPlanWidget'
+import { AcademicGoalWidget } from '@/features/academic/components/AcademicGoalWidget'
+import { StudySessionWidget } from '@/features/academic/components/StudySessionWidget'
+import { LearningStateWidget } from '@/features/academic/components/LearningStateWidget'
+import { AssessmentManagerWidget } from '@/features/assessment/components/AssessmentManagerWidget'
 
 export default function PlannerPage() {
   const { tasks, summary, isLoadingSummary, createTask } = useTasks()
@@ -19,9 +24,9 @@ export default function PlannerPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Productivity Planner</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Productivity Planner & Academic Tracker</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Track your tasks, assignments, schedules, and lectures.
+            Track planned tasks, schedules, active study sessions, and actual learning progress.
           </p>
         </div>
         <button
@@ -32,6 +37,21 @@ export default function PlannerPage() {
           Quick Add
         </button>
       </div>
+
+      {/* Adaptive Study Planner Engine Widget */}
+      <StudyPlanWidget />
+
+      {/* Academic Deadline Goals Widget */}
+      <AcademicGoalWidget />
+
+      {/* Topic Learning State Analysis Widget */}
+      <LearningStateWidget />
+
+      {/* Academic Study Session & Progress Tracking Widget */}
+      <StudySessionWidget />
+
+      {/* Assessment Engine Manager Widget */}
+      <AssessmentManagerWidget />
 
       {/* Progress & Quick Stats Card */}
       <ProgressCard summary={summary} isLoading={isLoadingSummary} />

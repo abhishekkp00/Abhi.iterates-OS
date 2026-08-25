@@ -23,6 +23,23 @@ public class VectorSearchRepositoryImpl implements VectorSearchRepository {
     private final EntityManager entityManager;
     private final VectorConverter vectorConverter = new VectorConverter();
 
+    private Boolean isH2 = null;
+
+    private boolean isH2Database() {
+        if (isH2 == null) {
+            try {
+                org.hibernate.Session session = entityManager.unwrap(org.hibernate.Session.class);
+                session.doWork(connection -> {
+                    String dbName = connection.getMetaData().getDatabaseProductName();
+                    isH2 = dbName != null && dbName.toLowerCase().contains("h2");
+                });
+            } catch (Exception e) {
+                isH2 = false;
+            }
+        }
+        return Boolean.TRUE.equals(isH2);
+    }
+
     @Override
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
@@ -34,7 +51,13 @@ public class VectorSearchRepositoryImpl implements VectorSearchRepository {
             int topK,
             double similarityThreshold,
             UUID resourceIdFilter,
-            UUID documentIdFilter) {
+            UUID documentIdFilter,
+            UUID subjectIdFilter,
+            UUID topicIdFilter) {
+
+        if (isH2Database()) {
+            return executeH2FallbackSearch(userId, queryVector, embeddingModel, topK, similarityThreshold, resourceIdFilter, documentIdFilter, subjectIdFilter, topicIdFilter);
+        }
 
         String sql = """
             SELECT 
@@ -58,6 +81,8 @@ public class VectorSearchRepositoryImpl implements VectorSearchRepository {
               AND e.embedding_model = :embeddingModel
               AND (:resourceIdFilter IS NULL OR r.id = :resourceIdFilter)
               AND (:documentIdFilter IS NULL OR d.id = :documentIdFilter)
+              AND (:subjectIdFilter IS NULL OR r.subject_id = :subjectIdFilter)
+              AND (:topicIdFilter IS NULL OR r.topic_id = :topicIdFilter)
               AND (1.0 - (e.vector <=> CAST(:queryVector AS vector))) >= :similarityThreshold
             ORDER BY (e.vector <=> CAST(:queryVector AS vector)) ASC
             LIMIT :topK
@@ -70,6 +95,8 @@ public class VectorSearchRepositoryImpl implements VectorSearchRepository {
             query.setParameter("embeddingModel", embeddingModel);
             query.setParameter("resourceIdFilter", resourceIdFilter);
             query.setParameter("documentIdFilter", documentIdFilter);
+            query.setParameter("subjectIdFilter", subjectIdFilter);
+            query.setParameter("topicIdFilter", topicIdFilter);
             query.setParameter("similarityThreshold", similarityThreshold);
             query.setParameter("topK", topK);
 
@@ -95,7 +122,7 @@ public class VectorSearchRepositoryImpl implements VectorSearchRepository {
 
         } catch (Exception ex) {
             log.debug("PostgreSQL pgvector query unavailable or non-PostgreSQL dialect ({}), falling back to dialect-safe vector evaluation", ex.getMessage());
-            return executeH2FallbackSearch(userId, queryVector, embeddingModel, topK, similarityThreshold, resourceIdFilter, documentIdFilter);
+            return executeH2FallbackSearch(userId, queryVector, embeddingModel, topK, similarityThreshold, resourceIdFilter, documentIdFilter, subjectIdFilter, topicIdFilter);
         }
     }
 
@@ -106,7 +133,9 @@ public class VectorSearchRepositoryImpl implements VectorSearchRepository {
             int topK,
             double similarityThreshold,
             UUID resourceIdFilter,
-            UUID documentIdFilter) {
+            UUID documentIdFilter,
+            UUID subjectIdFilter,
+            UUID topicIdFilter) {
 
         String fallbackSql = """
             SELECT 
@@ -129,6 +158,8 @@ public class VectorSearchRepositoryImpl implements VectorSearchRepository {
               AND e.embedding_model = :embeddingModel
               AND (:resourceIdFilter IS NULL OR r.id = :resourceIdFilter)
               AND (:documentIdFilter IS NULL OR d.id = :documentIdFilter)
+              AND (:subjectIdFilter IS NULL OR r.subject_id = :subjectIdFilter)
+              AND (:topicIdFilter IS NULL OR r.topic_id = :topicIdFilter)
             """;
 
         Query query = entityManager.createNativeQuery(fallbackSql);
@@ -136,6 +167,8 @@ public class VectorSearchRepositoryImpl implements VectorSearchRepository {
         query.setParameter("embeddingModel", embeddingModel);
         query.setParameter("resourceIdFilter", resourceIdFilter);
         query.setParameter("documentIdFilter", documentIdFilter);
+        query.setParameter("subjectIdFilter", subjectIdFilter);
+        query.setParameter("topicIdFilter", topicIdFilter);
 
         @SuppressWarnings("unchecked")
         List<Object[]> rows = query.getResultList();

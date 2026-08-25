@@ -102,6 +102,8 @@ class RetrievalServiceImplTest {
                 eq(5),
                 eq(0.60),
                 isNull(),
+                isNull(),
+                isNull(),
                 isNull()
         )).thenReturn(List.of(hit));
 
@@ -142,7 +144,7 @@ class RetrievalServiceImplTest {
         when(retrievalProperties.getSimilarityThreshold()).thenReturn(0.5);
 
         when(embeddingModel.embed("deadlock")).thenReturn(new float[]{0.1f, 0.2f, 0.3f});
-        when(vectorSearchRepository.searchSimilarChunks(any(), any(), any(), any(), eq(10), anyDouble(), any(), any()))
+        when(vectorSearchRepository.searchSimilarChunks(any(), any(), any(), any(), eq(10), anyDouble(), any(), any(), any(), any()))
                 .thenReturn(List.of());
 
         RetrievalRequest request = RetrievalRequest.builder()
@@ -154,6 +156,6 @@ class RetrievalServiceImplTest {
 
         // Verify topK was capped to maxTopK (10)
         verify(vectorSearchRepository).searchSimilarChunks(
-                eq(testUser.getId()), any(), any(), any(), eq(10), eq(0.5), any(), any());
+                eq(testUser.getId()), any(), any(), any(), eq(10), eq(0.5), any(), any(), any(), any());
     }
 }

@@ -73,6 +73,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     label: null,
     items: [
       { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
+      { id: 'academic',  label: 'Command Center', href: '/academic', icon: 'GraduationCap' },
       { id: 'analytics', label: 'Analytics', href: '/analytics', icon: 'BarChart3' },
     ],
   },
@@ -109,6 +110,7 @@ export const NAV_BOTTOM_ITEMS: readonly NavItem[] = [
 
 export const ROUTE_LABELS: Readonly<Record<string, string>> = {
   dashboard:    'Dashboard',
+  academic:     'Academic Command Center',
   library:      'Library',
   marketplace:  'Marketplace',
   resources:    'My Resources',

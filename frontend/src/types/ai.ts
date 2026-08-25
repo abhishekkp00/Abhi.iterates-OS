@@ -68,6 +68,8 @@ export interface ConversationDetail extends Conversation {
 
 // ── API request / response shapes ───────────────────────────────────────────
 
+export type TutorMode = 'EXPLAIN' | 'SUMMARY' | 'DEEP_DIVE' | 'REVISION' | 'QUESTION' | 'REVIEW'
+
 export interface SendMessageRequest {
   conversationId?: string
   message: string
@@ -75,6 +77,10 @@ export interface SendMessageRequest {
   systemPrompt?: string
   /** Optional resource ID for context retrieval */
   resourceId?: string
+  /** Optional topic ID for topic-aware academic RAG tutoring */
+  topicId?: string
+  /** Optional controlled tutoring mode */
+  tutorMode?: TutorMode
 }
 
 export interface SendMessageResponse {

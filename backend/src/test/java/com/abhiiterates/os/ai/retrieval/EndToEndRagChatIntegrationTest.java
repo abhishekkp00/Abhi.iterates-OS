@@ -105,16 +105,19 @@ class EndToEndRagChatIntegrationTest {
                 .charCount(82)
                 .build());
 
-        // Save chunk embedding vector [1.0, 0.0, 0.0]
+        float[] testVector = new float[1536];
+        testVector[0] = 1.0f;
+
+        // Save chunk embedding vector
         embeddingRepository.save(RagDocumentChunkEmbedding.builder()
                 .chunk(chunk)
                 .embeddingModel("text-embedding-3-small")
-                .embeddingDimension(3)
-                .vector(new float[]{1.0f, 0.0f, 0.0f})
+                .embeddingDimension(1536)
+                .vector(testVector)
                 .build());
 
-        // Mock query vector generation: returns vector [1.0, 0.0, 0.0]
-        when(embeddingModel.embed(any(String.class))).thenReturn(new float[]{1.0f, 0.0f, 0.0f});
+        // Mock query vector generation: returns 1536-dim vector
+        when(embeddingModel.embed(any(String.class))).thenReturn(testVector);
     }
 
     @Test

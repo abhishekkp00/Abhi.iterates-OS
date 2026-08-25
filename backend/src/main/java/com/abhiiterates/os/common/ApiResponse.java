@@ -21,6 +21,19 @@ public record ApiResponse<T>(
     /**
      * Factory method for successful responses with payload data.
      */
+    public static <T> ApiResponse<T> success(T data, String message) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message(message)
+                .data(data)
+                .timestamp(Instant.now())
+                .status(200)
+                .build();
+    }
+
+    /**
+     * Factory method for successful responses with payload data and custom path.
+     */
     public static <T> ApiResponse<T> success(T data, String message, String path) {
         return ApiResponse.<T>builder()
                 .success(true)

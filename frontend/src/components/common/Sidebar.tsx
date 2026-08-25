@@ -13,6 +13,7 @@ import {
 // ── Icon registry ─────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
+  GraduationCap,
   BookOpen,
   ShoppingBag,
   FolderOpen,

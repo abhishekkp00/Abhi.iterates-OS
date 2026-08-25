@@ -83,6 +83,7 @@ export {
   Link,
   Paperclip,
   GraduationCap,
+  Award,
   Brain,
   Layers,
   Grid,

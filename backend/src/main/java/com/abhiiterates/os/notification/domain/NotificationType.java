@@ -26,6 +26,9 @@ public enum NotificationType {
     // ── Collaboration ─────────────────────────────────────────────────────────
     MENTION,               // User was @mentioned in a comment
 
+    // ── Planner Module ────────────────────────────────────────────────────────
+    STUDY_PLAN_REVIEW,     // Active study plan may need review due to updated assessment evidence
+
     // ── System ────────────────────────────────────────────────────────────────
     SYSTEM_ANNOUNCEMENT    // Platform-wide broadcast
 }

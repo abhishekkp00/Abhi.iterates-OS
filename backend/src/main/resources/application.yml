@@ -133,6 +133,42 @@ rag:
     max-chunks: ${RAG_CONTEXT_MAX_CHUNKS:5}
     max-characters: ${RAG_CONTEXT_MAX_CHARACTERS:4000}
 
+# ── Academic Learning State Config ──────────────────────────────────────────
+academic:
+  learning-state:
+    minimum-attempts: 2
+    weak-threshold: 50.0
+    developing-threshold: 75.0
+    strong-threshold: 85.0
+    trend:
+      recent-window: 3
+      previous-window: 3
+      meaningful-change: 5.0
+    evidence:
+      medium-attempts: 2
+      high-attempts: 4
+
+  # ── Adaptive Study Planner Config ─────────────────────────────────────────
+  planner:
+    # Priority factor weights — MUST sum to exactly 1.0
+    weights:
+      weakness: 0.35              # Highest signal: weak mastery → study urgently
+      exam-urgency: 0.20          # Upcoming assessments create deadline pressure
+      trend: 0.15                 # DECLINING trend needs intervention
+      recency: 0.10               # Topics not studied recently slip backwards
+      goal-urgency: 0.10          # Student-defined goal deadlines
+      prerequisite-importance: 0.10  # Blocking other topics multiplies value
+    # Session length bounds and per-state base durations
+    session:
+      min-minutes: 25             # Never recommend less than 25 minutes
+      max-minutes: 90             # Never recommend more than 90 minutes
+      weak-topic-base: 60         # WEAK topics get longer sessions by default
+      developing-topic-base: 45   # DEVELOPING topics get medium sessions
+      strong-topic-base: 30       # STRONG topics get shorter maintenance sessions
+    # Default planning horizon when user has no saved preference
+    planning-horizon-default-days: 7
+
+
 
 
 
