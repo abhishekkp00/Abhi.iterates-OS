@@ -20,6 +20,7 @@ import {
 } from '@/lib/icons'
 import { academicApi, type AcademicDashboardData } from '@/features/academic/api/academic.api'
 import { plannerApi } from '@/features/planner/api/planner.api'
+import { GenerateAdaptiveAssessmentModal } from '@/features/assessment/components/GenerateAdaptiveAssessmentModal'
 import { LoadingState } from '@/components/ui/feedback'
 import { toast } from 'sonner'
 
@@ -29,6 +30,7 @@ export default function AcademicCommandCenterPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
 
   const loadDashboard = async () => {
     setIsLoading(true)
@@ -146,6 +148,14 @@ export default function AcademicCommandCenterPage() {
               </div>
             </div>
           )}
+
+          <button
+            onClick={() => setIsGenerateModalOpen(true)}
+            className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-xl shadow-sm transition-colors"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Generate AI Test</span>
+          </button>
 
           <button
             onClick={loadDashboard}
@@ -551,6 +561,16 @@ export default function AcademicCommandCenterPage() {
           </div>
         </div>
       </div>
+
+      <GenerateAdaptiveAssessmentModal
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        onGenerated={(assessmentId) => {
+          toast.success('Adaptive Assessment generated and published!')
+          loadDashboard()
+          navigate(`/academic/assessments/${assessmentId}`)
+        }}
+      />
     </div>
   )
 }
