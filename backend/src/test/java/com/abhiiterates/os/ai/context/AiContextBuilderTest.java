@@ -75,6 +75,7 @@ class AiContextBuilderTest {
         assertThat(context.retrievedChunkCount()).isEqualTo(1);
         assertThat(context.sources()).hasSize(1);
         assertThat(context.sources().get(0).title()).isEqualTo("OS Notes");
+        assertThat(context.sources().get(0).snippet()).isEqualTo("Deadlock happens when processes wait indefinitely.");
         assertThat(context.sources().get(0).similarityScore()).isEqualTo(0.89);
 
         assertThat(context.formattedText()).contains("<academic_context>");
