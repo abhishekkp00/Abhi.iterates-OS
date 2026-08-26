@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useAnalyticsQuery } from '@/features/analytics/hooks/useAnalytics'
 import { useResourcesListQuery } from '@/features/resources/hooks/useResources'
@@ -18,12 +17,7 @@ export default function DashboardPage() {
   const { data: resourcesData } = useResourcesListQuery({ page: 1, size: 1 })
   const { tasks } = useTasks()
 
-  // Compute streak dynamically based on active user completed tasks/activity
-  const streak = useMemo(() => {
-    const completedCount = tasks.filter((t: any) => t.status === 'COMPLETED').length
-    if (completedCount === 0) return 0
-    return Math.min(completedCount, 7) // dynamic active streak based on completed tasks
-  }, [tasks])
+  const streak = analyticsData?.streak ?? 0
 
   const stats = {
     completedTasks: analyticsData?.completedTasks ?? tasks.filter((t: any) => t.status === 'COMPLETED').length,

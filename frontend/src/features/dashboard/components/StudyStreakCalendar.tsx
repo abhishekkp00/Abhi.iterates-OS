@@ -190,14 +190,24 @@ export function StudyStreakCalendar() {
 
   // Compute streak stats
   const { currentStreak, longestStreak, activeDaysThisMonth, totalCompleted } = useMemo(() => {
-    // Current streak: consecutive days back from today with at least 1 completion
+    // Current streak: consecutive days back from today or yesterday with at least 1 completion
     let currentStreak = 0
-    const cursor = new Date(today)
-    while (true) {
-      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`
-      if ((completionMap[key] || 0) === 0) break
-      currentStreak++
-      cursor.setDate(cursor.getDate() - 1)
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
+
+    const hasToday = (completionMap[todayStr] || 0) > 0
+    const hasYesterday = (completionMap[yesterdayStr] || 0) > 0
+
+    if (hasToday || hasYesterday) {
+      const cursor = hasToday ? new Date(today) : yesterday
+      while (true) {
+        const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`
+        if ((completionMap[key] || 0) === 0) break
+        currentStreak++
+        cursor.setDate(cursor.getDate() - 1)
+      }
     }
 
     // Longest streak: scan all available keys in sorted order

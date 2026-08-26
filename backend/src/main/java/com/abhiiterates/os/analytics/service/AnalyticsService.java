@@ -111,7 +111,47 @@ public class AnalyticsService {
                     .build());
         }
 
-        // 3. Generate quick dynamic insights
+        // 3. Compute real active study streak (consecutive days with completed activity)
+        java.util.Set<LocalDate> activityDates = new java.util.HashSet<>();
+
+        // Completed tasks dates
+        userTasks.stream()
+                .filter(t -> t.getStatus() == TaskStatus.COMPLETED && t.getUpdatedAt() != null)
+                .forEach(t -> activityDates.add(LocalDate.ofInstant(t.getUpdatedAt(), ZoneId.systemDefault())));
+
+        // Calendar events dates
+        userEvents.stream()
+                .filter(e -> e.getStartTime() != null)
+                .forEach(e -> activityDates.add(LocalDate.ofInstant(e.getStartTime(), ZoneId.systemDefault())));
+
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+
+        int currentStreak = 0;
+        if (activityDates.contains(today) || activityDates.contains(yesterday)) {
+            LocalDate cursor = activityDates.contains(today) ? today : yesterday;
+            while (activityDates.contains(cursor)) {
+                currentStreak++;
+                cursor = cursor.minusDays(1);
+            }
+        }
+        // If neither today nor yesterday has activity, currentStreak remains 0 (streak is broken!)
+
+        int longestStreak = 0;
+        int runningStreak = 0;
+        LocalDate prev = null;
+        List<LocalDate> sortedDates = activityDates.stream().sorted().toList();
+        for (LocalDate d : sortedDates) {
+            if (prev != null && prev.plusDays(1).equals(d)) {
+                runningStreak++;
+            } else {
+                runningStreak = 1;
+            }
+            longestStreak = Math.max(longestStreak, runningStreak);
+            prev = d;
+        }
+
+        // 4. Generate quick dynamic insights
         List<String> insights = new ArrayList<>();
         if (taskCompletionRate > 80) {
             insights.add("Outstanding job! Your task completion rate is " + Math.round(taskCompletionRate) + "%, placing you in the top tier of productive learners.");
@@ -137,6 +177,8 @@ public class AnalyticsService {
                 .totalStudyHours(totalStudyHours)
                 .totalAiTokens(totalAiTokens)
                 .activeListings(activeListings)
+                .streak(currentStreak)
+                .longestStreak(longestStreak)
                 .chartData(chartData)
                 .insights(insights)
                 .build();

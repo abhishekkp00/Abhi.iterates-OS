@@ -14,6 +14,8 @@ public class DashboardAnalyticsDto {
     private double totalStudyHours;
     private long totalAiTokens;
     private long activeListings;
+    private int streak;
+    private int longestStreak;
     
     private List<ChartDataPoint> chartData;
     private List<String> insights;

@@ -14,6 +14,8 @@ export interface DashboardAnalytics {
   totalStudyHours: number
   totalAiTokens: number
   activeListings: number
+  streak?: number
+  longestStreak?: number
   chartData: ChartDataPoint[]
   insights: string[]
 }
