@@ -37,42 +37,42 @@ export function PlannerPreview() {
   const priorityBadgeStyle = (priority: string) => {
     switch (priority) {
       case 'HIGH':
-        return 'border-red-500/40 bg-red-500/10 text-red-400'
+        return 'badge-rose'
       case 'MEDIUM':
-        return 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+        return 'badge-amber'
       default:
-        return 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400'
+        return 'badge-indigo'
     }
   }
 
   return (
-    <div className="retro-card flex flex-col justify-between min-h-[300px]">
+    <div className="clean-card flex flex-col justify-between min-h-[300px]">
       <div>
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 font-mono text-2xs uppercase tracking-widest text-slate-400">
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <Calendar className="size-4 text-amber-400" />
-            <span className="font-display text-sm font-bold text-white tracking-tight lowercase first-letter:uppercase">Today's Agenda</span>
+            <Calendar className="size-4.5 text-indigo-400" />
+            <h2 className="font-display text-base font-bold text-white tracking-tight">Today's Agenda</h2>
           </div>
-          <span className="font-mono text-2xs px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 font-semibold">
-            [{tasks.filter((t: any) => t.status !== 'COMPLETED').length} PENDING]
+          <span className="badge-indigo">
+            {tasks.filter((t: any) => t.status !== 'COMPLETED').length} Pending
           </span>
         </div>
 
         <div>
           {isLoadingTasks ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 font-mono text-xs">
-              <Loader2 className="size-6 animate-spin text-amber-400" />
-              <span>[RETRIEVING AGENDA...]</span>
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 font-medium text-xs">
+              <Loader2 className="size-5 animate-spin text-indigo-400" />
+              <span>Retrieving planner...</span>
             </div>
           ) : activeTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center gap-3 border border-dashed border-slate-800 rounded-lg bg-slate-900/40">
-              <div className="p-2.5 rounded border border-slate-700 bg-slate-800">
-                <AlertCircle className="size-5 text-amber-400" />
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-3 border border-dashed border-slate-800 rounded-xl bg-slate-900/40">
+              <div className="p-2.5 rounded-full bg-slate-800 border border-slate-700">
+                <AlertCircle className="size-5 text-indigo-400" />
               </div>
-              <div className="space-y-1 px-4 font-mono text-xs">
-                <p className="font-bold text-white uppercase tracking-wider">[ALL TASKS CLEARED]</p>
-                <p className="text-slate-400 text-2xs">
-                  No pending agenda items. Create tasks in the planner workspace.
+              <div className="space-y-1 px-4 text-xs">
+                <p className="font-bold text-white">All caught up!</p>
+                <p className="text-slate-400 font-medium max-w-[240px]">
+                  No pending agenda items. Click below to add tasks or check your planner.
                 </p>
               </div>
             </div>
@@ -83,17 +83,17 @@ export function PlannerPreview() {
                 return (
                   <div
                     key={task.id}
-                    className="flex items-center justify-between p-3 rounded border border-slate-800 hover:border-amber-500/40 bg-slate-900/60 hover:bg-slate-900 transition-all duration-150 group"
+                    className="flex items-center justify-between p-3 rounded-xl border border-slate-800/80 hover:border-indigo-500/30 bg-slate-900/50 hover:bg-slate-900 transition-all duration-150 group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <button
                         onClick={() => handleToggleComplete(task)}
                         aria-label={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
-                        className="shrink-0 flex items-center justify-center size-5 rounded border border-amber-500/40 bg-slate-950 hover:border-amber-400 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400"
+                        className="shrink-0 flex items-center justify-center size-5 rounded-md border border-slate-700 bg-slate-950 hover:border-indigo-500 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400"
                       >
                         {isCompleted && (
                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                            <Check className="size-3 text-amber-400" />
+                            <Check className="size-3 text-indigo-400" />
                           </motion.div>
                         )}
                       </button>
@@ -101,20 +101,20 @@ export function PlannerPreview() {
                       <div className="space-y-0.5 truncate">
                         <span
                           onClick={() => handleToggleComplete(task)}
-                          className="font-mono text-xs font-semibold text-slate-200 tracking-tight cursor-pointer group-hover:text-amber-400 transition-colors block truncate"
+                          className="text-xs font-semibold text-slate-200 tracking-tight cursor-pointer group-hover:text-indigo-400 transition-colors block truncate"
                         >
                           {task.title}
                         </span>
                         {task.dueDate && (
-                          <p className="font-mono text-2xs text-slate-500">
-                            DUE: {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}
+                          <p className="text-[10px] text-slate-500 font-medium">
+                            Due {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <span className={`font-mono text-2xs font-bold py-0.5 px-2 rounded border uppercase tracking-wider ${priorityBadgeStyle(task.priority)}`}>
-                      [{task.priority}]
+                    <span className={priorityBadgeStyle(task.priority)}>
+                      {task.priority}
                     </span>
                   </div>
                 )
@@ -128,10 +128,10 @@ export function PlannerPreview() {
         <Button
           variant="ghost"
           size="sm"
-          className="w-full font-mono text-xs font-bold text-slate-400 hover:text-amber-400 justify-between group hover:bg-transparent"
+          className="w-full text-xs font-bold text-slate-400 hover:text-indigo-400 justify-between group hover:bg-transparent"
           onClick={() => navigate('/planner')}
         >
-          <span>&gt; OPEN_PLANNER_WORKSPACE</span>
+          <span>Open Planner Workspace</span>
           <ArrowRight className="size-3.5 group-hover:translate-x-1 transition-transform" />
         </Button>
       </div>

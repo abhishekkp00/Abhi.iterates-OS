@@ -27,30 +27,30 @@ export function RecentResourcesPreview() {
   const categoryBadgeStyle = (category: string) => {
     switch (category) {
       case 'LECTURE':
-        return 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400'
+        return 'badge-indigo'
       case 'BOOK':
-        return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+        return 'badge-emerald'
       case 'CHEATSHEET':
-        return 'border-purple-500/40 bg-purple-500/10 text-purple-400'
+        return 'badge-amber'
       case 'PAST_PAPER':
-        return 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+        return 'badge-rose'
       default:
-        return 'border-slate-700 bg-slate-800 text-slate-400'
+        return 'bg-slate-800 text-slate-400 border border-slate-700 text-xs px-2 py-0.5 rounded-full'
     }
   }
 
   return (
-    <div className="retro-card flex flex-col justify-between min-h-[300px]">
+    <div className="clean-card flex flex-col justify-between min-h-[300px]">
       <div>
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 font-mono text-2xs uppercase tracking-widest text-slate-400">
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <BookOpen className="size-4 text-emerald-400" />
-            <span className="font-display text-sm font-bold text-white tracking-tight lowercase first-letter:uppercase">Recent Resources</span>
+            <BookOpen className="size-4.5 text-emerald-400" />
+            <h2 className="font-display text-base font-bold text-white tracking-tight">Recent Resources</h2>
           </div>
           <Button
             variant="ghost"
             size="xs"
-            className="font-mono text-2xs text-slate-400 flex items-center gap-1 border border-slate-800 bg-slate-900 hover:text-amber-400 hover:border-amber-500/40 h-6 px-2"
+            className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 border border-slate-800 bg-slate-900 hover:bg-slate-800 hover:text-white h-7 px-2"
             onClick={() => {
               const event = new KeyboardEvent('keydown', {
                 key: 'k',
@@ -60,26 +60,26 @@ export function RecentResourcesPreview() {
               document.dispatchEvent(event)
             }}
           >
-            <span>CMD_SEARCH</span>
-            <kbd className="text-[9px] font-mono text-amber-400 border-l border-slate-700 pl-1 ml-0.5">⌘K</kbd>
+            <span>Search</span>
+            <kbd className="text-[9px] font-mono opacity-80 border-l border-slate-700 pl-1 ml-0.5">⌘K</kbd>
           </Button>
         </div>
 
         <div>
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 font-mono text-xs">
-              <Loader2 className="size-6 animate-spin text-emerald-400" />
-              <span>[LOADING_DOCUMENTS...]</span>
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 font-medium text-xs">
+              <Loader2 className="size-5 animate-spin text-emerald-400" />
+              <span>Loading resources...</span>
             </div>
           ) : resources.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center gap-3 border border-dashed border-slate-800 rounded-lg bg-slate-900/40">
-              <div className="p-2.5 rounded border border-slate-700 bg-slate-800">
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-3 border border-dashed border-slate-800 rounded-xl bg-slate-900/40">
+              <div className="p-2.5 rounded-full bg-slate-800 border border-slate-700">
                 <AlertCircle className="size-5 text-emerald-400" />
               </div>
-              <div className="space-y-1 px-4 font-mono text-xs">
-                <p className="font-bold text-white uppercase tracking-wider">[NO DOCUMENTS UPLOADED]</p>
-                <p className="text-slate-400 text-2xs">
-                  Store textbooks, notes, and past papers in your study library.
+              <div className="space-y-1 px-4 text-xs">
+                <p className="font-bold text-white">No resources uploaded</p>
+                <p className="text-slate-400 font-medium max-w-[240px]">
+                  Store notes, homework answers, and exam cheat sheets here.
                 </p>
               </div>
             </div>
@@ -91,34 +91,34 @@ export function RecentResourcesPreview() {
                 return (
                   <div
                     key={resource.id}
-                    className="flex items-center justify-between p-3 rounded border border-slate-800 hover:border-emerald-500/40 bg-slate-950/60 hover:bg-slate-900 transition-all duration-150 group"
+                    className="flex items-center justify-between p-3 rounded-xl border border-slate-800/80 hover:border-emerald-500/30 bg-slate-900/50 hover:bg-slate-900 transition-all duration-150 group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-1.5 rounded border border-slate-800 bg-slate-900 shrink-0">
+                      <div className="p-2 rounded-lg bg-slate-800 border border-slate-700/60 shrink-0">
                         <Icon className="size-3.5 text-emerald-400/80 group-hover:text-emerald-400 transition-colors" />
                       </div>
-                      <div className="space-y-0.5 truncate font-mono">
+                      <div className="space-y-0.5 truncate">
                         <span
                           onClick={() => navigate('/resources')}
                           className="text-xs font-semibold text-slate-200 tracking-tight cursor-pointer hover:text-emerald-400 transition-colors block truncate"
                         >
                           {resource.title}
                         </span>
-                        <p className="text-2xs text-slate-500">
-                          ADDED: {new Date(resource.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}
+                        <p className="text-[10px] text-slate-500 font-medium">
+                          Uploaded {new Date(resource.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className={`font-mono text-2xs font-bold py-0.5 px-2 rounded border uppercase tracking-wider ${categoryBadgeStyle(resource.category)}`}>
-                        [{resource.category}]
+                      <span className={categoryBadgeStyle(resource.category)}>
+                        {resource.category}
                       </span>
                       {firstAttachment && (
                         <a
                           href={`${API_BASE_URL}/api/v1/resources/attachments/download/${firstAttachment.id}`}
                           download
-                          className="p-1.5 rounded border border-slate-800 hover:border-emerald-400 bg-slate-900 text-slate-400 hover:text-emerald-400 transition-colors"
+                          className="p-1.5 rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-900 text-slate-400 hover:text-emerald-400 transition-colors"
                           title="Download file"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -138,10 +138,10 @@ export function RecentResourcesPreview() {
         <Button
           variant="ghost"
           size="sm"
-          className="w-full font-mono text-xs font-bold text-slate-400 hover:text-emerald-400 justify-between group hover:bg-transparent"
+          className="w-full text-xs font-bold text-slate-400 hover:text-emerald-400 justify-between group hover:bg-transparent"
           onClick={() => navigate('/resources')}
         >
-          <span>&gt; OPEN_STUDY_LIBRARY</span>
+          <span>View Study Library</span>
           <ArrowRight className="size-3.5 group-hover:translate-x-1 transition-transform" />
         </Button>
       </div>

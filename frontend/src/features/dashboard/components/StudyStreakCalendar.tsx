@@ -252,29 +252,29 @@ export function StudyStreakCalendar() {
   const isNextDisabled = viewDate.getMonth() === today.getMonth() && viewDate.getFullYear() === today.getFullYear()
 
   return (
-    <div className="retro-card border-slate-800 p-5 overflow-hidden">
+    <div className="clean-card p-5 overflow-hidden">
       {/* Header */}
-      <div className="pb-3 border-b border-slate-800 flex items-center justify-between font-mono text-2xs uppercase tracking-widest text-slate-400">
+      <div className="pb-3 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Flame className="size-4 text-amber-400" />
-          <span className="font-display text-sm font-bold text-white tracking-tight lowercase first-letter:uppercase">Study Streak Matrix</span>
+          <Flame className="size-4 text-amber-500" />
+          <h3 className="font-display text-base font-bold text-white tracking-tight">Study Streak Activity</h3>
         </div>
 
         {/* Month Navigator */}
-        <div className="flex items-center gap-2 font-mono">
+        <div className="flex items-center gap-2">
           <button
             onClick={goToPrev}
-            className="p-1 rounded border border-slate-800 hover:border-amber-500/40 text-slate-400 hover:text-amber-400 transition-colors"
+            className="p-1 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
           >
-            <ChevronLeft className="size-3.5" />
+            <ChevronLeft className="size-4" />
           </button>
-          <span className="text-2xs font-bold text-amber-400 min-w-[90px] text-center uppercase">[{monthLabel}]</span>
+          <span className="text-xs font-bold text-slate-200 min-w-[90px] text-center">{monthLabel}</span>
           <button
             onClick={goToNext}
             disabled={isNextDisabled}
-            className="p-1 rounded border border-slate-800 hover:border-amber-500/40 text-slate-400 hover:text-amber-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            <ChevronRight className="size-3.5" />
+            <ChevronRight className="size-4" />
           </button>
         </div>
       </div>

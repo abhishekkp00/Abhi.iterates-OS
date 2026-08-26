@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth.store'
 import { useResourcesListQuery } from '@/features/resources/hooks/useResources'
 import { useTasks } from '@/features/productivity/hooks/useTasks'
-import { Calendar, Play, Terminal } from '@/lib/icons'
+import { Calendar, Play, Flame, CheckCircle2, ArrowRight } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 
 interface DashboardHeroProps {
@@ -23,34 +23,21 @@ export function DashboardHero({ lastActiveContext }: DashboardHeroProps) {
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
-    if (hour < 12) return 'GOOD_MORNING'
-    if (hour < 18) return 'GOOD_AFTERNOON'
-    return 'GOOD_EVENING'
+    if (hour < 12) return 'Good morning'
+    if (hour < 18) return 'Good afternoon'
+    return 'Good evening'
   }, [])
 
   const currentDate = useMemo(() => {
     return new Date().toLocaleDateString('en-US', {
-      weekday: 'short',
+      weekday: 'long',
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
-    }).toUpperCase()
-  }, [])
-
-  const motivationalQuote = useMemo(() => {
-    const quotes = [
-      "Success is the sum of small efforts, repeated day in and day out.",
-      "The expert in anything was once a beginner.",
-      "Focus on progress, not perfection.",
-      "Your limitation—it's only your imagination.",
-      "Push yourself, because no one else is going to do it for you."
-    ]
-    const index = new Date().getDate() % quotes.length
-    return quotes[index]
+    })
   }, [])
 
   const initials = useMemo(() => {
-    if (!user?.firstName) return 'STU'
+    if (!user?.firstName) return 'ST'
     const first = user.firstName.charAt(0).toUpperCase()
     const last = user.lastName ? user.lastName.charAt(0).toUpperCase() : ''
     return `${first}${last}`
@@ -72,67 +59,85 @@ export function DashboardHero({ lastActiveContext }: DashboardHeroProps) {
     return { title: 'Explore Study Library', url: '/resources' }
   }, [lastActiveContext, resourcesData, tasks])
 
+  // Compute daily goal metrics
+  const completedTasksToday = tasks.filter((t: any) => t.status === 'COMPLETED').length
+  const totalTasksCount = Math.max(tasks.length, 1)
+  const progressPercent = Math.min(Math.round((completedTasksToday / totalTasksCount) * 100), 100)
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
+      initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.25 }}
       className="relative w-full"
     >
-      <div className="retro-card-amber overflow-hidden relative border-amber-500/30">
-        {/* Retro Top Terminal Bar */}
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-amber-500/20 font-mono text-2xs uppercase tracking-widest text-amber-500/80">
-          <div className="flex items-center gap-2">
-            <span className="inline-block size-2 rounded-full bg-amber-500 animate-pulse" />
-            <span>SYS_WORKSTATION // SESSION_ACTIVE</span>
-          </div>
-          <div className="hidden sm:flex items-center gap-3">
-            <span>[HOST: LOCAL]</span>
-            <span>[NET: ONLINE]</span>
-          </div>
-        </div>
-
+      <div className="clean-card bg-gradient-to-r from-[#151c2c] via-[#1a2336] to-[#151c2c] border-[#222d45] relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          {/* User Greeting Block */}
+          
+          {/* User Info & Greeting */}
           <div className="flex items-center gap-4">
-            <div className="flex size-14 items-center justify-center rounded border-2 border-amber-500/40 bg-amber-500/10 font-mono text-lg font-bold text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+            <div className="flex size-13 shrink-0 items-center justify-center rounded-xl bg-indigo-600/20 text-indigo-400 font-bold text-lg border border-indigo-500/30">
               {initials}
             </div>
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-amber-400 font-bold text-lg">&gt;</span>
-                <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-white uppercase">
-                  {greeting}, {user?.firstName || 'STUDENT'}
+              <div className="flex items-center gap-2.5">
+                <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-white">
+                  {greeting}, {user?.firstName || 'Student'}!
                 </h1>
               </div>
-              <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
-                <Calendar className="size-3.5 text-amber-500/70" />
+              <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                <Calendar className="size-3.5 text-indigo-400" />
                 <span>{currentDate}</span>
-                <span className="text-amber-500/50">|</span>
-                <span className="text-amber-400/90 font-semibold">[STUDENT_ID: #{user?.id ? user.id.toString().substring(0,6) : '001'}]</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="size-3.5" /> Ready for today's session
+                </span>
               </div>
             </div>
           </div>
 
-          {/* CTA Resume Action Button */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Quick CTA button */}
+          <div className="flex items-center gap-3">
             <Button
-              variant="outline"
               size="sm"
-              className="font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 bg-amber-500/10 border-amber-500/50 text-amber-400 hover:bg-amber-500 hover:text-slate-950 transition-all duration-150 shadow-[2px_2px_0px_0px_rgba(245,158,11,0.4)]"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-4 h-9 rounded-lg shadow-md flex items-center gap-2 transition-all"
               onClick={() => navigate(dynamicContext.url)}
             >
               <Play className="size-3.5 fill-current" />
-              <span>RESUME: {dynamicContext.title}</span>
+              <span>Resume: {dynamicContext.title}</span>
             </Button>
           </div>
         </div>
 
-        {/* Motivational Console Prompt Quote */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-2 font-mono text-xs text-slate-400">
-          <Terminal className="size-3.5 text-amber-500 shrink-0" />
-          <span className="text-amber-400 font-bold uppercase tracking-wider shrink-0">QUOTE.LOG &gt;</span>
-          <span className="truncate italic text-slate-300">"{motivationalQuote}"</span>
+        {/* Daily Goal & Progress Bar Row */}
+        <div className="mt-5 pt-4 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span className="text-slate-300">Daily Learning Goal</span>
+              <span className="text-indigo-400">{completedTasksToday} of {totalTasksCount} tasks ({progressPercent}%)</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-start md:justify-end gap-3 text-xs font-semibold text-slate-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
+              <Flame className="size-4 text-amber-500" />
+              <span className="text-slate-200">Study Streak:</span>
+              <span className="text-amber-400 font-bold">Active</span>
+            </div>
+            <button
+              onClick={() => navigate('/planner')}
+              className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              <span>View Planner</span>
+              <ArrowRight className="size-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

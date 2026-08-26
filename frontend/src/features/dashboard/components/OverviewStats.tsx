@@ -10,13 +10,11 @@ interface StatCardProps {
     label: string
     isPositive: boolean
   }
-  accentColor: string
-  borderColor: string
-  badgeText: string
+  color: string
   sparklineData: number[]
 }
 
-function StatCard({ title, value, icon: Icon, trend, accentColor, borderColor, badgeText, sparklineData }: StatCardProps) {
+function StatCard({ title, value, icon: Icon, trend, color, sparklineData }: StatCardProps) {
   const sparklinePath = (() => {
     if (sparklineData.length === 0) return ''
     const width = 100
@@ -35,31 +33,30 @@ function StatCard({ title, value, icon: Icon, trend, accentColor, borderColor, b
   })()
 
   return (
-    <div className={`retro-card relative overflow-hidden ${borderColor} group`}>
-      <div className="flex items-center justify-between font-mono text-2xs uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-800">
-        <span className="flex items-center gap-1.5">
-          <Icon className={`size-3.5 ${accentColor}`} />
-          <span>{title}</span>
-        </span>
-        <span className="font-semibold text-slate-500">[{badgeText}]</span>
+    <div className="clean-card p-5 flex flex-col justify-between h-36 group">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</span>
+        <div className={`p-2 rounded-xl bg-slate-900 border border-slate-800 ${color}`}>
+          <Icon className="size-4" />
+        </div>
       </div>
 
-      <div className="flex items-end justify-between pt-3">
+      <div className="flex items-end justify-between mt-2">
         <div className="space-y-1">
-          <div className="font-mono text-2xl font-bold tracking-tight text-white group-hover:text-amber-400 transition-colors">
+          <h3 className="font-display text-2xl font-bold tracking-tight text-white group-hover:text-indigo-400 transition-colors">
             {value}
-          </div>
+          </h3>
           
-          <div className="flex items-center gap-1.5 font-mono text-2xs">
+          <div className="flex items-center gap-1.5 text-xs">
             {trend.isPositive ? (
-              <TrendingUp className="size-3 text-emerald-400 shrink-0" />
+              <TrendingUp className="size-3.5 text-emerald-400 shrink-0" />
             ) : (
-              <TrendingDown className="size-3 text-red-400 shrink-0" />
+              <TrendingDown className="size-3.5 text-rose-400 shrink-0" />
             )}
-            <span className={trend.isPositive ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+            <span className={trend.isPositive ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
               {trend.isPositive ? '+' : ''}{trend.value}%
             </span>
-            <span className="text-slate-500 font-medium truncate">{trend.label}</span>
+            <span className="text-slate-400 font-medium truncate">{trend.label}</span>
           </div>
         </div>
 
@@ -133,9 +130,7 @@ export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
       value: stats.completedTasks,
       icon: CheckSquare,
       trend: calculateTrend(taskSparkline),
-      accentColor: 'text-amber-400',
-      borderColor: 'border-amber-500/20 hover:border-amber-500/50',
-      badgeText: 'TASKS',
+      color: 'text-indigo-400',
       sparklineData: taskSparkline.length > 0 ? taskSparkline : emptySpark,
     },
     {
@@ -143,9 +138,7 @@ export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
       value: `${stats.totalStudyHours.toFixed(1)}h`,
       icon: Clock,
       trend: calculateTrend(studySparkline),
-      accentColor: 'text-cyan-400',
-      borderColor: 'border-cyan-500/20 hover:border-cyan-500/50',
-      badgeText: 'FOCUS_HR',
+      color: 'text-cyan-400',
       sparklineData: studySparkline.length > 0 ? studySparkline : emptySpark,
     },
     {
@@ -153,9 +146,7 @@ export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
       value: stats.totalAiTokens.toLocaleString(),
       icon: Sparkles,
       trend: calculateTrend(tokensSparkline),
-      accentColor: 'text-purple-400',
-      borderColor: 'border-purple-500/20 hover:border-purple-500/50',
-      badgeText: 'LLM_TOKENS',
+      color: 'text-purple-400',
       sparklineData: tokensSparkline.length > 0 ? tokensSparkline : emptySpark,
     },
     {
@@ -167,9 +158,7 @@ export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
         label: stats.streak > 0 ? 'streak active' : 'streak broken',
         isPositive: stats.streak > 0,
       },
-      accentColor: stats.streak > 0 ? 'text-amber-400' : 'text-slate-500',
-      borderColor: stats.streak > 0 ? 'border-amber-500/40 hover:border-amber-400' : 'border-slate-800',
-      badgeText: 'STREAK_LOG',
+      color: stats.streak > 0 ? 'text-amber-400' : 'text-slate-500',
       sparklineData: taskSparkline.length > 0 ? taskSparkline : emptySpark,
     },
   ]

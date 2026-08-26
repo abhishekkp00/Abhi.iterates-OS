@@ -211,14 +211,14 @@ export function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps)
       <Link
         to="/dashboard"
         className={cn(
-          'flex h-14 items-center border-b border-sidebar-border px-3 font-mono',
+          'flex h-14 items-center border-b border-sidebar-border px-3',
           'hover:opacity-90 transition-opacity',
           isCollapsed ? 'justify-center' : 'gap-2.5'
         )}
         aria-label="Go to Dashboard"
       >
         <div
-          className="flex size-7 shrink-0 items-center justify-center rounded border border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold shadow-sm"
           aria-hidden="true"
         >
           <GraduationCap className="size-4" />
@@ -236,8 +236,8 @@ export function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps)
               <span className="block whitespace-nowrap font-display text-sm font-bold text-white tracking-tight leading-tight">
                 {APP_NAME}
               </span>
-              <span className="block whitespace-nowrap font-mono text-[9px] text-amber-400/90 font-semibold uppercase tracking-widest">
-                v1.0.0 // SYS_READY
+              <span className="block whitespace-nowrap text-[10px] text-slate-400 font-medium">
+                Student Workspace
               </span>
             </motion.div>
           )}

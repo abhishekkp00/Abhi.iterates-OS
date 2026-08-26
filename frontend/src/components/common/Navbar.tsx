@@ -112,19 +112,19 @@ export function Navbar({ onOpenCmd }: { onOpenCmd?: () => void }) {
       <button
         onClick={onOpenCmd}
         className={cn(
-          'flex flex-1 max-w-sm items-center gap-2 rounded border border-slate-800 font-mono',
-          'bg-slate-900/80 px-3 py-1.5 text-xs text-slate-400',
-          'transition-colors hover:border-amber-500/40 hover:text-amber-400',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400',
+          'flex flex-1 max-w-sm items-center gap-2 rounded-lg border border-slate-800',
+          'bg-slate-900/60 px-3 py-1.5 text-xs text-slate-400',
+          'transition-colors hover:border-indigo-500/40 hover:bg-slate-900',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
           'cursor-text'
         )}
         aria-label="Open global search"
         role="searchbox"
         aria-haspopup="dialog"
       >
-        <Search className="size-3.5 shrink-0 text-amber-500/80" />
-        <span>SEARCH_SYSTEM...</span>
-        <kbd className="ml-auto rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">
+        <Search className="size-3.5 shrink-0 text-slate-400" />
+        <span>Search anything...</span>
+        <kbd className="ml-auto rounded border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
           ⌘K
         </kbd>
       </button>

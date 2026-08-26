@@ -6,9 +6,7 @@ interface QuickActionItem {
   title: string
   description: string
   icon: React.ComponentType<{ className?: string }>
-  badgeText: string
   color: string
-  borderColor: string
   action: () => void
 }
 
@@ -29,54 +27,42 @@ export function QuickActions() {
       title: 'Upload Resource',
       description: 'Add textbooks, notes, or papers',
       icon: Upload,
-      badgeText: 'DOC_ADD',
-      color: 'text-emerald-400 bg-emerald-500/10',
-      borderColor: 'border-emerald-500/30 hover:border-emerald-400',
+      color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
       action: () => navigate('/resources'),
     },
     {
       title: 'Open AI Workspace',
       description: 'Consult with the RAG study assistant',
       icon: Sparkles,
-      badgeText: 'AI_RAG',
-      color: 'text-cyan-400 bg-cyan-500/10',
-      borderColor: 'border-cyan-500/30 hover:border-cyan-400',
+      color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
       action: () => navigate('/ai'),
     },
     {
       title: 'Add Task',
       description: 'Record a new planner item',
       icon: Plus,
-      badgeText: 'TASK_NEW',
-      color: 'text-amber-400 bg-amber-500/10',
-      borderColor: 'border-amber-500/30 hover:border-amber-400',
+      color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
       action: () => navigate('/planner'),
     },
     {
       title: 'Browse Marketplace',
       description: 'Explore active campus offers',
       icon: ShoppingBag,
-      badgeText: 'STORE',
-      color: 'text-purple-400 bg-purple-500/10',
-      borderColor: 'border-purple-500/30 hover:border-purple-400',
+      color: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
       action: () => navigate('/marketplace'),
     },
     {
       title: 'Open Planner',
       description: 'Review your calendar & agenda',
       icon: Calendar,
-      badgeText: 'CALENDAR',
-      color: 'text-pink-400 bg-pink-500/10',
-      borderColor: 'border-pink-500/30 hover:border-pink-400',
+      color: 'text-pink-400 bg-pink-500/10 border-pink-500/20',
       action: () => navigate('/planner'),
     },
     {
       title: 'Search Resources',
       description: 'Search files using command menu',
       icon: Search,
-      badgeText: 'CMD_K',
-      color: 'text-teal-400 bg-teal-500/10',
-      borderColor: 'border-teal-500/30 hover:border-teal-400',
+      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
       action: triggerGlobalSearch,
     },
   ]
@@ -98,12 +84,8 @@ export function QuickActions() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between font-mono text-2xs uppercase tracking-widest text-slate-400">
-        <span className="flex items-center gap-1.5">
-          <span className="text-amber-400 font-bold">&gt;</span>
-          <span>QUICK_MODULE_ACTIONS</span>
-        </span>
-        <span className="text-slate-500">[6 COMMANDS]</span>
+      <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
+        <span>Quick Study Actions</span>
       </div>
 
       <motion.div
@@ -117,7 +99,7 @@ export function QuickActions() {
           return (
             <motion.div key={idx} variants={itemVariants}>
               <div
-                className={`retro-card cursor-pointer ${item.borderColor} relative group select-none p-4 flex items-start gap-4 hover:translate-x-[1px] hover:translate-y-[1px]`}
+                className="clean-card cursor-pointer group p-4 flex items-start gap-4 hover:-translate-y-1 transition-all duration-200"
                 onClick={item.action}
                 role="button"
                 tabIndex={0}
@@ -128,19 +110,14 @@ export function QuickActions() {
                   }
                 }}
               >
-                <div className={`p-2.5 rounded border border-white/10 ${item.color} shrink-0`}>
+                <div className={`p-2.5 rounded-xl border ${item.color} shrink-0`}>
                   <Icon className="size-4.5" />
                 </div>
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-display text-sm font-bold text-white tracking-tight group-hover:text-amber-400 transition-colors">
-                      {item.title}
-                    </h3>
-                    <span className="font-mono text-2xs px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700/60 text-slate-400 font-semibold">
-                      [{item.badgeText}]
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 font-sans truncate">{item.description}</p>
+                <div className="space-y-0.5 min-w-0">
+                  <h3 className="font-display text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium truncate">{item.description}</p>
                 </div>
               </div>
             </motion.div>
