@@ -4,9 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth.store'
 import { useResourcesListQuery } from '@/features/resources/hooks/useResources'
 import { useTasks } from '@/features/productivity/hooks/useTasks'
-import { Calendar, Play, Sparkles } from '@/lib/icons'
+import { Calendar, Play, Terminal } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 
 interface DashboardHeroProps {
   lastActiveContext?: {
@@ -19,29 +18,25 @@ export function DashboardHero({ lastActiveContext }: DashboardHeroProps) {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
 
-  // Fetch recent resource & tasks to dynamically set the "Resume" button context
   const { data: resourcesData } = useResourcesListQuery({ page: 1, size: 1, sort: 'createdAt,desc' })
   const { tasks } = useTasks()
 
-  // Dynamic greeting based on current local hour
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
-    if (hour < 12) return 'Good morning'
-    if (hour < 18) return 'Good afternoon'
-    return 'Good evening'
+    if (hour < 12) return 'GOOD_MORNING'
+    if (hour < 18) return 'GOOD_AFTERNOON'
+    return 'GOOD_EVENING'
   }, [])
 
-  // Formatted date string
   const currentDate = useMemo(() => {
-    return new Date().toLocaleDateString(undefined, {
-      weekday: 'long',
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'short',
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-    })
+    }).toUpperCase()
   }, [])
 
-  // Motivational quote pool
   const motivationalQuote = useMemo(() => {
     const quotes = [
       "Success is the sum of small efforts, repeated day in and day out.",
@@ -54,15 +49,13 @@ export function DashboardHero({ lastActiveContext }: DashboardHeroProps) {
     return quotes[index]
   }, [])
 
-  // Avatar initials
   const initials = useMemo(() => {
-    if (!user?.firstName) return 'U'
+    if (!user?.firstName) return 'STU'
     const first = user.firstName.charAt(0).toUpperCase()
     const last = user.lastName ? user.lastName.charAt(0).toUpperCase() : ''
     return `${first}${last}`
   }, [user])
 
-  // Compute dynamic resume context
   const dynamicContext = useMemo(() => {
     if (lastActiveContext) return lastActiveContext
 
@@ -79,61 +72,69 @@ export function DashboardHero({ lastActiveContext }: DashboardHeroProps) {
     return { title: 'Explore Study Library', url: '/resources' }
   }, [lastActiveContext, resourcesData, tasks])
 
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.3 }}
       className="relative w-full"
     >
-      <Card className="overflow-hidden border border-border/60 bg-gradient-to-r from-card via-card/95 to-card/90 backdrop-blur-md">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            
-            {/* User Greeting block */}
-            <div className="flex items-center gap-4">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary border border-primary/20 shadow-inner">
-                {initials}
+      <div className="retro-card-amber overflow-hidden relative border-amber-500/30">
+        {/* Retro Top Terminal Bar */}
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-amber-500/20 font-mono text-2xs uppercase tracking-widest text-amber-500/80">
+          <div className="flex items-center gap-2">
+            <span className="inline-block size-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>SYS_WORKSTATION // SESSION_ACTIVE</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-3">
+            <span>[HOST: LOCAL]</span>
+            <span>[NET: ONLINE]</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          {/* User Greeting Block */}
+          <div className="flex items-center gap-4">
+            <div className="flex size-14 items-center justify-center rounded border-2 border-amber-500/40 bg-amber-500/10 font-mono text-lg font-bold text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+              {initials}
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-amber-400 font-bold text-lg">&gt;</span>
+                <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-white uppercase">
+                  {greeting}, {user?.firstName || 'STUDENT'}
+                </h1>
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
-                    {greeting}, {user?.firstName || 'Student'}!
-                  </h1>
-                  <Sparkles className="size-4 text-amber-500 animate-pulse" />
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <Calendar className="size-3.5" />
-                  <span>{currentDate}</span>
-                </div>
+              <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
+                <Calendar className="size-3.5 text-amber-500/70" />
+                <span>{currentDate}</span>
+                <span className="text-amber-500/50">|</span>
+                <span className="text-amber-400/90 font-semibold">[STUDENT_ID: #{user?.id ? user.id.toString().substring(0,6) : '001'}]</span>
               </div>
             </div>
-
-            {/* CTA Button block */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Continue where left off button */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-background hover:bg-muted"
-                onClick={() => navigate(dynamicContext.url)}
-              >
-                <Play className="size-3 fill-current" />
-                <span>Resume: {dynamicContext.title}</span>
-              </Button>
-            </div>
-
           </div>
 
-          {/* Motivational Quote row */}
-          <div className="mt-5 pt-4 border-t border-border/40 flex items-center gap-2 text-xs text-muted-foreground italic font-medium">
-            <span className="text-primary font-bold">Daily Quote:</span>
-            <span>"{motivationalQuote}"</span>
+          {/* CTA Resume Action Button */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 bg-amber-500/10 border-amber-500/50 text-amber-400 hover:bg-amber-500 hover:text-slate-950 transition-all duration-150 shadow-[2px_2px_0px_0px_rgba(245,158,11,0.4)]"
+              onClick={() => navigate(dynamicContext.url)}
+            >
+              <Play className="size-3.5 fill-current" />
+              <span>RESUME: {dynamicContext.title}</span>
+            </Button>
           </div>
+        </div>
 
-        </CardContent>
-      </Card>
+        {/* Motivational Console Prompt Quote */}
+        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-2 font-mono text-xs text-slate-400">
+          <Terminal className="size-3.5 text-amber-500 shrink-0" />
+          <span className="text-amber-400 font-bold uppercase tracking-wider shrink-0">QUOTE.LOG &gt;</span>
+          <span className="truncate italic text-slate-300">"{motivationalQuote}"</span>
+        </div>
+      </div>
     </motion.div>
   )
 }

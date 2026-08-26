@@ -252,34 +252,29 @@ export function StudyStreakCalendar() {
   const isNextDisabled = viewDate.getMonth() === today.getMonth() && viewDate.getFullYear() === today.getFullYear()
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card/50 backdrop-blur-md overflow-hidden">
+    <div className="retro-card border-slate-800 p-5 overflow-hidden">
       {/* Header */}
-      <div className="px-5 pt-5 pb-3 border-b border-border/40 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
-            <Flame className="size-4 text-violet-400" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold tracking-tight text-foreground">Study Streak</h3>
-            <p className="text-[10px] text-muted-foreground font-medium">Daily activity heatmap</p>
-          </div>
+      <div className="pb-3 border-b border-slate-800 flex items-center justify-between font-mono text-2xs uppercase tracking-widest text-slate-400">
+        <div className="flex items-center gap-2">
+          <Flame className="size-4 text-amber-400" />
+          <span className="font-display text-sm font-bold text-white tracking-tight lowercase first-letter:uppercase">Study Streak Matrix</span>
         </div>
 
         {/* Month Navigator */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2 font-mono">
           <button
             onClick={goToPrev}
-            className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1 rounded border border-slate-800 hover:border-amber-500/40 text-slate-400 hover:text-amber-400 transition-colors"
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeft className="size-3.5" />
           </button>
-          <span className="text-xs font-bold text-foreground min-w-[100px] text-center">{monthLabel}</span>
+          <span className="text-2xs font-bold text-amber-400 min-w-[90px] text-center uppercase">[{monthLabel}]</span>
           <button
             onClick={goToNext}
             disabled={isNextDisabled}
-            className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1 rounded border border-slate-800 hover:border-amber-500/40 text-slate-400 hover:text-amber-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            <ChevronRight className="size-4" />
+            <ChevronRight className="size-3.5" />
           </button>
         </div>
       </div>

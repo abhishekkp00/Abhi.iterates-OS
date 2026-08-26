@@ -126,4 +126,5 @@ export {
   TrendingDown,
   CheckSquare,
   Quote,
+  Terminal,
 } from 'lucide-react'

@@ -1,21 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================================
-   CSS Custom Properties — Design Tokens
-   All colors use HSL triplets (no "hsl()" wrapper) so
-   Tailwind can compose opacity like bg-primary/50.
-   ============================================================ */
 @layer base {
   :root {
-    /* Geometry */
-    --radius: 0.5rem;
+    --radius: 0.375rem;
 
-    /* Light Theme */
-    --background: 0 0% 100%;
+    /* Light Theme (Fallbacks) */
+    --background: 220 20% 97%;
     --foreground: 224 71% 4%;
 
     --card: 0 0% 100%;
@@ -24,92 +18,76 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
 
-    --primary: 221 83% 53%;
+    --primary: 38 92% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
+    --secondary: 220 14% 94%;
     --secondary-foreground: 220 9% 46%;
 
-    --muted: 220 14% 96%;
+    --muted: 220 14% 94%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 220 14% 96%;
-    --accent-foreground: 221 83% 53%;
+    --accent: 187 92% 53%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 38 92% 50%;
 
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --info: 221 83% 53%;
-    --info-foreground: 0 0% 100%;
-
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 221 83% 53%;
-
-    /* Sidebar */
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 220 20% 96%;
     --sidebar-foreground: 224 71% 4%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-accent: 220 14% 94%;
-    --sidebar-accent-foreground: 221 83% 53%;
+    --sidebar-border: 220 13% 88%;
+    --sidebar-accent: 220 14% 92%;
+    --sidebar-accent-foreground: 38 92% 50%;
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    /* Retro Dark Workstation Theme */
+    --background: 222 47% 6%;      /* #090d16 Deep Obsidian */
+    --foreground: 213 31% 93%;      /* Crisp Light Slate */
 
-    --card: 224 71% 6%;
-    --card-foreground: 213 31% 91%;
+    --card: 222 35% 9%;             /* #101623 Tactile Panel */
+    --card-foreground: 213 31% 93%;
 
-    --popover: 224 71% 6%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 222 35% 9%;
+    --popover-foreground: 213 31% 93%;
 
-    --primary: 221 83% 60%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 38 92% 50%;          /* #f59e0b Cyber Amber */
+    --primary-foreground: 222 47% 6%;
 
-    --secondary: 223 47% 11%;
-    --secondary-foreground: 213 31% 91%;
+    --secondary: 223 30% 14%;       /* #182030 */
+    --secondary-foreground: 213 31% 93%;
 
-    --muted: 223 47% 11%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 223 30% 13%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 223 47% 13%;
-    --accent-foreground: 221 83% 60%;
+    --accent: 187 92% 53%;         /* #06b6d4 Electric Teal */
+    --accent-foreground: 222 47% 6%;
 
-    --destructive: 0 63% 50%;
+    --destructive: 0 84% 60%;       /* #ef4444 Crimson */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 35%;
+    --success: 158 84% 45%;         /* #10b981 Retro Emerald */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 40%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 47% 6%;
 
-    --info: 221 83% 60%;
-    --info-foreground: 0 0% 100%;
+    --info: 187 92% 53%;
+    --info-foreground: 222 47% 6%;
 
-    --border: 223 47% 14%;
-    --input: 223 47% 14%;
-    --ring: 221 83% 60%;
+    --border: 222 25% 18%;          /* #1e293b Retro Sharp Border */
+    --input: 222 25% 18%;
+    --ring: 38 92% 50%;
 
-    /* Sidebar */
-    --sidebar-background: 224 71% 3%;
-    --sidebar-foreground: 213 31% 91%;
-    --sidebar-border: 223 47% 10%;
-    --sidebar-accent: 223 47% 8%;
-    --sidebar-accent-foreground: 221 83% 60%;
+    --sidebar-background: 222 45% 5%;
+    --sidebar-foreground: 213 31% 93%;
+    --sidebar-border: 222 25% 15%;
+    --sidebar-accent: 222 35% 11%;
+    --sidebar-accent-foreground: 38 92% 50%;
   }
 }
 
-/* ============================================================
-   Base Layer — normalize & sensible defaults
-   ============================================================ */
 @layer base {
   * {
     @apply border-border;
@@ -127,90 +105,81 @@
   body {
     @apply bg-background text-foreground font-sans;
     min-height: 100dvh;
+    background-image: 
+      radial-gradient(rgba(245, 158, 11, 0.04) 1px, transparent 1px),
+      radial-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: 0 0, 16px 16px;
   }
 
-  /* Typography scale */
-  h1 { @apply text-3xl font-bold tracking-tight; }
-  h2 { @apply text-2xl font-semibold tracking-tight; }
-  h3 { @apply text-xl font-semibold; }
-  h4 { @apply text-base font-semibold; }
-  h5 { @apply text-sm font-semibold; }
-  h6 { @apply text-xs font-semibold uppercase tracking-wide; }
-
-  /* Focus ring — accessible but not obtrusive */
-  :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
-  }
-
-  /* Custom scrollbar — Webkit */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/40;
-  }
-
-  /* Text selection */
-  ::selection {
-    @apply bg-primary/20 text-foreground;
-  }
-
-  /* Reduced motion — respect system preference */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
+  h1, h2, h3 {
+    font-family: 'Space Grotesk', 'Outfit', sans-serif;
+    letter-spacing: -0.02em;
   }
 }
 
-/* ============================================================
-   Utility Layer — reusable atomic helpers
-   ============================================================ */
 @layer utilities {
-  .text-balance { text-wrap: balance; }
-  .text-pretty { text-wrap: pretty; }
-
-  /* Gradient text */
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent;
+  /* Retro Grid Pattern */
+  .retro-grid {
+    background-size: 24px 24px;
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   }
 
-  /* Glassmorphism panel */
-  .glass {
-    @apply bg-card/80 backdrop-blur-md border border-border/50;
+  /* Tactile Retro Card Container */
+  .retro-card {
+    @apply bg-[#101623] border border-[#1e293b] rounded-lg p-5 transition-all duration-200;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
   }
 
-  /* Subtle surface elevation */
-  .surface {
-    @apply bg-card border border-border rounded-lg shadow-card;
+  .retro-card:hover {
+    border-color: rgba(245, 158, 11, 0.35);
+    box-shadow: 0 6px 24px -2px rgba(245, 158, 11, 0.12), inset 0 1px 0 0 rgba(245, 158, 11, 0.1);
   }
 
-  /* Page container */
-  .page-container {
-    @apply mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-6;
+  /* Tactile Retro Amber Card */
+  .retro-card-amber {
+    @apply bg-[#101623] border border-amber-500/20 rounded-lg p-5 transition-all duration-200;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(245, 158, 11, 0.1);
+  }
+
+  .retro-card-amber:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 20px 0 rgba(245, 158, 11, 0.15), inset 0 1px 0 0 rgba(245, 158, 11, 0.2);
+  }
+
+  /* Tactile Retro Teal Card */
+  .retro-card-teal {
+    @apply bg-[#101623] border border-cyan-500/20 rounded-lg p-5 transition-all duration-200;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(6, 182, 212, 0.1);
+  }
+
+  .retro-card-teal:hover {
+    border-color: rgba(6, 182, 212, 0.5);
+    box-shadow: 0 0 20px 0 rgba(6, 182, 212, 0.15), inset 0 1px 0 0 rgba(6, 182, 212, 0.2);
+  }
+
+  /* Monospace Retro Badge */
+  .retro-badge {
+    @apply font-mono text-xs px-2.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 uppercase tracking-wider font-semibold;
+  }
+
+  .retro-badge-cyan {
+    @apply font-mono text-xs px-2.5 py-0.5 rounded border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 uppercase tracking-wider font-semibold;
+  }
+
+  .retro-badge-emerald {
+    @apply font-mono text-xs px-2.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 uppercase tracking-wider font-semibold;
+  }
+
+  /* Retro Monospace Label */
+  .retro-label {
+    @apply font-mono text-2xs uppercase tracking-widest text-slate-400 font-semibold;
+  }
+
+  /* Retro Monospace Value */
+  .retro-val {
+    @apply font-mono font-bold tracking-tight text-foreground;
   }
 }
-
-/* ── AI Chat Animations ──────────────────────────────────────────────────── */
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-
-@keyframes bounce {
-  0%, 60%, 100% { transform: translateY(0); }
-  30%            { transform: translateY(-6px); }
-}
-
-/* ── contentEditable Placeholder ── */
-div[contenteditable]:empty::before {
-  content: attr(placeholder);
-  color: #64748b; /* slate-500 */
-  pointer-events: none;
-  display: block;
-}
-

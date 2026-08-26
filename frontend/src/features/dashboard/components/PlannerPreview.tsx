@@ -1,16 +1,13 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTasks } from '@/features/productivity/hooks/useTasks'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Calendar, AlertCircle, ArrowRight, Loader2 } from '@/lib/icons'
+import { Calendar, AlertCircle, ArrowRight, Loader2, Check } from '@/lib/icons'
 
 export function PlannerPreview() {
   const navigate = useNavigate()
   const { tasks, isLoadingTasks, updateTask } = useTasks()
 
-  // Filter tasks to show top 4 active tasks (not completed), sorted by priority: HIGH -> MEDIUM -> LOW
   const activeTasks = tasks
     .filter((task: any) => task.status !== 'COMPLETED')
     .sort((a: any, b: any) => {
@@ -37,110 +34,107 @@ export function PlannerPreview() {
     }
   }
 
-  const priorityColor = (priority: string) => {
+  const priorityBadgeStyle = (priority: string) => {
     switch (priority) {
       case 'HIGH':
-        return 'bg-destructive/10 text-destructive border-destructive/20'
+        return 'border-red-500/40 bg-red-500/10 text-red-400'
       case 'MEDIUM':
-        return 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+        return 'border-amber-500/40 bg-amber-500/10 text-amber-400'
       default:
-        return 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+        return 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400'
     }
   }
 
   return (
-    <Card className="border border-border/60 bg-card/45 backdrop-blur-sm flex flex-col justify-between min-h-[300px]">
+    <div className="retro-card flex flex-col justify-between min-h-[300px]">
       <div>
-        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 font-mono text-2xs uppercase tracking-widest text-slate-400">
           <div className="flex items-center gap-2">
-            <Calendar className="size-4.5 text-primary" />
-            <CardTitle className="text-base font-bold tracking-tight">Today's Agenda</CardTitle>
+            <Calendar className="size-4 text-amber-400" />
+            <span className="font-display text-sm font-bold text-white tracking-tight lowercase first-letter:uppercase">Today's Agenda</span>
           </div>
-          <Badge variant="outline" className="text-[10px] font-semibold tracking-wider uppercase">
-            {tasks.filter((t: any) => t.status !== 'COMPLETED').length} Pending
-          </Badge>
-        </CardHeader>
+          <span className="font-mono text-2xs px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 font-semibold">
+            [{tasks.filter((t: any) => t.status !== 'COMPLETED').length} PENDING]
+          </span>
+        </div>
 
-        <CardContent className="pt-2">
+        <div>
           {isLoadingTasks ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-              <Loader2 className="size-6 animate-spin text-primary" />
-              <span className="text-xs font-semibold">Retrieving planner...</span>
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 font-mono text-xs">
+              <Loader2 className="size-6 animate-spin text-amber-400" />
+              <span>[RETRIEVING AGENDA...]</span>
             </div>
           ) : activeTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center gap-3 border border-dashed border-border/40 rounded-xl bg-muted/10">
-              <div className="p-3 rounded-full bg-muted border border-border/30">
-                <AlertCircle className="size-5 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-3 border border-dashed border-slate-800 rounded-lg bg-slate-900/40">
+              <div className="p-2.5 rounded border border-slate-700 bg-slate-800">
+                <AlertCircle className="size-5 text-amber-400" />
               </div>
-              <div className="space-y-1 px-4">
-                <p className="text-sm font-bold text-foreground">All caught up!</p>
-                <p className="text-xs text-muted-foreground font-medium max-w-[240px]">
-                  No pending tasks for today. Click below to add tasks or check your calendar.
+              <div className="space-y-1 px-4 font-mono text-xs">
+                <p className="font-bold text-white uppercase tracking-wider">[ALL TASKS CLEARED]</p>
+                <p className="text-slate-400 text-2xs">
+                  No pending agenda items. Create tasks in the planner workspace.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {activeTasks.map((task: any) => {
                 const isCompleted = task.status === 'COMPLETED'
                 return (
                   <div
                     key={task.id}
-                    className="flex items-center justify-between p-3 rounded-xl border border-border/40 hover:border-border/80 bg-background/30 hover:bg-background/60 transition-all duration-150 group"
+                    className="flex items-center justify-between p-3 rounded border border-slate-800 hover:border-amber-500/40 bg-slate-900/60 hover:bg-slate-900 transition-all duration-150 group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      {/* Button-based Checkbox */}
                       <button
                         onClick={() => handleToggleComplete(task)}
                         aria-label={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
-                        className="shrink-0 flex items-center justify-center size-5 rounded border border-input hover:border-primary bg-background transition-colors focus-visible:ring-2 focus-visible:ring-primary focus:outline-none"
+                        className="shrink-0 flex items-center justify-center size-5 rounded border border-amber-500/40 bg-slate-950 hover:border-amber-400 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400"
                       >
                         {isCompleted && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="size-3 rounded-sm bg-primary"
-                          />
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                            <Check className="size-3 text-amber-400" />
+                          </motion.div>
                         )}
                       </button>
-                      
+
                       <div className="space-y-0.5 truncate">
                         <span
                           onClick={() => handleToggleComplete(task)}
-                          className="text-sm font-semibold text-foreground tracking-tight cursor-pointer group-hover:text-primary transition-colors block truncate"
+                          className="font-mono text-xs font-semibold text-slate-200 tracking-tight cursor-pointer group-hover:text-amber-400 transition-colors block truncate"
                         >
                           {task.title}
                         </span>
                         {task.dueDate && (
-                          <p className="text-[10px] text-muted-foreground font-medium">
-                            Due: {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          <p className="font-mono text-2xs text-slate-500">
+                            DUE: {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <Badge variant="outline" className={`text-[9px] font-bold py-0 px-2 rounded-lg border ${priorityColor(task.priority)}`}>
-                      {task.priority}
-                    </Badge>
+                    <span className={`font-mono text-2xs font-bold py-0.5 px-2 rounded border uppercase tracking-wider ${priorityBadgeStyle(task.priority)}`}>
+                      [{task.priority}]
+                    </span>
                   </div>
                 )
               })}
             </div>
           )}
-        </CardContent>
+        </div>
       </div>
 
-      <CardFooter className="pt-2 border-t border-border/40">
+      <div className="pt-3 mt-4 border-t border-slate-800">
         <Button
           variant="ghost"
           size="sm"
-          className="w-full text-xs font-bold text-muted-foreground hover:text-foreground justify-between group"
+          className="w-full font-mono text-xs font-bold text-slate-400 hover:text-amber-400 justify-between group hover:bg-transparent"
           onClick={() => navigate('/planner')}
         >
-          <span>Open Planner Workspace</span>
+          <span>&gt; OPEN_PLANNER_WORKSPACE</span>
           <ArrowRight className="size-3.5 group-hover:translate-x-1 transition-transform" />
         </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   )
 }

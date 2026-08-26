@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { Card, CardContent } from '@/components/ui/card'
 import { CheckSquare, Flame, Sparkles, Clock, TrendingUp, TrendingDown } from '@/lib/icons'
 
 interface StatCardProps {
@@ -11,16 +10,17 @@ interface StatCardProps {
     label: string
     isPositive: boolean
   }
-  color: string
+  accentColor: string
+  borderColor: string
+  badgeText: string
   sparklineData: number[]
 }
 
-function StatCard({ title, value, icon: Icon, trend, color, sparklineData }: StatCardProps) {
-  // Generate SVG path for sparkline
+function StatCard({ title, value, icon: Icon, trend, accentColor, borderColor, badgeText, sparklineData }: StatCardProps) {
   const sparklinePath = (() => {
     if (sparklineData.length === 0) return ''
     const width = 100
-    const height = 30
+    const height = 28
     const min = Math.min(...sparklineData)
     const max = Math.max(...sparklineData)
     const range = max - min || 1
@@ -35,49 +35,49 @@ function StatCard({ title, value, icon: Icon, trend, color, sparklineData }: Sta
   })()
 
   return (
-    <Card className="overflow-hidden border border-border/60 bg-card/45 backdrop-blur-sm hover:border-border/100 transition-all duration-200">
-      <CardContent className="p-5 flex flex-col justify-between h-36">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">{title}</span>
-          <div className={`p-2 rounded-xl bg-card border border-border/40 ${color}`}>
-            <Icon className="size-4" />
+    <div className={`retro-card relative overflow-hidden ${borderColor} group`}>
+      <div className="flex items-center justify-between font-mono text-2xs uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-800">
+        <span className="flex items-center gap-1.5">
+          <Icon className={`size-3.5 ${accentColor}`} />
+          <span>{title}</span>
+        </span>
+        <span className="font-semibold text-slate-500">[{badgeText}]</span>
+      </div>
+
+      <div className="flex items-end justify-between pt-3">
+        <div className="space-y-1">
+          <div className="font-mono text-2xl font-bold tracking-tight text-white group-hover:text-amber-400 transition-colors">
+            {value}
+          </div>
+          
+          <div className="flex items-center gap-1.5 font-mono text-2xs">
+            {trend.isPositive ? (
+              <TrendingUp className="size-3 text-emerald-400 shrink-0" />
+            ) : (
+              <TrendingDown className="size-3 text-red-400 shrink-0" />
+            )}
+            <span className={trend.isPositive ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+              {trend.isPositive ? '+' : ''}{trend.value}%
+            </span>
+            <span className="text-slate-500 font-medium truncate">{trend.label}</span>
           </div>
         </div>
 
-        <div className="flex items-end justify-between mt-2">
-          <div className="space-y-1">
-            <h3 className="text-2xl font-extrabold tracking-tight text-foreground">{value}</h3>
-            
-            {/* Trend Indicator */}
-            <div className="flex items-center gap-1 text-[10px] font-bold">
-              {trend.isPositive ? (
-                <TrendingUp className="size-3 text-emerald-500" />
-              ) : (
-                <TrendingDown className="size-3 text-destructive" />
-              )}
-              <span className={trend.isPositive ? 'text-emerald-500' : 'text-destructive'}>
-                {trend.isPositive ? '+' : ''}{trend.value}%
-              </span>
-              <span className="text-muted-foreground font-medium">{trend.label}</span>
-            </div>
-          </div>
-
-          {/* Sparkline Graphic */}
-          <div className="w-24 h-8 shrink-0 opacity-75 hover:opacity-100 transition-opacity">
-            <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
-              <path
-                d={sparklinePath}
-                fill="none"
-                stroke={trend.isPositive ? '#10b981' : '#ef4444'}
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+        {/* Sparkline Graphic */}
+        <div className="w-20 h-7 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+          <svg className="w-full h-full" viewBox="0 0 100 28" preserveAspectRatio="none">
+            <path
+              d={sparklinePath}
+              fill="none"
+              stroke={trend.isPositive ? '#10b981' : '#ef4444'}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
@@ -100,15 +100,12 @@ interface OverviewStatsProps {
 }
 
 export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
-  // Extract historical trends for sparklines
   const taskSparkline = chartData.map((d) => d.completedTasks)
   const studySparkline = chartData.map((d) => d.studyMinutes)
   const tokensSparkline = chartData.map((d) => d.aiTokens)
 
-  // Fallback sparkline if no activity exists
   const emptySpark = [0, 0, 0, 0, 0, 0, 0]
 
-  // Helper to compute percentage trend dynamically from timeline data
   const calculateTrend = (data: number[], label = 'vs last week') => {
     if (data.length < 2) {
       return { value: 0, label: 'no activity yet', isPositive: true }
@@ -136,7 +133,9 @@ export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
       value: stats.completedTasks,
       icon: CheckSquare,
       trend: calculateTrend(taskSparkline),
-      color: 'text-blue-500',
+      accentColor: 'text-amber-400',
+      borderColor: 'border-amber-500/20 hover:border-amber-500/50',
+      badgeText: 'TASKS',
       sparklineData: taskSparkline.length > 0 ? taskSparkline : emptySpark,
     },
     {
@@ -144,7 +143,9 @@ export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
       value: `${stats.totalStudyHours.toFixed(1)}h`,
       icon: Clock,
       trend: calculateTrend(studySparkline),
-      color: 'text-pink-500',
+      accentColor: 'text-cyan-400',
+      borderColor: 'border-cyan-500/20 hover:border-cyan-500/50',
+      badgeText: 'FOCUS_HR',
       sparklineData: studySparkline.length > 0 ? studySparkline : emptySpark,
     },
     {
@@ -152,7 +153,9 @@ export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
       value: stats.totalAiTokens.toLocaleString(),
       icon: Sparkles,
       trend: calculateTrend(tokensSparkline),
-      color: 'text-purple-500',
+      accentColor: 'text-purple-400',
+      borderColor: 'border-purple-500/20 hover:border-purple-500/50',
+      badgeText: 'LLM_TOKENS',
       sparklineData: tokensSparkline.length > 0 ? tokensSparkline : emptySpark,
     },
     {
@@ -161,10 +164,12 @@ export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
       icon: Flame,
       trend: {
         value: stats.streak > 0 ? 100 : 0,
-        label: stats.streak > 0 ? 'daily goal met' : 'start your streak',
-        isPositive: true,
+        label: stats.streak > 0 ? 'streak active' : 'streak broken',
+        isPositive: stats.streak > 0,
       },
-      color: 'text-orange-500',
+      accentColor: stats.streak > 0 ? 'text-amber-400' : 'text-slate-500',
+      borderColor: stats.streak > 0 ? 'border-amber-500/40 hover:border-amber-400' : 'border-slate-800',
+      badgeText: 'STREAK_LOG',
       sparklineData: taskSparkline.length > 0 ? taskSparkline : emptySpark,
     },
   ]
@@ -174,13 +179,13 @@ export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05,
+        staggerChildren: 0.04,
       },
     },
   }
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
+    hidden: { opacity: 0, y: 8 },
     show: { opacity: 1, y: 0 },
   }
 
