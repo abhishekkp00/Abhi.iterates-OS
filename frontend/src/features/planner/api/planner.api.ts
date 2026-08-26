@@ -124,42 +124,42 @@ export interface TopicPriorityBreakdown {
 export const plannerApi = {
   // Plan Generation & Lifecycle
   previewPlan: async (payload?: GeneratePlanPayload): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>('/v1/study-plans/preview', payload || {})
+    const res = await api.post<StudyPlan>('/study-plans/preview', payload || {})
     return res.data
   },
 
   saveDraftPlan: async (payload?: GeneratePlanPayload): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>('/v1/study-plans', payload || {})
+    const res = await api.post<StudyPlan>('/study-plans', payload || {})
     return res.data
   },
 
   regeneratePlan: async (payload?: GeneratePlanPayload): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>('/v1/study-plans/regenerate', payload || {})
+    const res = await api.post<StudyPlan>('/study-plans/regenerate', payload || {})
     return res.data
   },
 
   activatePlan: async (planId: string): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>(`/v1/study-plans/${planId}/activate`)
+    const res = await api.post<StudyPlan>(`/study-plans/${planId}/activate`)
     return res.data
   },
 
   expirePlan: async (planId: string): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>(`/v1/study-plans/${planId}/expire`)
+    const res = await api.post<StudyPlan>(`/study-plans/${planId}/expire`)
     return res.data
   },
 
   getPlan: async (planId: string): Promise<StudyPlan> => {
-    const res = await api.get<StudyPlan>(`/v1/study-plans/${planId}`)
+    const res = await api.get<StudyPlan>(`/study-plans/${planId}`)
     return res.data
   },
 
   getPriorityBreakdown: async (planId: string): Promise<TopicPriorityBreakdown[]> => {
-    const res = await api.get<TopicPriorityBreakdown[]>(`/v1/study-plans/${planId}/priority-breakdown`)
+    const res = await api.get<TopicPriorityBreakdown[]>(`/study-plans/${planId}/priority-breakdown`)
     return res.data
   },
 
   getUserPlans: async (): Promise<StudyPlanSummary[]> => {
-    const res = await api.get<StudyPlanSummary[]>('/v1/study-plans')
+    const res = await api.get<StudyPlanSummary[]>('/study-plans')
     return res.data
   },
 
@@ -169,7 +169,7 @@ export const plannerApi = {
     data: { recommendedMinutes?: number; sessionType?: StudySessionType; overrideNotes: string }
   ): Promise<PlannedStudySession> => {
     const res = await api.put<PlannedStudySession>(
-      `/v1/study-plans/${planId}/sessions/${sessionId}`,
+      `/study-plans/${planId}/sessions/${sessionId}`,
       data
     )
     return res.data
@@ -177,44 +177,44 @@ export const plannerApi = {
 
   // Preferences
   getPreferences: async (): Promise<PlannerPreferences> => {
-    const res = await api.get<PlannerPreferences>('/v1/study-plans/preferences')
+    const res = await api.get<PlannerPreferences>('/study-plans/preferences')
     return res.data
   },
 
   upsertPreferences: async (data: Partial<PlannerPreferences>): Promise<PlannerPreferences> => {
-    const res = await api.put<PlannerPreferences>('/v1/study-plans/preferences', data)
+    const res = await api.put<PlannerPreferences>('/study-plans/preferences', data)
     return res.data
   },
 
   // Academic Goals
   createGoal: async (data: CreateGoalPayload): Promise<AcademicGoal> => {
-    const res = await api.post<AcademicGoal>('/v1/academic/goals', data)
+    const res = await api.post<AcademicGoal>('/academic/goals', data)
     return res.data
   },
 
   getActiveGoals: async (): Promise<AcademicGoal[]> => {
-    const res = await api.get<AcademicGoal[]>('/v1/academic/goals')
+    const res = await api.get<AcademicGoal[]>('/academic/goals')
     return res.data
   },
 
   deactivateGoal: async (goalId: string): Promise<void> => {
-    await api.delete(`/v1/academic/goals/${goalId}`)
+    await api.delete(`/academic/goals/${goalId}`)
   },
 
   // Topic Prerequisites
   addPrerequisite: async (topicId: string, prerequisiteTopicId: string): Promise<TopicPrerequisite> => {
-    const res = await api.post<TopicPrerequisite>(`/v1/academic/topics/${topicId}/prerequisites`, {
+    const res = await api.post<TopicPrerequisite>(`/academic/topics/${topicId}/prerequisites`, {
       prerequisiteTopicId,
     })
     return res.data
   },
 
   getPrerequisites: async (topicId: string): Promise<TopicPrerequisite[]> => {
-    const res = await api.get<TopicPrerequisite[]>(`/v1/academic/topics/${topicId}/prerequisites`)
+    const res = await api.get<TopicPrerequisite[]>(`/academic/topics/${topicId}/prerequisites`)
     return res.data
   },
 
   removePrerequisite: async (topicId: string, prerequisiteTopicId: string): Promise<void> => {
-    await api.delete(`/v1/academic/topics/${topicId}/prerequisites/${prerequisiteTopicId}`)
+    await api.delete(`/academic/topics/${topicId}/prerequisites/${prerequisiteTopicId}`)
   },
 }

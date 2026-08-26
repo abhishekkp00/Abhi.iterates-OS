@@ -163,24 +163,24 @@ export interface AcademicDashboardData {
 export const academicApi = {
   // Subjects
   getSubjects: async (): Promise<AcademicSubject[]> => {
-    const res = await api.get<AcademicSubject[]>('/v1/academic/subjects')
+    const res = await api.get<AcademicSubject[]>('/academic/subjects')
     return res.data
   },
 
   createSubject: async (payload: { name: string; code?: string; colorHex?: string }): Promise<AcademicSubject> => {
-    const res = await api.post<AcademicSubject>('/v1/academic/subjects', payload)
+    const res = await api.post<AcademicSubject>('/academic/subjects', payload)
     return res.data
   },
 
   // Topics
   getTopics: async (subjectId?: string): Promise<AcademicTopic[]> => {
-    const url = subjectId ? `/v1/academic/topics?subjectId=${subjectId}` : '/v1/academic/topics'
+    const url = subjectId ? `/academic/topics?subjectId=${subjectId}` : '/academic/topics'
     const res = await api.get<AcademicTopic[]>(url)
     return res.data
   },
 
   createTopic: async (payload: { subjectId: string; name: string; description?: string }): Promise<AcademicTopic> => {
-    const res = await api.post<AcademicTopic>('/v1/academic/topics', payload)
+    const res = await api.post<AcademicTopic>('/academic/topics', payload)
     return res.data
   },
 
@@ -190,22 +190,22 @@ export const academicApi = {
 
   // Study Sessions
   startSession: async (payload: StartStudySessionPayload): Promise<StudySession> => {
-    const res = await api.post<StudySession>('/v1/study-sessions/start', payload)
+    const res = await api.post<StudySession>('/study-sessions/start', payload)
     return res.data
   },
 
   completeSession: async (sessionId: string, payload?: CompleteStudySessionPayload): Promise<StudySession> => {
-    const res = await api.post<StudySession>(`/v1/study-sessions/${sessionId}/complete`, payload || {})
+    const res = await api.post<StudySession>(`/study-sessions/${sessionId}/complete`, payload || {})
     return res.data
   },
 
   cancelSession: async (sessionId: string): Promise<StudySession> => {
-    const res = await api.post<StudySession>(`/v1/study-sessions/${sessionId}/cancel`, {})
+    const res = await api.post<StudySession>(`/study-sessions/${sessionId}/cancel`, {})
     return res.data
   },
 
   logManualSession: async (payload: ManualStudySessionPayload): Promise<StudySession> => {
-    const res = await api.post<StudySession>('/v1/study-sessions/manual', payload)
+    const res = await api.post<StudySession>('/study-sessions/manual', payload)
     return res.data
   },
 
@@ -215,7 +215,7 @@ export const academicApi = {
 
   getActiveSession: async (): Promise<StudySession | null> => {
     try {
-      const res = await api.get<StudySession>('/v1/study-sessions/active')
+      const res = await api.get<StudySession>('/study-sessions/active')
       return res.status === 204 ? null : res.data
     } catch {
       return null
@@ -223,65 +223,65 @@ export const academicApi = {
   },
 
   getUserSessions: async (page = 0, size = 20): Promise<PagedStudySessions> => {
-    const res = await api.get<PagedStudySessions>(`/v1/study-sessions?page=${page}&size=${size}`)
+    const res = await api.get<PagedStudySessions>(`/study-sessions?page=${page}&size=${size}`)
     return res.data
   },
 
   getTopicProgress: async (topicId: string): Promise<TopicProgress> => {
-    const res = await api.get<TopicProgress>(`/v1/study-sessions/topics/${topicId}/progress`)
+    const res = await api.get<TopicProgress>(`/study-sessions/topics/${topicId}/progress`)
     return res.data
   },
 
   // Learning State Analysis
   getTopicLearningState: async (topicId: string): Promise<LearningStateResult> => {
-    const res = await api.get<LearningStateResult>(`/v1/academic/topics/${topicId}/learning-state`)
+    const res = await api.get<LearningStateResult>(`/academic/topics/${topicId}/learning-state`)
     return res.data
   },
 
   getUserTopicsLearningState: async (subjectId?: string): Promise<LearningStateResult[]> => {
-    const url = `/v1/academic/learning-state/topics${subjectId ? `?subjectId=${subjectId}` : ''}`
+    const url = `/academic/learning-state/topics${subjectId ? `?subjectId=${subjectId}` : ''}`
     const res = await api.get<LearningStateResult[]>(url)
     return res.data
   },
 
   getSubjectLearningStateSummary: async (subjectId: string): Promise<SubjectLearningStateSummary> => {
-    const res = await api.get<SubjectLearningStateSummary>(`/v1/academic/subjects/${subjectId}/learning-state`)
+    const res = await api.get<SubjectLearningStateSummary>(`/academic/subjects/${subjectId}/learning-state`)
     return res.data
   },
 
   // Command Center Dashboard & Exams
   getDashboardData: async (timeZone?: string): Promise<AcademicDashboardData> => {
     const tz = timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-    const res = await api.get<AcademicDashboardData>(`/v1/academic/dashboard?timeZone=${encodeURIComponent(tz)}`)
+    const res = await api.get<AcademicDashboardData>(`/academic/dashboard?timeZone=${encodeURIComponent(tz)}`)
     return res.data
   },
 
   getExams: async (): Promise<Exam[]> => {
-    const res = await api.get<Exam[]>('/v1/academic/exams')
+    const res = await api.get<Exam[]>('/academic/exams')
     return res.data
   },
 
   getExamById: async (id: string): Promise<Exam> => {
-    const res = await api.get<Exam>(`/v1/academic/exams/${id}`)
+    const res = await api.get<Exam>(`/academic/exams/${id}`)
     return res.data
   },
 
   getExamCoverage: async (id: string): Promise<ExamCoverageResponse> => {
-    const res = await api.get<ExamCoverageResponse>(`/v1/academic/exams/${id}/coverage`)
+    const res = await api.get<ExamCoverageResponse>(`/academic/exams/${id}/coverage`)
     return res.data
   },
 
   createExam: async (payload: ExamRequest): Promise<Exam> => {
-    const res = await api.post<Exam>('/v1/academic/exams', payload)
+    const res = await api.post<Exam>('/academic/exams', payload)
     return res.data
   },
 
   updateExam: async (id: string, payload: ExamRequest): Promise<Exam> => {
-    const res = await api.put<Exam>(`/v1/academic/exams/${id}`, payload)
+    const res = await api.put<Exam>(`/academic/exams/${id}`, payload)
     return res.data
   },
 
   deleteExam: async (id: string): Promise<void> => {
-    await api.delete(`/v1/academic/exams/${id}`)
+    await api.delete(`/academic/exams/${id}`)
   },
 }
