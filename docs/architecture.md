@@ -89,7 +89,7 @@
 | **Assessment Engine** | `Assessment`, `Question`, `Attempt`, `Answer`, `Performance` | `AssessmentService`, `AiAssessmentGenerator` | `/api/v1/assessments` |
 | **AI / RAG Engine** | `Document`, `DocumentChunk`, `ChunkEmbedding`, `Conversation` | `AiChatService`, `RagRetrievalService` | `/api/v1/ai` |
 | **Resource Storage** | `Resource`, `ResourceAttachment` | `ResourceService` | `/api/v1/resources` |
-| **Notifications** | `Notification` | `NotificationService`, `WsNotificationPublisher` | `/api/v1/notifications` |
+| **Notifications** | `Notification` | `NotificationService` | `/api/v1/notifications` |
 
 ---
 

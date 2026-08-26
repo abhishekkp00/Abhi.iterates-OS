@@ -35,10 +35,10 @@ Before proposing complex microservices, **Abhi.iterates-OS** maximizes single-no
   - Store uploaded raw PDF files in AWS S3 or MinIO S3 object storage rather than local disk.
 
 ### 2. LLM Third-Party Latency & Rate Limits
-- **Current Bottleneck**: External LLM generation takes 1–3 seconds per request and is subject to provider rate limits (Groq / OpenAI RPM limits).
+- **Current Architecture**: Rate limiting is handled via in-process Bucket4j (`AiRateLimiterService`), avoiding external Redis dependencies. LLM responses stream incrementally over Server-Sent Events (SSE).
 - **Future Strategy**:
-  - Implement a Redis-backed **Semantic Cache** for common academic questions to return instant answers ($<20\text{ms}$) without invoking third-party LLM APIs.
-  - Implement dynamic fallback rotation across multiple LLM providers (e.g. OpenAI $\rightarrow$ Groq $\rightarrow$ Ollama local model).
+  - Implement an in-memory or distributed **Semantic Cache** for frequently asked academic questions to return instant responses ($<20\text{ms}$) without invoking third-party LLM APIs.
+  - Implement dynamic fallback provider rotation (e.g. OpenAI $\rightarrow$ Groq $\rightarrow$ Ollama local model).
 
 ### 3. PostgreSQL & Vector Storage Read Volume
 - **Current Bottleneck**: High concurrent dashboard queries and vector similarity searches read from a single PostgreSQL primary node.

@@ -16,7 +16,7 @@ Architecture decisions are permanent record. They are never deleted — only sup
 The project has two active runtimes: a React frontend and a Spring Boot backend. An `ai-service/` directory was reserved at project creation for a potential future Python/FastAPI AI service. That service has not been implemented — all AI functionality currently lives inside the Spring Boot monolith via Spring AI.
 
 ### Decision
-Use a monorepo with top-level directories for each service. Currently active: `frontend/`, `backend/`. Reserved placeholder: `ai-service/` (empty — contains only `.gitkeep`).
+Use a clean monorepo with active directories: `frontend/` (React SPA) and `backend/` (Spring Boot 3 modular monolith). The unused `ai-service/` placeholder directory has been removed to eliminate architecture ambiguity. All AI and RAG functionality lives within the Spring Boot application via Spring AI.
 
 ### Reasoning
 - **Atomic commits:** A feature often spans frontend + backend. One PR, one commit, one review cycle.
@@ -137,27 +137,26 @@ Use **Cloudinary** for MVP storage. The `cloudinary-http44` SDK is integrated in
 
 ---
 
-## ADR-006: Redis for Caching and Rate Limiting
+## ADR-006: In-Process Bucket4j Rate Limiting over Redis Infrastructure
 
-**Date:** 2026-07-04
-**Status:** Planned — NOT YET IMPLEMENTED
+**Date:** 2026-07-04 (Updated 2026-08-26)  
+**Status:** Accepted (In-Process Bucket4j Implemented)
 
 ### Context
-We need in-memory caching for frequently accessed data (resource listings, user profiles) and rate limiting for authentication endpoints and AI calls.
+Authentication endpoints (`/login`, `/register`) and AI SSE streaming endpoints require rate limiting to prevent brute-force attacks and LLM token budget abuse.
 
 ### Decision
-Use **Redis** via **Upstash** (serverless Redis, HTTP-based, no persistent connection management).
+Implement **in-process Bucket4j sliding-window rate limiting** (`RateLimiterService`, `AiRateLimiterService`) directly in the Spring Boot backend instead of introducing external Redis infrastructure.
 
-### Current State
-Redis is **not implemented** in the current codebase. There is no `spring-boot-starter-data-redis` dependency in `pom.xml`, no Redis configuration class, and no rate limiting on any endpoint. This is a planned addition for Phase 2 when abuse prevention and caching become necessary.
+### Current Implementation
+- `RateLimiterService` provides IP-based sliding-window rate limiting on `/api/v1/auth/login` (10 req/min) and `/api/v1/auth/register` (5 req/min).
+- `AiRateLimiterService` provides token-bucket rate limiting on `/api/v1/ai/chat/stream` (10 stream req/min, 20 chat req/min).
+- External Redis is **not required or deployed**, eliminating container overhead and cache invalidation complexity for single-node production scale.
 
-### Reasoning (Planned)
-- Authentication endpoints (login, register) must be rate-limited to prevent brute force.
-- AI Chat endpoints consume LLM tokens. Rate limiting prevents cost abuse.
-- Resource listing pages are expensive database queries. A cache layer reduces DB load.
-
-### Consequences
-- Until Redis is added, authentication endpoints have no rate limiting. This is an accepted risk at MVP scale with low traffic.
+### Reasoning
+- Eliminates Redis cluster hosting costs and connection pool management.
+- Provides sub-millisecond in-memory rate-limit checks without network round-trips.
+- Single-instance container deployment maintains 100% rate-limiting precision without distributed state synchronization.
 
 ---
 

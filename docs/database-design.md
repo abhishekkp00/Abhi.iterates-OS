@@ -19,11 +19,10 @@
 ## Quick Reference
 
 ### Technology Decisions
-- **Primary DB:** PostgreSQL 16 on Neon (serverless, auto-scaling)
-- **Cache:** Redis on Upstash (serverless, HTTP-based)
-- **File Storage:** Supabase Storage MVP → Cloudflare R2 production
-- **Vector Store:** FAISS (development) → Pinecone/Qdrant (production)
-- **Migrations:** Flyway (plain SQL, version-controlled)
+- **Primary DB & Vector Store:** PostgreSQL 16 with native `pgvector` extension (`pgvector/pgvector:pg16`)
+- **Cache & Rate Limiting:** In-process Bucket4j sliding-window rate limiting (`RateLimiterService`, `AiRateLimiterService`) — no Redis required
+- **File Storage:** Local disk persistent storage (`/app/uploads`) / Cloudinary
+- **Migrations:** Automated Flyway versioned SQL migrations (`V1` through `V11`)
 
 ### Table Count: 30 tables across 9 domains
 
