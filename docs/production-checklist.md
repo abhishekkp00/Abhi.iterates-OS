@@ -1,44 +1,50 @@
-# Production Readiness Checklist
+# Master Production Readiness Checklist
 
-This checklist defines the 25 criteria required before deploying **Abhi.iterates-OS** to a production environment.
+This checklist must be verified prior to deploying **Abhi.iterates-OS** to production.
 
 ---
 
-## 25-Point Production Readiness Matrix
+## 1. Configuration & Security
 
-### Environment & Secrets Management
-- [x] **1. Production Secrets Externalized**: All passwords, JWT secrets, and API keys are passed via `.env` environment variables.
-- [x] **2. No Hardcoded Credentials**: Checked `application.yml` and Git commit history for hardcoded secrets.
-- [x] **3. `.env` Git Ignored**: Verified `.env` is listed in `.gitignore` and untracked.
-- [x] **4. `.env.example` Maintained**: Template file exists with placeholder values.
+- [x] **Production Profile Configured**: `SPRING_PROFILES_ACTIVE=prod` specified in container runtime.
+- [x] **Secrets Externalized**: `JWT_SECRET`, `ADMIN_PASSWORD`, `POSTGRES_PASSWORD`, `OPENAI_API_KEY` injected via `.env` / environment variables. No secrets committed to version control.
+- [x] **CORS Allowed Origins Enforced**: Explicit production origin set in `CORS_ALLOWED_ORIGINS` (e.g. `https://yourdomain.com`). No wildcard origins in production.
+- [x] **Actuator Endpoints Secured**: Only `/actuator/health` and `/actuator/info` exposed; sensitive endpoints restricted to `ROLE_ADMIN` (`SecurityConfig.java`).
+- [x] **Error Output Sanitized**: Internal exception messages and stack traces suppressed in REST responses (`server.error.include-stacktrace=never`).
 
-### Database & Migrations
-- [x] **5. Flyway Migrations Immutable**: Historical Flyway scripts (`V1` to `V10`) are locked and versioned.
-- [x] **6. pgvector HNSW Index Initialized**: Vector table includes HNSW index for cosine similarity.
-- [x] **7. Connection Pool Configured**: HikariCP connection pool configured (`maximum-pool-size: 10`).
-- [x] **8. Backup Strategy Documented**: Database backup expectations documented in `docs/deployment.md`.
+---
 
-### Security & Access Control
-- [x] **9. Production CORS Configured**: CORS origins restricted to allowed production domain.
-- [x] **10. IDOR Protection Verified**: Service-level user ownership checks enforced and tested.
-- [x] **11. Password Hashing Strength**: BCrypt strength set to 10.
-- [x] **12. Error Payload Sanitization**: Stack traces and raw SQL suppressed in production error responses.
-- [x] **13. Multipart File Limits**: File upload size capped at 20MB.
+## 2. Database & Migrations
 
-### Build & Testing
-- [x] **14. 100% Backend Test Pass**: All 236 unit and integration tests pass cleanly (`mvn test`).
-- [x] **15. Clean Frontend Build**: Frontend builds with 0 TypeScript/lint errors (`npm run build`).
-- [x] **16. CI/CD Pipeline Active**: GitHub Actions workflow (`ci.yml`) configured for PR validation.
+- [x] **PostgreSQL 16 + pgvector Available**: Database container/host initialized with pgvector extension.
+- [x] **Flyway Automated Migrations**: Schema migrations `V1` through `V11` execute automatically on backend startup.
+- [x] **Hibernate DDL Auto Set to Validate**: `spring.jpa.hibernate.ddl-auto=validate` in `application-prod.yml`.
+- [x] **Database Backup Strategy Documented**: Daily `pg_dump` procedure documented in `docs/deployment.md`.
 
-### Deployment & Monitoring
-- [x] **17. Multi-Container Orchestration**: Root `docker-compose.yml` orchestrates DB, Backend, and Frontend.
-- [x] **18. Multi-Stage Dockerfiles**: Backend and Frontend Dockerfiles use optimized multi-stage builds.
-- [x] **19. Health Endpoint Exposed**: Actuator `/actuator/health` endpoint configured and verified.
-- [x] **20. SSE Streaming Support**: Nginx reverse proxy configured with `proxy_buffering off` for SSE streams.
+---
 
-### Documentation & Architecture
-- [x] **21. Architecture Inventory Completed**: `docs/architecture.md` documents all layers.
-- [x] **22. ERD Diagram Documented**: `docs/database-erd.md` details all 18 entities.
-- [x] **23. API Inventory Published**: `docs/api.md` lists all endpoints and error formats.
-- [x] **24. Portfolio README Written**: `README.md` rewritten with technical clarity.
-- [x] **25. ADRs Created**: 6 Architecture Decision Records written in `docs/adr/`.
+## 3. Container & Runtime Hardening
+
+- [x] **Multi-Stage Build**: `backend/Dockerfile` and `frontend/Dockerfile` use multi-stage builds.
+- [x] **Non-Root User Execution**: Backend container runs as non-root `appuser:appgroup` (`backend/Dockerfile`).
+- [x] **JVM Container Memory Limits**: JVM configured with `-XX:+UseG1GC`, `-XX:MaxRAMPercentage=75.0`, and `-XX:+ExitOnOutOfMemoryError`.
+- [x] **Health Check Configured**: Docker Compose health checks configured for PostgreSQL (`pg_isready`) and Backend (`/actuator/health`).
+- [x] **Persistent Volume Mounts**: Persistent block storage volumes configured for `/var/lib/postgresql/data` (`postgres_data`) and `/app/uploads` (`uploads_data`).
+
+---
+
+## 4. Frontend & SPA Routing
+
+- [x] **Static SPA Serving**: Vite production bundle compiled to `/dist` and served via lightweight Nginx container (`nginx:alpine`).
+- [x] **SPA Direct Route Refresh**: `nginx.conf` handles direct navigation and page refresh via `try_files $uri $uri/ /index.html`.
+- [x] **API Reverse Proxy**: Nginx routes `/api/` to backend container on port `8080`.
+- [x] **SSE Streaming Buffering Disabled**: `proxy_buffering off` configured for AI SSE streaming endpoints.
+
+---
+
+## 5. Verification & Testing
+
+- [x] **CI Pipeline Passing**: GitHub Actions workflow (`.github/workflows/ci.yml`) passes compilation, integration tests, and frontend build.
+- [x] **34 Automated Security Integration Tests Passing**: IDOR, cross-user RAG isolation, prompt injection XML wrapping, file upload validation.
+- [x] **Deployment Smoke Test Script**: Executable smoke test script `scripts/smoke-test.sh` created and verified.
+- [x] **Deployment & Incident Runbooks**: Detailed runbooks created (`docs/deployment-runbook.md`, `docs/incident-runbook.md`).

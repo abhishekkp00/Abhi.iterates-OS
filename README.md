@@ -267,18 +267,24 @@ npm run build
 | :--- | :--- |
 | [Architecture Overview](docs/architecture.md) | Detailed component boundaries, layers, and domain interfaces. |
 | [Architecture Diagrams](docs/architecture-diagram.md) | Mermaid component, flow, and sequence diagrams. |
-| [Database ERD](docs/database-erd.md) | Mermaid Entity Relationship Diagram covering all 18 entities. |
+| [Deployment Architecture](docs/deployment-architecture.md) | Physical and logical deployment layout, component boundaries, and statefulness. |
+| [Deployment Strategy & Decision](docs/deployment-decision.md) | Evaluation of deployment models, costs, and architectural trade-offs. |
+| [Database ERD](docs/database-erd.md) | Mermaid Entity Relationship Diagram covering all domain entities. |
 | [REST API Reference](docs/api.md) | Complete inventory of endpoints, request/response formats, and errors. |
-| [Testing Strategy](docs/testing.md) | Test pyramid breakdown, IDOR testing, and verification matrix. |
+| [Local Development Guide](docs/local-development.md) | Clean machine onboarding guide for cloning, setup, running, and testing. |
+| [Production Deployment Guide](docs/deployment.md) | Docker Compose guide, environment setup, backups, and troubleshooting. |
+| [Production Deployment Runbook](docs/deployment-runbook.md) | 10-step step-by-step operator release runbook. |
+| [Production Incident Runbook](docs/incident-runbook.md) | P1/P2 emergency response procedures for database, AI, and crash loops. |
+| [Release Process & Versioning](docs/release-process.md) | Branching strategy, semantic versioning, CI validation, and tagging. |
+| [Security Model](docs/security.md) | Threat modeling, IDOR protection analysis, and prompt injection controls. |
+| [Threat Model](docs/threat-model.md) | Comprehensive asset inventory, actors, boundaries, and threat matrix. |
+| [Security Test Matrix](docs/security-test-matrix.md) | Detailed mapping of 15 attack vectors against endpoints and test status. |
+| [Production Checklist](docs/production-checklist.md) | Master production readiness verification matrix. |
 | [Performance Benchmarks](docs/performance.md) | Execution timing metrics, query counts, and optimization techniques. |
 | [RAG Evaluation](docs/rag-evaluation.md) | Benchmark dataset of 20 queries, retrieval hit rate, and citation quality. |
-| [Security Model](docs/security.md) | Threat modeling, IDOR protection analysis, and prompt injection controls. |
-| [Production Deployment](docs/deployment.md) | Docker Compose guide, SSL/TLS setup, and Nginx proxy configuration. |
-| [Scalability Roadmap](docs/scaling.md) | Bottleneck analysis and asynchronous horizontal scaling plan. |
-| [System Limitations](docs/limitations.md) | Honest assessment of heuristic weights, vector chunk boundaries, and scope. |
 | [5-Minute Demo Script](docs/demo-script.md) | Step-by-step presentation script for code reviews and interviews. |
 | [Interview Defense Guide](docs/interview-notes.md) | Architectural Q&A covering pgvector, deterministic planning, and security. |
-| [Production Checklist](docs/production-checklist.md) | 25-point production readiness verification matrix. |
+
 
 ### Architecture Decision Records (ADRs)
 - [ADR-001: PostgreSQL + pgvector](docs/adr/ADR-001-postgresql-pgvector.md)
