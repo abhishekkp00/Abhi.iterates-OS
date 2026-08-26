@@ -152,21 +152,39 @@ academic:
   planner:
     # Priority factor weights — MUST sum to exactly 1.0
     weights:
-      weakness: 0.35              # Highest signal: weak mastery → study urgently
-      exam-urgency: 0.20          # Upcoming assessments create deadline pressure
+      weakness: 0.30              # Topic weakness signal
+      exam-urgency: 0.20          # Upcoming exam urgency
       trend: 0.15                 # DECLINING trend needs intervention
-      recency: 0.10               # Topics not studied recently slip backwards
-      goal-urgency: 0.10          # Student-defined goal deadlines
-      prerequisite-importance: 0.10  # Blocking other topics multiplies value
-    # Session length bounds and per-state base durations
+      recency: 0.10               # Days since last studied
+      goal-urgency: 0.10          # Academic goal deadline urgency
+      prerequisite-importance: 0.10  # Prerequisite dependency propagation
+      neglect: 0.05               # Study neglect / inactivity gap
+    # Session length bounds and daily caps
     session:
-      min-minutes: 25             # Never recommend less than 25 minutes
-      max-minutes: 90             # Never recommend more than 90 minutes
-      weak-topic-base: 60         # WEAK topics get longer sessions by default
-      developing-topic-base: 45   # DEVELOPING topics get medium sessions
-      strong-topic-base: 30       # STRONG topics get shorter maintenance sessions
-    # Default planning horizon when user has no saved preference
+      min-minutes: 20             # Minimum study block (default 20 min)
+      max-minutes: 60             # Maximum study block (default 60 min)
+      max-daily-minutes: 240      # Daily study cap (4 hours)
+      weak-topic-base: 45         # WEAK topics base length
+      developing-topic-base: 35   # DEVELOPING topics base length
+      strong-topic-base: 25       # STRONG topics base length
+    engine:
+      max-prerequisite-depth: 2   # Maximum propagation depth in dependency graph
+      stability-threshold: 0.10   # Score delta threshold to rewrite active plan allocations
+      high-effort-minutes-threshold: 300  # High effort threshold for strategy shift
     planning-horizon-default-days: 7
+
+  # ── Exam-Aware Revision Engine Config ──────────────────────────────────────────
+  exam-planner:
+    phase:
+      learning-days: 21
+      practice-days: 14
+      consolidation-days: 7
+      revision-days: 3
+    final-review:
+      max-session-minutes: 45
+    prerequisite:
+      max-depth: 2
+
 
 
 

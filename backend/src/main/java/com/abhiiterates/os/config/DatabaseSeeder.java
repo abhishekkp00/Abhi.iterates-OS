@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
@@ -46,44 +47,48 @@ public class DatabaseSeeder implements CommandLineRunner {
     private String adminPassword;
 
     @Override
-    @Transactional
     public void run(String... args) {
         log.info("Checking database roles, permissions, admin account, and user cleanup...");
 
-        // 1. Seed Permissions
-        Permission readPermission = getOrCreatePermission("READ_RESOURCE", "Allows reading academic resources");
-        Permission writePermission = getOrCreatePermission("WRITE_RESOURCE", "Allows creating and editing academic resources");
-        Permission deletePermission = getOrCreatePermission("DELETE_RESOURCE", "Allows soft-deleting academic resources");
-        Permission adminAccess = getOrCreatePermission("ADMIN_ACCESS", "Allows access to administrative dashboards");
+        try {
+            // 1. Seed Permissions
+            Permission readPermission = getOrCreatePermission("READ_RESOURCE", "Allows reading academic resources");
+            Permission writePermission = getOrCreatePermission("WRITE_RESOURCE", "Allows creating and editing academic resources");
+            Permission deletePermission = getOrCreatePermission("DELETE_RESOURCE", "Allows soft-deleting academic resources");
+            Permission adminAccess = getOrCreatePermission("ADMIN_ACCESS", "Allows access to administrative dashboards");
 
-        // 2. Seed Roles
-        Set<Permission> userPerms = new HashSet<>();
-        userPerms.add(readPermission);
-        getOrCreateRole("ROLE_USER", "Standard student user role", userPerms);
+            // 2. Seed Roles
+            Set<Permission> userPerms = new HashSet<>();
+            userPerms.add(readPermission);
+            getOrCreateRole("ROLE_USER", "Standard student user role", userPerms);
 
-        Set<Permission> creatorPerms = new HashSet<>();
-        creatorPerms.add(readPermission);
-        creatorPerms.add(writePermission);
-        getOrCreateRole("ROLE_CREATOR", "Student content creator role", creatorPerms);
+            Set<Permission> creatorPerms = new HashSet<>();
+            creatorPerms.add(readPermission);
+            creatorPerms.add(writePermission);
+            getOrCreateRole("ROLE_CREATOR", "Student content creator role", creatorPerms);
 
-        Set<Permission> adminPerms = new HashSet<>();
-        adminPerms.add(readPermission);
-        adminPerms.add(writePermission);
-        adminPerms.add(deletePermission);
-        adminPerms.add(adminAccess);
-        Role adminRole = getOrCreateRole("ROLE_ADMIN", "System administrator role", adminPerms);
-        Role superAdminRole = getOrCreateRole("ROLE_SUPER_ADMIN", "System owner role", adminPerms);
+            Set<Permission> adminPerms = new HashSet<>();
+            adminPerms.add(readPermission);
+            adminPerms.add(writePermission);
+            adminPerms.add(deletePermission);
+            adminPerms.add(adminAccess);
+            Role adminRole = getOrCreateRole("ROLE_ADMIN", "System administrator role", adminPerms);
+            Role superAdminRole = getOrCreateRole("ROLE_SUPER_ADMIN", "System owner role", adminPerms);
 
-        // 3. Seed Primary Admin Credentials (loaded from ADMIN_EMAIL / ADMIN_PASSWORD env vars)
-        User adminUser = seedAdminUser(adminRole, superAdminRole);
+            // 3. Seed Primary Admin Credentials
+            User adminUser = seedAdminUser(adminRole, superAdminRole);
 
-        // 4. Purge All Non-Admin Student Logins (reassigning content to primary admin)
-        cleanupStudentLogins(adminUser);
+            // 4. Purge All Non-Admin Student Logins
+            cleanupStudentLogins(adminUser);
 
-        log.info("Database seeding and user cleanup successfully completed.");
+            log.info("Database seeding and user cleanup successfully completed.");
+        } catch (Exception e) {
+            log.warn("DatabaseSeeder execution encountered exception: {}", e.getMessage());
+        }
     }
 
-    private User seedAdminUser(Role adminRole, Role superAdminRole) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public User seedAdminUser(Role adminRole, Role superAdminRole) {
         Set<Role> roles = new HashSet<>();
         if (adminRole != null) roles.add(adminRole);
         if (superAdminRole != null) roles.add(superAdminRole);
@@ -112,7 +117,9 @@ public class DatabaseSeeder implements CommandLineRunner {
         });
     }
 
-    private void cleanupStudentLogins(User adminUser) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void cleanupStudentLogins(User adminUser) {
+        if (adminUser == null) return;
         List<User> nonAdminUsers = userRepository.findAll().stream()
                 .filter(u -> !adminEmail.equalsIgnoreCase(u.getEmail()))
                 .collect(Collectors.toList());
@@ -120,29 +127,21 @@ public class DatabaseSeeder implements CommandLineRunner {
         if (!nonAdminUsers.isEmpty()) {
             log.info("Purging {} non-admin student logins from database...", nonAdminUsers.size());
             for (User student : nonAdminUsers) {
-                log.info("Cleaning references and purging student user: {}", student.getEmail());
-
                 UUID adminId = adminUser.getId();
                 UUID studentId = student.getId();
 
-                // Reassign entity ownership to primary admin
                 executeNativeUpdate("UPDATE tasks SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
                 executeNativeUpdate("UPDATE calendar_events SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
                 executeNativeUpdate("UPDATE resources SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
-                executeNativeUpdate("UPDATE marketplace_listings SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
-                executeNativeUpdate("UPDATE store_resources SET uploaded_by_user_id = :adminId WHERE uploaded_by_user_id = :studentId", adminId, studentId);
-                executeNativeUpdate("UPDATE resource_purchases SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
                 executeNativeUpdate("UPDATE notifications SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
                 executeNativeUpdate("UPDATE ai_conversations SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
 
-                // Purge transient tokens and user-session relationships
                 executeNativeDelete("DELETE FROM password_reset_tokens WHERE user_id = :studentId", studentId);
                 executeNativeDelete("DELETE FROM email_verification_tokens WHERE user_id = :studentId", studentId);
                 executeNativeDelete("DELETE FROM refresh_tokens WHERE user_id = :studentId", studentId);
                 executeNativeDelete("DELETE FROM user_sessions WHERE user_id = :studentId", studentId);
                 executeNativeDelete("DELETE FROM user_roles WHERE user_id = :studentId", studentId);
 
-                // Purge student user
                 executeNativeDelete("DELETE FROM users WHERE id = :studentId", studentId);
             }
         }
@@ -155,7 +154,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .setParameter("studentId", studentId)
                     .executeUpdate();
         } catch (Exception e) {
-            log.debug("Native update query [{}] executed/skipped: {}", sql, e.getMessage());
+            // Ignored
         }
     }
 
@@ -165,13 +164,12 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .setParameter("studentId", studentId)
                     .executeUpdate();
         } catch (Exception e) {
-            log.debug("Native delete query [{}] executed/skipped: {}", sql, e.getMessage());
+            // Ignored
         }
     }
 
-
-
-    private Permission getOrCreatePermission(String name, String description) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Permission getOrCreatePermission(String name, String description) {
         return permissionRepository.findByName(name)
                 .orElseGet(() -> {
                     Permission permission = Permission.builder()
@@ -183,7 +181,8 @@ public class DatabaseSeeder implements CommandLineRunner {
                 });
     }
 
-    private Role getOrCreateRole(String name, String description, Set<Permission> permissions) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Role getOrCreateRole(String name, String description, Set<Permission> permissions) {
         return roleRepository.findByName(name)
                 .map(role -> {
                     role.setPermissions(permissions);

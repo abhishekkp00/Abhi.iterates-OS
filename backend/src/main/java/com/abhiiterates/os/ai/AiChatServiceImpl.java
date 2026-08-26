@@ -195,7 +195,6 @@ public class AiChatServiceImpl implements AiChatService {
     // ── Non-streaming fallback ────────────────────────────────────────────────
 
     @Override
-    @Transactional
     public MessageResponse chat(ChatRequest request, User user) {
         AiConversation conversation = resolveConversation(request, user);
         AiContext ragContext = contextBuilder.buildContext(request, user);

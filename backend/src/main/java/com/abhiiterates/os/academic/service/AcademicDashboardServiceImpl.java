@@ -55,8 +55,9 @@ public class AcademicDashboardServiceImpl implements AcademicDashboardService {
                 .mapToInt(s -> s.getDurationMinutes() != null ? s.getDurationMinutes() : 0)
                 .sum();
 
-        // 2. Fetch Active Study Plan
-        Optional<StudyPlan> activePlanOpt = studyPlanRepository.findActiveByUser(user);
+        // 2. Fetch Active Study Plan with sessions, topics, and subjects eagerly loaded
+        //    (findActiveByUserWithSessions = JOIN FETCH: eliminates per-session lazy selects)
+        Optional<StudyPlan> activePlanOpt = studyPlanRepository.findActiveByUserWithSessions(user);
 
         AcademicDashboardResponse.TodayPlanSummary todayPlanSummary = null;
         AcademicDashboardResponse.PlanAdherenceSummary adherenceSummary = null;
@@ -205,8 +206,9 @@ public class AcademicDashboardServiceImpl implements AcademicDashboardService {
                 .insufficientDataCount(insufficientCount)
                 .build();
 
-        // 5. Active Goals
-        List<AcademicGoal> activeGoals = academicGoalRepository.findByUserAndIsActiveTrueOrderByTargetDateAsc(user);
+        // 5. Active Goals — eagerly load Topic + Subject to avoid lazy selects per goal
+        List<AcademicGoal> activeGoals = academicGoalRepository.findActiveGoalsWithTopicAndSubject(user);
+
         List<AcademicDashboardResponse.GoalSummary> goalSummaries = activeGoals.stream()
                 .map(g -> AcademicDashboardResponse.GoalSummary.builder()
                         .id(g.getId())

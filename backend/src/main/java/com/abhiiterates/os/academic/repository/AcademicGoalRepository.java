@@ -36,4 +36,21 @@ public interface AcademicGoalRepository extends JpaRepository<AcademicGoal, UUID
      */
     @Query("SELECT g FROM AcademicGoal g WHERE g.user = :user AND g.isActive = true AND g.topic.id IN :topicIds")
     List<AcademicGoal> findActiveGoalsForTopics(@Param("user") User user, @Param("topicIds") List<UUID> topicIds);
+
+    /**
+     * Eager-fetch active goals with Topic and Subject pre-loaded via JOIN FETCH.
+     * Used by AcademicDashboardServiceImpl to eliminate the lazy Topic/Subject load
+     * when building GoalSummary DTOs: goal.getTopic().getSubject().getName() no
+     * longer triggers additional SELECT per goal.
+     *
+     * <p><strong>Performance contract:</strong> Replaces
+     * {@link #findByUserAndIsActiveTrueOrderByTargetDateAsc(User)} in dashboard
+     * paths. Produces 1 SQL instead of 1 + 2N lazy SQL statements.</p>
+     */
+    @Query("SELECT g FROM AcademicGoal g " +
+           "JOIN FETCH g.topic t " +
+           "JOIN FETCH t.subject " +
+           "WHERE g.user = :user AND g.isActive = true " +
+           "ORDER BY g.targetDate ASC")
+    List<AcademicGoal> findActiveGoalsWithTopicAndSubject(@Param("user") User user);
 }

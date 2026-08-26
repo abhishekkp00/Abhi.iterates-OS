@@ -62,4 +62,9 @@ public interface StudyPlannerService {
     PlannerPreferencesDto.Response getPreferences(User user);
 
     PlannerPreferencesDto.Response upsertPreferences(PlannerPreferencesDto.Request request, User user);
+
+    /**
+     * Get transparent topic priority breakdown for a given plan.
+     */
+    List<TopicPriorityBreakdownResponse> getPriorityBreakdown(UUID planId, User user);
 }

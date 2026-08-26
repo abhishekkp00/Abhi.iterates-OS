@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final com.abhiiterates.os.common.RateLimiterService rateLimiterService;
 
     @PostMapping("/register")
     @Operation(summary = "Register a new student account", description = "Validates the user parameters, hashes the password, seeds the default student role, and registers the account.")
@@ -34,6 +35,9 @@ public class AuthController {
             @Valid @RequestBody RegisterRequest request,
             HttpServletRequest servletRequest
     ) {
+        String ipAddress = servletRequest.getRemoteAddr();
+        rateLimiterService.checkRateLimitByKey(ipAddress, "register", 5);
+
         UserProfileDto profile = authService.registerUser(request);
         ApiResponse<UserProfileDto> response = ApiResponse.success(
                 profile,
@@ -51,6 +55,7 @@ public class AuthController {
     ) {
         String ipAddress = servletRequest.getRemoteAddr();
         String userAgent = servletRequest.getHeader("User-Agent");
+        rateLimiterService.checkRateLimitByKey(ipAddress, "login", 10);
 
         AuthResponse authResponse = authService.login(request, ipAddress, userAgent);
         ApiResponse<AuthResponse> response = ApiResponse.success(

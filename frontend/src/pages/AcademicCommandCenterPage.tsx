@@ -20,6 +20,7 @@ import {
 } from '@/lib/icons'
 import { academicApi, type AcademicDashboardData } from '@/features/academic/api/academic.api'
 import { plannerApi } from '@/features/planner/api/planner.api'
+import { GenerateAdaptiveAssessmentModal } from '@/features/assessment/components/GenerateAdaptiveAssessmentModal'
 import { LoadingState } from '@/components/ui/feedback'
 import { toast } from 'sonner'
 
@@ -29,6 +30,7 @@ export default function AcademicCommandCenterPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
 
   const loadDashboard = async () => {
     setIsLoading(true)
@@ -84,16 +86,19 @@ export default function AcademicCommandCenterPage() {
 
   const {
     todaySummary,
-    todayPlan,
-    planAdherence,
+    todayPlanSummary,
+    adherenceSummary,
     learningStateSummary,
     weakTopics,
     developingTopics,
     upcomingExams,
-    goals,
-    studyActivity,
-    recentAssessments,
   } = data
+
+  const todayPlan = data.todayPlan || todayPlanSummary
+  const planAdherence = data.planAdherence || adherenceSummary
+  const goals: any[] = data.goals || []
+  const studyActivity: any = data.studyActivity || { totalStudyMinutes: 0, dailyActivity: [], studyConsistencyPercentage: 0, activeDaysCount: 0 }
+  const recentAssessments: any[] = data.recentAssessments || []
 
   const nextSession = todayPlan?.nextSession
 
@@ -146,6 +151,14 @@ export default function AcademicCommandCenterPage() {
               </div>
             </div>
           )}
+
+          <button
+            onClick={() => setIsGenerateModalOpen(true)}
+            className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-xl shadow-sm transition-colors"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Generate AI Test</span>
+          </button>
 
           <button
             onClick={loadDashboard}
@@ -259,7 +272,7 @@ export default function AcademicCommandCenterPage() {
               <p className="text-xs text-slate-400 py-4 text-center">No active plan generated yet.</p>
             ) : (
               <div className="space-y-2.5">
-                {todayPlan.sessions.map((session) => (
+                {todayPlan.sessions.map((session: any) => (
                   <div
                     key={session.id}
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs"
@@ -442,7 +455,7 @@ export default function AcademicCommandCenterPage() {
             ) : (
               <div className="space-y-2.5">
                 {upcomingExams.map((exam) => (
-                  <div key={exam.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
+                  <div key={exam.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-slate-800">{exam.title}</span>
                       <span className="px-2 py-0.5 bg-amber-100 text-amber-800 font-semibold text-[10px] rounded-full">
@@ -450,9 +463,14 @@ export default function AcademicCommandCenterPage() {
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500">Date: {exam.examDate} {exam.subjectName ? `• ${exam.subjectName}` : ''}</p>
-                    <div className="text-[10px] text-slate-400 flex justify-between pt-1">
-                      <span>Topics: {exam.totalTopicsCount}</span>
-                      <span>Assessment Coverage: {exam.assessmentCoveragePercentage}%</span>
+                    <div className="text-[10px] text-slate-500 flex justify-between items-center pt-1 border-t border-slate-200/60">
+                      <span>Topics: {exam.totalTopicsCount} | Coverage: {exam.assessmentCoveragePercentage}%</span>
+                      <button
+                        onClick={() => navigate(`/academic/exams/${exam.id}`)}
+                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                      >
+                        Inspect Revision →
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -474,7 +492,7 @@ export default function AcademicCommandCenterPage() {
               <p className="text-xs text-slate-400 py-3 text-center">No active goals configured.</p>
             ) : (
               <div className="space-y-2.5">
-                {goals.map((goal) => (
+                {goals.map((goal: any) => (
                   <div key={goal.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-slate-800">{goal.topicName}</span>
@@ -500,7 +518,7 @@ export default function AcademicCommandCenterPage() {
             </div>
 
             <div className="grid grid-cols-7 gap-1 text-center pt-2">
-              {studyActivity.dailyActivity.map((day) => (
+              {studyActivity.dailyActivity.map((day: any) => (
                 <div key={day.date} className="space-y-1">
                   <div className="h-16 bg-slate-100 rounded-lg flex flex-col justify-end p-0.5">
                     <div
@@ -535,7 +553,7 @@ export default function AcademicCommandCenterPage() {
               <p className="text-xs text-slate-400 py-3 text-center">No assessments completed yet.</p>
             ) : (
               <div className="space-y-2">
-                {recentAssessments.map((a) => (
+                {recentAssessments.map((a: any) => (
                   <div key={a.attemptId} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
                     <div>
                       <span className="font-bold text-slate-800 block">{a.assessmentTitle}</span>
@@ -551,6 +569,16 @@ export default function AcademicCommandCenterPage() {
           </div>
         </div>
       </div>
+
+      <GenerateAdaptiveAssessmentModal
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        onGenerated={(assessmentId) => {
+          toast.success('Adaptive Assessment generated and published!')
+          loadDashboard()
+          navigate(`/academic/assessments/${assessmentId}`)
+        }}
+      />
     </div>
   )
 }

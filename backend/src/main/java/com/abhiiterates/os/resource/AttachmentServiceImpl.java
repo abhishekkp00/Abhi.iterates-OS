@@ -52,8 +52,21 @@ public class AttachmentServiceImpl implements AttachmentService {
 
         // Clean & validate filename
         String originalFileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
-        if (originalFileName.contains("..")) {
+        if (originalFileName.contains("..") || originalFileName.contains("/") || originalFileName.contains("\\")) {
             throw new IllegalArgumentException("Filename contains invalid path sequence: " + originalFileName);
+        }
+
+        String extension = "";
+        int extIdx = originalFileName.lastIndexOf('.');
+        if (extIdx >= 0) {
+            extension = originalFileName.substring(extIdx).toLowerCase();
+        }
+
+        java.util.Set<String> disallowedExtensions = java.util.Set.of(
+                ".exe", ".bat", ".sh", ".cmd", ".jsp", ".jspx", ".php", ".py", ".html", ".htm", ".js", ".vbs", ".jar"
+        );
+        if (disallowedExtensions.contains(extension)) {
+            throw new IllegalArgumentException("File extension '" + extension + "' is not permitted for upload.");
         }
 
         String downloadUrl = null;

@@ -126,7 +126,9 @@ public class AiChatController {
             @RequestParam(defaultValue = "50") int size,
             HttpServletRequest servletRequest
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        int safeSize = Math.min(Math.max(1, size), 100);
+        int safePage = Math.max(0, page);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "updatedAt"));
         Page<ConversationSummaryResponse> data = aiChatService.listConversations(user, pageable);
         return ResponseEntity.ok(ApiResponse.success(data, "Conversations retrieved", servletRequest.getRequestURI()));
     }

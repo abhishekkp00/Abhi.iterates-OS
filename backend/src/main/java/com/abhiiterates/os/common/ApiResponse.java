@@ -1,6 +1,8 @@
 package com.abhiiterates.os.common;
 
 import lombok.Builder;
+import org.slf4j.MDC;
+
 import java.time.Instant;
 
 /**
@@ -16,8 +18,13 @@ public record ApiResponse<T>(
         T data,
         Instant timestamp,
         String path,
-        int status
+        int status,
+        String traceId
 ) {
+    private static String getTraceIdFromMdc() {
+        return MDC.get("requestId");
+    }
+
     /**
      * Factory method for successful responses with payload data.
      */
@@ -28,6 +35,7 @@ public record ApiResponse<T>(
                 .data(data)
                 .timestamp(Instant.now())
                 .status(200)
+                .traceId(getTraceIdFromMdc())
                 .build();
     }
 
@@ -41,7 +49,8 @@ public record ApiResponse<T>(
                 .data(data)
                 .timestamp(Instant.now())
                 .path(path)
-                .status(200) // Default HTTP OK
+                .status(200)
+                .traceId(getTraceIdFromMdc())
                 .build();
     }
 
@@ -56,6 +65,7 @@ public record ApiResponse<T>(
                 .timestamp(Instant.now())
                 .path(path)
                 .status(200)
+                .traceId(getTraceIdFromMdc())
                 .build();
     }
 
@@ -70,6 +80,19 @@ public record ApiResponse<T>(
                 .timestamp(Instant.now())
                 .path(path)
                 .status(status)
+                .traceId(getTraceIdFromMdc())
+                .build();
+    }
+
+    public static ApiResponse<Void> error(String message, int status, String path, String traceId) {
+        return ApiResponse.<Void>builder()
+                .success(false)
+                .message(message)
+                .data(null)
+                .timestamp(Instant.now())
+                .path(path)
+                .status(status)
+                .traceId(traceId != null ? traceId : getTraceIdFromMdc())
                 .build();
     }
 }

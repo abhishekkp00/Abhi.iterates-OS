@@ -1,13 +1,14 @@
 package com.abhiiterates.os.planner.engine;
 
+import com.abhiiterates.os.academic.domain.LearningState;
+import com.abhiiterates.os.academic.domain.StudySessionType;
+
 import java.util.UUID;
 
 /**
- * Immutable record holding all computed priority factors for a single topic.
+ * Immutable record holding all computed priority factors and recommended strategy for a single topic.
  * Each factor is normalized to the range [0.0, 1.0].
  * The {@code rawScore} is the final weighted sum.
- * <p>
- * Used by {@link TimeAllocator} to produce {@link com.abhiiterates.os.planner.domain.PlannedStudySession}s.
  */
 public record TopicPriorityFactor(
     UUID topicId,
@@ -21,47 +22,58 @@ public record TopicPriorityFactor(
     double weaknessFactor,
 
     /**
-     * Urgency from nearest upcoming assessment deadline.
-     * 1.0 = < 3 days, 0.8 = < 7 days, 0.5 = < 14 days, 0.3 = < 30 days, 0.0 = ≥ 30 days.
+     * Urgency from nearest upcoming exam associated with this topic.
+     * 1.0 = 0-6 days, 0.7 = 7-14 days, 0.4 = 15-30 days, 0.1 = >30 days, 0.0 = no exam.
      */
     double examUrgencyFactor,
 
     /**
-     * 1.0 = DECLINING, 0.5 = STABLE, 0.1 = IMPROVING, 0.5 = INSUFFICIENT_DATA.
+     * 1.0 = DECLINING, 0.5 = STABLE / INSUFFICIENT_DATA, 0.1 = IMPROVING.
      */
     double trendFactor,
 
     /**
-     * Recency since last study: 1.0 = > 14 days ago, 0.5 = ≤ 7 days, 0.0 = studied today.
-     * Topics never studied before get 0.7 (moderate urgency — needs initial engagement).
+     * Recency since last study session. 1.0 = > 14 days ago, 0.7 = never studied, 0.0 = studied today.
      */
     double recencyFactor,
 
     /**
-     * Goal urgency: 1.0 = goal deadline < 7 days, 0.7 = < 14 days, 0.4 = < 30 days, 0.0 = no goal.
+     * Goal urgency: 1.0 = overdue / <= 7 days, 0.7 = <= 14 days, 0.4 = <= 30 days, 0.1 = > 30 days, 0.0 = no goal.
      */
     double goalUrgencyFactor,
 
     /**
-     * Fraction of dependent topics (topics that list this as a prerequisite) that are
-     * WEAK or INSUFFICIENT_DATA. Range [0.0, 1.0].
-     * If no dependents, value is 0.0.
+     * Bounded prerequisite dependency factor (how many dependent topics are blocked or high priority). Range [0.0, 1.0].
      */
     double prerequisiteImportanceFactor,
 
     /**
-     * Final weighted score. Range [0.0, 1.0]. Higher = study sooner.
+     * Study neglect / inactivity gap factor. Range [0.0, 1.0].
+     */
+    double neglectFactor,
+
+    /**
+     * Final weighted score normalized in range [0.0, 1.0]. Higher = study sooner.
      */
     double rawScore,
 
     /**
-     * Human-readable explanation produced alongside the score.
-     * E.g.: "WEAK mastery (recent avg: 42%), DECLINING trend, goal deadline in 5 days"
+     * Deterministic human-readable reason string explaining the score components.
      */
     String reason,
 
     /**
-     * The topic's current learning state — used by TimeAllocator for session length selection.
+     * Current mastery state.
      */
-    com.abhiiterates.os.academic.domain.LearningState learningState
+    LearningState learningState,
+
+    /**
+     * Deterministically assigned study strategy (e.g. PRACTICE, REVISION, STUDY, etc.).
+     */
+    StudySessionType recommendedStrategy,
+
+    /**
+     * High effort (>300 min) with low performance (<50% accuracy) signal toggle.
+     */
+    boolean isHighEffortLowPerformance
 ) {}

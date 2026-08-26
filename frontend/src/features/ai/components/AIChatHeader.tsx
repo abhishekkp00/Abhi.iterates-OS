@@ -10,6 +10,7 @@ interface AIChatHeaderProps {
   topicId?: string
   tutorMode?: TutorMode
   onModeChange?: (mode: TutorMode) => void
+  onTestMe?: () => void
 }
 
 const TUTOR_MODES: { value: TutorMode; label: string }[] = [
@@ -28,6 +29,7 @@ export function AIChatHeader({
   topicId,
   tutorMode = 'EXPLAIN',
   onModeChange,
+  onTestMe,
 }: AIChatHeaderProps) {
   const sidebarCollapsed = useAIStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useAIStore((s) => s.toggleSidebar)
@@ -83,6 +85,19 @@ export function AIChatHeader({
               ))}
             </select>
           </div>
+        )}
+
+        {/* Test Me Action Button */}
+        {onTestMe && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onTestMe}
+            className="gap-1.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 font-bold text-xs cursor-pointer shrink-0"
+          >
+            <Sparkles className="size-3.5" />
+            <span>Test Me</span>
+          </Button>
         )}
 
         {isStreaming && (

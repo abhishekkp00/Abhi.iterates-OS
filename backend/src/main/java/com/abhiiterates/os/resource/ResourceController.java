@@ -39,13 +39,17 @@ public class ResourceController {
             @RequestParam(defaultValue = "createdAt,desc") String sort,
             HttpServletRequest servletRequest
     ) {
+        java.util.Set<String> allowedSortFields = java.util.Set.of("createdAt", "updatedAt", "title", "priority", "status", "deadline");
         String[] sortParts = sort.split(",");
-        String sortField = sortParts[0];
+        String sortField = allowedSortFields.contains(sortParts[0].trim()) ? sortParts[0].trim() : "createdAt";
         Sort.Direction sortDirection = (sortParts.length > 1 && "asc".equalsIgnoreCase(sortParts[1]))
                 ? Sort.Direction.ASC
                 : Sort.Direction.DESC;
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortField));
+        int safeSize = Math.min(Math.max(1, size), 100);
+        int safePage = Math.max(0, page);
+
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(sortDirection, sortField));
 
         Page<ResourceResponse> data = resourceService.findAllWithFilters(
                 user, search, categories, priorities, statuses, pageable

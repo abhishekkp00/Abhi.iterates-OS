@@ -178,6 +178,121 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle Jakarta ConstraintViolationException (e.g. from @Validated path params or query params).
+     * Returns 400 Bad Request.
+     */
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(
+            jakarta.validation.ConstraintViolationException ex, HttpServletRequest request) {
+        log.warn("Constraint violation on path [{}]: {}", request.getRequestURI(), ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST.value(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handle File Upload Size Exceeded Exception.
+     * Returns 413 Payload Too Large.
+     */
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(
+            org.springframework.web.multipart.MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        log.warn("File upload size exceeded limit on path [{}]: {}", request.getRequestURI(), ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(
+                "File upload size exceeds maximum allowed limit.",
+                HttpStatus.PAYLOAD_TOO_LARGE.value(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(response);
+    }
+
+    /**
+     * Handle Malformed JSON Request Body.
+     * Returns 400 Bad Request.
+     */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(
+            org.springframework.http.converter.HttpMessageNotReadableException ex, HttpServletRequest request) {
+        log.warn("Malformed JSON payload received on path [{}]: {}", request.getRequestURI(), ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(
+                "Malformed or unparseable JSON payload.",
+                HttpStatus.BAD_REQUEST.value(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handle Rate Limit Exceeded Exception.
+     * Returns 429 Too Many Requests.
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceeded(
+            RateLimitExceededException ex, HttpServletRequest request) {
+        log.warn("Rate limit exceeded on path [{}]: {}", request.getRequestURI(), ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(
+                ex.getMessage(),
+                429,
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(429).body(response);
+    }
+
+    /**
+     * Handle Optimistic Locking / Concurrent State Modification Failures.
+     * Returns 409 Conflict.
+     */
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticLockingFailure(
+            org.springframework.dao.OptimisticLockingFailureException ex, HttpServletRequest request) {
+        log.warn("Concurrent modification or optimistic lock conflict on path [{}]: {}", request.getRequestURI(), ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(
+                "State conflict or concurrent modification detected. Please refresh and retry.",
+                HttpStatus.CONFLICT.value(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    /**
+     * Handle Database Unavailability / Connection Timeout Exceptions.
+     * Returns 503 Service Unavailable without exposing SQL stack traces.
+     */
+    @ExceptionHandler({
+            org.springframework.transaction.CannotCreateTransactionException.class,
+            org.springframework.dao.DataAccessResourceFailureException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleDatabaseUnavailability(
+            RuntimeException ex, HttpServletRequest request) {
+        log.error("Database connection failure or unavailability on path [{}]: ", request.getRequestURI(), ex);
+        ApiResponse<Void> response = ApiResponse.error(
+                "Database service is temporarily unavailable. Please retry shortly.",
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+    }
+
+    /**
+     * Handle Method Argument Type Mismatch (e.g. invalid UUID string in @PathVariable).
+     * Returns 400 Bad Request.
+     */
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatch(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        log.warn("Parameter type mismatch on path [{}]: parameter '{}' invalid format", request.getRequestURI(), ex.getName());
+        ApiResponse<Void> response = ApiResponse.error(
+                "Invalid format for parameter '" + ex.getName() + "'. Please check resource identifiers.",
+                HttpStatus.BAD_REQUEST.value(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
      * Handle Generic Uncaught Server Exceptions.
      * Returns 500 Internal Server Error.
      * Hides sensitive server trace info from clients, while fully logging it for security/auditing.

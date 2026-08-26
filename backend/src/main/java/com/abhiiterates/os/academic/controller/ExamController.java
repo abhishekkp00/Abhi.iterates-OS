@@ -1,6 +1,7 @@
 package com.abhiiterates.os.academic.controller;
 
 import com.abhiiterates.os.academic.dto.ExamRequest;
+import com.abhiiterates.os.academic.service.ExamCoverageService;
 import com.abhiiterates.os.academic.service.ExamService;
 import com.abhiiterates.os.common.ApiResponse;
 import com.abhiiterates.os.user.User;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class ExamController {
 
     private final ExamService examService;
+    private final ExamCoverageService examCoverageService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ExamRequest.Response>> createExam(
@@ -46,6 +48,24 @@ public class ExamController {
     ) {
         ExamRequest.Response exam = examService.getExamById(examId, user);
         return ResponseEntity.ok(ApiResponse.success(exam, "Exam retrieved successfully"));
+    }
+
+    @GetMapping("/{id}/coverage")
+    public ResponseEntity<ApiResponse<com.abhiiterates.os.academic.dto.ExamCoverageResponse>> getExamCoverage(
+            @PathVariable("id") UUID examId,
+            @AuthenticationPrincipal User user
+    ) {
+        com.abhiiterates.os.academic.dto.ExamCoverageResponse coverage = examCoverageService.calculateExamCoverage(examId, user);
+        return ResponseEntity.ok(ApiResponse.success(coverage, "Exam coverage calculated successfully"));
+    }
+
+    @GetMapping("/{id}/phase")
+    public ResponseEntity<ApiResponse<com.abhiiterates.os.academic.domain.ExamStudyPhase>> getExamPhase(
+            @PathVariable("id") UUID examId,
+            @AuthenticationPrincipal User user
+    ) {
+        com.abhiiterates.os.academic.dto.ExamCoverageResponse coverage = examCoverageService.calculateExamCoverage(examId, user);
+        return ResponseEntity.ok(ApiResponse.success(coverage.globalPhase(), "Exam phase retrieved successfully"));
     }
 
     @PutMapping("/{id}")

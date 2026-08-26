@@ -25,4 +25,23 @@ public interface TopicRepository extends JpaRepository<Topic, UUID> {
 
     @Query("SELECT t FROM Topic t WHERE t.subject.user.id = :userId ORDER BY t.name ASC")
     List<Topic> findBySubjectUserIdOrderByNameAsc(@Param("userId") UUID userId);
+
+    /**
+     * Eager-fetch all topics for a user with their Subject pre-loaded via JOIN FETCH.
+     * Used by LearningStateServiceImpl to eliminate the lazy Subject load inside
+     * calculateTopicLearningState(): topic.getSubject().getName() no longer triggers
+     * an additional SELECT per topic.
+     *
+     * <p><strong>Performance contract:</strong> This replaces the plain
+     * {@link #findBySubjectUserIdOrderByNameAsc(UUID)} call in learning-state paths.
+     * It produces 1 SQL instead of 1 + N lazy SQL statements.</p>
+     */
+    @Query("SELECT t FROM Topic t JOIN FETCH t.subject WHERE t.subject.user.id = :userId ORDER BY t.name ASC")
+    List<Topic> findAllWithSubjectByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Scoped variant: all topics for a given subject, with Subject eagerly loaded.
+     */
+    @Query("SELECT t FROM Topic t JOIN FETCH t.subject WHERE t.subject.id = :subjectId ORDER BY t.name ASC")
+    List<Topic> findAllWithSubjectBySubjectId(@Param("subjectId") UUID subjectId);
 }

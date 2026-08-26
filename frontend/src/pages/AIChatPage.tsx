@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { useParams, useLocation, useSearchParams } from 'react-router-dom'
+import { useParams, useLocation, useSearchParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAIStore } from '@/features/ai/store/ai.store'
 import { aiApi, streamChat } from '@/features/ai/api/ai.api'
@@ -7,9 +7,11 @@ import { AIChatHeader } from '@/features/ai/components/AIChatHeader'
 import { MessageBubble } from '@/features/ai/components/MessageBubble'
 import { TypingIndicator } from '@/features/ai/components/TypingIndicator'
 import { PromptComposer } from '@/features/ai/components/PromptComposer'
+import { GenerateAdaptiveAssessmentModal } from '@/features/assessment/components/GenerateAdaptiveAssessmentModal'
 import type { ChatMessage, TutorMode } from '@/types/ai'
 
 export default function AIChatPage() {
+  const navigate = useNavigate()
   const { conversationId } = useParams<{ conversationId: string }>()
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -198,16 +200,19 @@ export default function AIChatPage() {
   const messages = activeConversation?.messages ?? []
   const isStreaming = streamingStatus === 'streaming'
 
+  const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false)
+
   return (
-    <div className="flex flex-1 flex-col overflow-hidden h-full">
+    <div className="flex h-full flex-col overflow-hidden bg-background">
       {/* Header */}
       <AIChatHeader
-        title={activeConversation?.title ?? 'Chat'}
+        title={activeConversation?.title || 'New Tutor Session'}
         isStreaming={isStreaming}
         onStop={handleStop}
         topicId={topicIdParam}
         tutorMode={tutorMode}
         onModeChange={setTutorMode}
+        onTestMe={topicIdParam ? () => setIsAssessmentModalOpen(true) : undefined}
       />
 
       {/* Message list */}
@@ -256,6 +261,14 @@ export default function AIChatPage() {
         onStop={handleStop}
         isStreaming={isStreaming}
         disabled={isLoading}
+      />
+
+      {/* Test Me Modal */}
+      <GenerateAdaptiveAssessmentModal
+        isOpen={isAssessmentModalOpen}
+        onClose={() => setIsAssessmentModalOpen(false)}
+        onGenerated={(id) => navigate(`/assessments/${id}`)}
+        preselectedTopicId={topicIdParam}
       />
     </div>
   )

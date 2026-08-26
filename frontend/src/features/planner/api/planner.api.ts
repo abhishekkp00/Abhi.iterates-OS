@@ -67,6 +67,7 @@ export interface GeneratePlanPayload {
   availableMinutesPerDay?: number
   preferredSessionLengthMinutes?: number
   planningHorizonDays?: number
+  examId?: string
 }
 
 export interface AcademicGoal {
@@ -101,6 +102,25 @@ export interface TopicPrerequisite {
   subjectName: string
 }
 
+export interface TopicPriorityBreakdown {
+  topicId: string
+  topicName: string
+  subjectId: string
+  subjectName: string
+  learningState: string
+  recommendedStrategy: StudySessionType
+  weaknessFactor: number
+  examUrgencyFactor: number
+  trendFactor: number
+  recencyFactor: number
+  goalUrgencyFactor: number
+  prerequisiteImportanceFactor: number
+  neglectFactor: number
+  rawScore: number
+  isHighEffortLowPerformance: boolean
+  reason: string
+}
+
 export const plannerApi = {
   // Plan Generation & Lifecycle
   previewPlan: async (payload?: GeneratePlanPayload): Promise<StudyPlan> => {
@@ -130,6 +150,11 @@ export const plannerApi = {
 
   getPlan: async (planId: string): Promise<StudyPlan> => {
     const res = await api.get<StudyPlan>(`/v1/study-plans/${planId}`)
+    return res.data
+  },
+
+  getPriorityBreakdown: async (planId: string): Promise<TopicPriorityBreakdown[]> => {
+    const res = await api.get<TopicPriorityBreakdown[]>(`/v1/study-plans/${planId}/priority-breakdown`)
     return res.data
   },
 

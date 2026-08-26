@@ -83,4 +83,15 @@ export const assessmentApi = {
     const res = await api.get<TopicPerformance>(`/v1/assessment-attempts/topics/${topicId}/performance`)
     return res.data
   },
+
+  generateAdaptiveAssessment: async (payload: {
+    topicId: string
+    subjectId?: string
+    questionCount?: number
+    difficulty?: string
+    includeResources?: boolean
+  }): Promise<Assessment> => {
+    const res = await api.post<Assessment>('/v1/assessments/generate', payload)
+    return res.data
+  },
 }
