@@ -49,6 +49,32 @@ public class RateLimiterService {
         timestamps.add(now);
     }
 
+    /**
+     * Checks rate limit for a specific operation and arbitrary String key (e.g. IP address or client ID).
+     * Throws RateLimitExceededException (429) if threshold is exceeded.
+     */
+    public void checkRateLimitByKey(String key, String actionKey, int maxRequestsPerMinute) {
+        if (key == null || key.isBlank() || "127.0.0.1".equals(key) || "0:0:0:0:0:0:1".equals(key)) return;
+
+        String rateKey = key.trim() + ":" + actionKey;
+        long now = Instant.now().toEpochMilli();
+        long windowStart = now - ONE_MINUTE_MS;
+
+        ConcurrentLinkedQueue<Long> timestamps = userRequestTimestamps.computeIfAbsent(rateKey, k -> new ConcurrentLinkedQueue<>());
+
+        // Evict expired timestamps outside current window
+        while (!timestamps.isEmpty() && timestamps.peek() < windowStart) {
+            timestamps.poll();
+        }
+
+        if (timestamps.size() >= maxRequestsPerMinute) {
+            log.warn("Rate limit exceeded for key [{}] on action [{}] ({} requests in last minute)", key, actionKey, timestamps.size());
+            throw new RateLimitExceededException("Rate limit exceeded for " + actionKey + ". Please wait before submitting additional requests.");
+        }
+
+        timestamps.add(now);
+    }
+
     public void checkRateLimit(UUID userId, String actionKey) {
         checkRateLimit(userId, actionKey, DEFAULT_MAX_REQUESTS_PER_MINUTE);
     }
