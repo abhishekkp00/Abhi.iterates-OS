@@ -65,16 +65,16 @@ export function AcademicGoalWidget() {
   const currentTopics = selectedSubjectId ? topics[selectedSubjectId] || [] : []
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+    <div className="clean-card space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="flex items-center space-x-2.5">
+          <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl">
             <Target className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-800 text-base">Academic Goals</h3>
-            <p className="text-xs text-slate-500">
+            <h3 className="font-bold font-display text-white text-base">Academic Goals</h3>
+            <p className="text-xs text-slate-400 font-medium">
               Set deadline-driven targets to guide your study plan
             </p>
           </div>
@@ -85,7 +85,7 @@ export function AcademicGoalWidget() {
             clearError()
             setFormError(null)
           }}
-          className="flex items-center space-x-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
+          className="flex items-center space-x-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>Add Goal</span>
@@ -94,7 +94,7 @@ export function AcademicGoalWidget() {
 
       {/* Error alert */}
       {(error || formError) && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-xs flex items-center space-x-2">
+        <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-lg text-xs flex items-center space-x-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{formError || error}</span>
         </div>
@@ -104,9 +104,9 @@ export function AcademicGoalWidget() {
       {isOpen && (
         <form
           onSubmit={handleCreate}
-          className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3"
+          className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3"
         >
-          <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+          <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
             New Academic Goal
           </h4>
 
@@ -203,9 +203,9 @@ export function AcademicGoalWidget() {
 
       {/* Goal List */}
       {isLoadingGoals ? (
-        <div className="text-xs text-slate-400 text-center py-3">Loading active goals...</div>
+        <div className="text-xs text-slate-400 font-medium text-center py-3">Loading active goals...</div>
       ) : goals.length === 0 ? (
-        <div className="text-xs text-slate-400 italic py-2 text-center border border-dashed border-slate-200 rounded-lg">
+        <div className="text-xs text-slate-400 py-4 text-center border border-dashed border-slate-800 rounded-xl bg-slate-900/30">
           No active academic goals set. Click &quot;Add Goal&quot; to set target deadlines for your topics.
         </div>
       ) : (
@@ -217,25 +217,25 @@ export function AcademicGoalWidget() {
             return (
               <div
                 key={goal.id}
-                className="flex items-start justify-between p-3 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                className="flex items-start justify-between p-3 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-900 transition-colors"
               >
                 <div className="space-y-1">
                   <div className="flex items-center space-x-1.5">
-                    <span className="text-xs font-semibold text-slate-800">{goal.topicName}</span>
-                    <span className="text-[10px] text-slate-500">({goal.subjectName})</span>
+                    <span className="text-xs font-bold text-white">{goal.topicName}</span>
+                    <span className="text-[10px] text-slate-400">({goal.subjectName})</span>
                   </div>
 
                   <div className="flex items-center space-x-2 text-[11px]">
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-800">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                       Target: {goal.targetState}
                     </span>
                     <span
-                      className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                         isOverdue
-                          ? 'bg-red-100 text-red-800'
+                          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
                           : isUrgent
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-blue-100 text-blue-800'
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                          : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30'
                       }`}
                     >
                       <Calendar className="w-3 h-3" />
