@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Flame, Star, Zap, CheckCircle2 } from '@/lib/icons'
+import { ChevronLeft, ChevronRight, Flame, Trophy, CalendarCheck, CheckCircle2 } from '@/lib/icons'
 import { useTasks } from '@/features/productivity/hooks/useTasks'
 import type { Task } from '@/types/productivity'
 
-// ─── Day Cell Intensity ───────────────────────────────────────────────────────
 type DayActivity = {
   date: Date
-  count: number       // number of tasks completed that day
+  count: number
   isToday: boolean
   isCurrentMonth: boolean
 }
@@ -23,22 +22,13 @@ function getIntensity(count: number): Intensity {
 }
 
 const INTENSITY_CLASSES: Record<Intensity, string> = {
-  0: 'bg-muted/30 border-border/20 text-muted-foreground/40',
-  1: 'bg-violet-500/15 border-violet-500/25 text-violet-400',
-  2: 'bg-violet-500/30 border-violet-500/40 text-violet-300',
-  3: 'bg-violet-500/55 border-violet-500/60 text-violet-200',
-  4: 'bg-violet-500/85 border-violet-400/80 text-white shadow-[0_0_8px_rgba(139,92,246,0.5)]',
+  0: 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-800/60',
+  1: 'bg-emerald-950/60 border-emerald-700/40 text-emerald-300 font-bold hover:border-emerald-500',
+  2: 'bg-emerald-900/80 border-emerald-600/50 text-emerald-200 font-bold hover:border-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.2)]',
+  3: 'bg-emerald-700/80 border-emerald-500/70 text-white font-bold hover:border-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.35)]',
+  4: 'bg-emerald-500 border-emerald-400 text-slate-950 font-extrabold hover:border-emerald-200 shadow-[0_0_14px_rgba(16,185,129,0.5)]',
 }
 
-const INTENSITY_GLOW: Record<Intensity, string> = {
-  0: '',
-  1: '',
-  2: '',
-  3: 'shadow-[0_0_6px_rgba(139,92,246,0.3)]',
-  4: 'shadow-[0_0_12px_rgba(139,92,246,0.6)]',
-}
-
-// ─── Tooltip ─────────────────────────────────────────────────────────────────
 function DayTooltip({ day, visible }: { day: DayActivity; visible: boolean }) {
   const label = day.date.toLocaleDateString(undefined, {
     weekday: 'short',
@@ -46,9 +36,10 @@ function DayTooltip({ day, visible }: { day: DayActivity; visible: boolean }) {
     day: 'numeric',
   })
 
-  const taskText = day.count === 0
-    ? 'No tasks completed'
-    : day.count === 1
+  const taskText =
+    day.count === 0
+      ? 'No tasks completed'
+      : day.count === 1
       ? '1 task completed'
       : `${day.count} tasks completed`
 
@@ -62,91 +53,90 @@ function DayTooltip({ day, visible }: { day: DayActivity; visible: boolean }) {
           transition={{ duration: 0.15 }}
           className="absolute -top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
         >
-          <div className="bg-popover border border-border/80 rounded-lg px-2.5 py-1.5 shadow-xl text-center whitespace-nowrap">
-            <p className="text-[10px] font-bold text-foreground">{label}</p>
-            <p className="text-[9px] text-muted-foreground mt-0.5">{taskText}</p>
+          <div className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 shadow-xl text-center whitespace-nowrap">
+            <p className="text-[11px] font-bold text-white">{label}</p>
+            <p className="text-[10px] text-slate-300 font-medium mt-0.5">{taskText}</p>
             {day.isToday && (
-              <span className="inline-block mt-0.5 text-[8px] font-bold text-violet-400 uppercase tracking-wider">Today</span>
+              <span className="inline-block mt-0.5 text-[9px] font-bold text-indigo-400 uppercase tracking-wider">
+                Today
+              </span>
             )}
           </div>
-          {/* Arrow */}
-          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-popover border-r border-b border-border/80 rounded-sm" />
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-slate-900 border-r border-b border-slate-700" />
         </motion.div>
       )}
     </AnimatePresence>
   )
 }
 
-// ─── Day Cell ─────────────────────────────────────────────────────────────────
 function DayCell({ day }: { day: DayActivity }) {
   const [hovered, setHovered] = useState(false)
   const intensity = getIntensity(day.count)
   const dayNum = day.date.getDate()
 
   return (
-    <div className="relative flex items-center justify-center">
-      <motion.button
-        whileHover={{ scale: 1.15 }}
-        whileTap={{ scale: 0.92 }}
+    <div className="relative flex items-center justify-center w-full">
+      <button
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={[
-          'relative w-8 h-8 rounded-lg border text-[11px] font-semibold transition-all duration-150 cursor-pointer',
-          INTENSITY_CLASSES[intensity],
-          INTENSITY_GLOW[intensity],
-          day.isToday ? 'ring-2 ring-violet-400/70 ring-offset-1 ring-offset-background' : '',
-          !day.isCurrentMonth ? 'opacity-30' : '',
-        ].join(' ')}
+        className={`
+          aspect-square w-full max-w-[36px] rounded-lg border text-xs font-medium transition-all duration-150 flex items-center justify-center relative cursor-pointer
+          ${INTENSITY_CLASSES[intensity]}
+          ${day.isToday ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-950 font-bold text-white' : ''}
+          ${!day.isCurrentMonth ? 'opacity-25 pointer-events-none' : ''}
+        `}
       >
-        {dayNum}
-
-        {/* Streak dot — shown for active days */}
-        {intensity > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-violet-400 border border-background" />
+        <span>{dayNum}</span>
+        {intensity > 0 && !day.isToday && (
+          <span className="absolute bottom-1 size-1 rounded-full bg-emerald-400" />
         )}
-      </motion.button>
+      </button>
 
       <DayTooltip day={day} visible={hovered} />
     </div>
   )
 }
 
-// ─── Streak Stat Pill ─────────────────────────────────────────────────────────
-function StatPill({
+function StatCard({
   icon: Icon,
   label,
   value,
-  color,
+  iconBg,
+  iconColor,
 }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
   value: string | number
-  color: string
+  iconBg: string
+  iconColor: string
 }) {
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/60 ${color}`}>
-      <Icon className="size-3.5 shrink-0" />
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-800/80 bg-slate-900/50">
+      <div className={`p-2 rounded-lg border ${iconBg} ${iconColor} shrink-0`}>
+        <Icon className="size-4" />
+      </div>
       <div className="min-w-0">
-        <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground leading-none">{label}</p>
-        <p className="text-sm font-extrabold text-foreground leading-tight mt-0.5">{value}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 leading-tight">
+          {label}
+        </p>
+        <p className="text-sm font-bold text-white tracking-tight mt-0.5 leading-none">
+          {value}
+        </p>
       </div>
     </div>
   )
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 export function StudyStreakCalendar() {
   const { tasks } = useTasks()
   const today = new Date()
 
   const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
 
-  // Build a map: "YYYY-MM-DD" → count of completed tasks that day
   const completionMap = useMemo<Record<string, number>>(() => {
     const map: Record<string, number> = {}
-    const completed = (tasks as Task[]).filter(t => t.status === 'COMPLETED')
+    const completed = (tasks as Task[]).filter((t) => t.status === 'COMPLETED')
     for (const task of completed) {
-      // Use updatedAt as proxy for "when it was completed"
       const raw = task.updatedAt || task.createdAt
       if (!raw) continue
       const d = new Date(raw)
@@ -156,23 +146,18 @@ export function StudyStreakCalendar() {
     return map
   }, [tasks])
 
-  // Build calendar grid for current view month
   const calendarDays = useMemo<DayActivity[]>(() => {
     const year = viewDate.getFullYear()
     const month = viewDate.getMonth()
 
-    // First day of the month
     const firstDay = new Date(year, month, 1)
-
-    // Start from Monday of the week that contains the first day
-    const startOffset = (firstDay.getDay() + 6) % 7 // Mon=0
+    const startOffset = (firstDay.getDay() + 6) % 7
     const gridStart = new Date(firstDay)
     gridStart.setDate(gridStart.getDate() - startOffset)
 
     const days: DayActivity[] = []
     const current = new Date(gridStart)
 
-    // 6 weeks × 7 days = 42 cells
     for (let i = 0; i < 42; i++) {
       const d = new Date(current)
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -188,9 +173,7 @@ export function StudyStreakCalendar() {
     return days
   }, [viewDate, completionMap, today])
 
-  // Compute streak stats
   const { currentStreak, longestStreak, activeDaysThisMonth, totalCompleted } = useMemo(() => {
-    // Current streak: consecutive days back from today or yesterday with at least 1 completion
     let currentStreak = 0
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
     const yesterday = new Date(today)
@@ -210,7 +193,6 @@ export function StudyStreakCalendar() {
       }
     }
 
-    // Longest streak: scan all available keys in sorted order
     const allKeys = Object.keys(completionMap).sort()
     let longestStreak = 0
     let tempStreak = 0
@@ -231,36 +213,33 @@ export function StudyStreakCalendar() {
       prevDate = d
     }
 
-    // Active days this month
-    const activeDaysThisMonth = calendarDays
-      .filter(d => d.isCurrentMonth && d.count > 0)
-      .length
-
-    const totalCompleted = (tasks as Task[]).filter(t => t.status === 'COMPLETED').length
+    const activeDaysThisMonth = calendarDays.filter((d) => d.isCurrentMonth && d.count > 0).length
+    const totalCompleted = (tasks as Task[]).filter((t) => t.status === 'COMPLETED').length
 
     return { currentStreak, longestStreak, activeDaysThisMonth, totalCompleted }
-  }, [completionMap, calendarDays, viewDate, tasks, today])
+  }, [completionMap, calendarDays, tasks, today])
 
   const monthLabel = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-  const goToPrev = () => setViewDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))
+  const goToPrev = () => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))
   const goToNext = () => {
     const next = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1)
     if (next <= today) setViewDate(next)
   }
-  const isNextDisabled = viewDate.getMonth() === today.getMonth() && viewDate.getFullYear() === today.getFullYear()
+  const isNextDisabled =
+    viewDate.getMonth() === today.getMonth() && viewDate.getFullYear() === today.getFullYear()
+
+  const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()
 
   return (
-    <div className="clean-card p-5 overflow-hidden">
-      {/* Header */}
+    <div className="clean-card p-5 flex flex-col justify-between">
       <div className="pb-3 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Flame className="size-4 text-amber-500" />
           <h3 className="font-display text-base font-bold text-white tracking-tight">Study Streak Activity</h3>
         </div>
 
-        {/* Month Navigator */}
         <div className="flex items-center gap-2">
           <button
             onClick={goToPrev}
@@ -268,7 +247,7 @@ export function StudyStreakCalendar() {
           >
             <ChevronLeft className="size-4" />
           </button>
-          <span className="text-xs font-bold text-slate-200 min-w-[90px] text-center">{monthLabel}</span>
+          <span className="text-xs font-bold text-slate-200 min-w-[100px] text-center">{monthLabel}</span>
           <button
             onClick={goToNext}
             disabled={isNextDisabled}
@@ -279,70 +258,67 @@ export function StudyStreakCalendar() {
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="px-5 py-4">
-        {/* Weekday Labels */}
-        <div className="grid grid-cols-7 mb-2">
-          {weekdays.map(d => (
-            <div key={d} className="text-center text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
+      <div className="py-4 space-y-3">
+        <div className="grid grid-cols-7 gap-1">
+          {weekdays.map((d) => (
+            <div
+              key={d}
+              className="text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 py-1"
+            >
               {d}
             </div>
           ))}
         </div>
 
-        {/* Day Cells */}
-        <motion.div
-          key={monthLabel}
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.2 }}
-          className="grid grid-cols-7 gap-1"
-        >
+        <div className="grid grid-cols-7 gap-1.5">
           {calendarDays.map((day, i) => (
-            <div key={i} className="flex justify-center">
-              <DayCell day={day} />
-            </div>
+            <DayCell key={i} day={day} />
           ))}
-        </motion.div>
+        </div>
 
-        {/* Intensity Legend */}
-        <div className="flex items-center justify-end gap-1.5 mt-3 pt-3 border-t border-border/30">
-          <span className="text-[9px] text-muted-foreground/60 font-medium mr-0.5">Less</span>
-          {([0, 1, 2, 3, 4] as Intensity[]).map(i => (
-            <div
-              key={i}
-              className={`w-3 h-3 rounded-sm border ${INTENSITY_CLASSES[i]}`}
-            />
-          ))}
-          <span className="text-[9px] text-muted-foreground/60 font-medium ml-0.5">More</span>
+        <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 font-medium">
+          <span>Activity Level</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px]">Less</span>
+            {([0, 1, 2, 3, 4] as Intensity[]).map((i) => (
+              <div
+                key={i}
+                className={`size-3 rounded-xs border ${INTENSITY_CLASSES[i]}`}
+              />
+            ))}
+            <span className="text-[9px]">More</span>
+          </div>
         </div>
       </div>
 
-      {/* Stat Pills */}
-      <div className="px-5 pb-5 grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <StatPill
+      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+        <StatCard
           icon={Flame}
           label="Current Streak"
-          value={`${currentStreak}d`}
-          color="text-orange-500"
+          value={`${currentStreak} Days`}
+          iconBg="bg-amber-500/10 border-amber-500/30"
+          iconColor="text-amber-400"
         />
-        <StatPill
-          icon={Star}
+        <StatCard
+          icon={Trophy}
           label="Best Streak"
-          value={`${longestStreak}d`}
-          color="text-amber-500"
+          value={`${longestStreak} Days`}
+          iconBg="bg-indigo-500/10 border-indigo-500/30"
+          iconColor="text-indigo-400"
         />
-        <StatPill
-          icon={CheckCircle2}
+        <StatCard
+          icon={CalendarCheck}
           label="Active Days"
-          value={`${activeDaysThisMonth} / ${new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()}`}
-          color="text-violet-400"
+          value={`${activeDaysThisMonth} / ${daysInMonth}`}
+          iconBg="bg-emerald-500/10 border-emerald-500/30"
+          iconColor="text-emerald-400"
         />
-        <StatPill
-          icon={Zap}
-          label="Total Done"
+        <StatCard
+          icon={CheckCircle2}
+          label="Total Tasks"
           value={totalCompleted}
-          color="text-emerald-500"
+          iconBg="bg-cyan-500/10 border-cyan-500/30"
+          iconColor="text-cyan-400"
         />
       </div>
     </div>

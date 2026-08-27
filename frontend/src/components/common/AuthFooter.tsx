@@ -8,11 +8,11 @@ interface AuthFooterProps {
 
 export function AuthFooter({ message, linkText, linkHref }: AuthFooterProps) {
   return (
-    <div className="mt-6 text-center text-xs text-muted-foreground">
+    <div className="mt-6 text-center text-xs text-slate-400">
       <span>{message} </span>
       <Link
         to={linkHref}
-        className="font-medium text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
+        className="font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
       >
         {linkText}
       </Link>

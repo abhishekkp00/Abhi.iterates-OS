@@ -127,4 +127,6 @@ export {
   CheckSquare,
   Quote,
   Terminal,
+  Trophy,
+  CalendarCheck,
 } from 'lucide-react'

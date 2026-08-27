@@ -13,7 +13,7 @@ export function AuthCard({ children }: AuthCardProps) {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="w-full max-w-[400px] border border-border bg-card p-6 shadow-lg rounded-xl md:p-8"
+      className="w-full max-w-[420px] border border-slate-800 bg-[#151c2c] p-6 shadow-2xl rounded-2xl md:p-8"
     >
       {children}
     </motion.div>
