@@ -50,18 +50,32 @@ public class RetrievalServiceImpl implements RetrievalService {
         String targetModel = embeddingProperties.getModel();
         int expectedDimensions = embeddingProperties.getDimensions();
 
+        if (!embeddingProperties.isEnabled()) {
+            log.debug("RAG embedding is disabled in configuration. Skipping semantic retrieval for user ID: {}", currentUser.getId());
+            return Collections.emptyList();
+        }
+
         log.debug("Generating query vector for user ID: {}, model: [{}], topK: {}, threshold: {}",
                 currentUser.getId(), targetModel, resolvedTopK, resolvedThreshold);
 
-        float[] queryVector = embeddingModel.embed(normalizedQuery);
+        float[] queryVector;
+        try {
+            queryVector = embeddingModel.embed(normalizedQuery);
+        } catch (Exception ex) {
+            log.warn("Semantic vector embedding generation failed for user ID [{}]: {}. Falling back to non-RAG chat response.",
+                    currentUser.getId(), ex.getMessage());
+            return Collections.emptyList();
+        }
 
         if (queryVector == null || queryVector.length == 0) {
-            throw new IllegalStateException("Embedding model returned empty vector for user query.");
+            log.warn("Embedding model returned empty vector for user query. Returning empty result set.");
+            return Collections.emptyList();
         }
 
         if (queryVector.length != expectedDimensions) {
-            throw new IllegalStateException("Query vector dimension mismatch: expected "
-                    + expectedDimensions + " dimensions, but received " + queryVector.length);
+            log.warn("Query vector dimension mismatch: expected {} dimensions, but received {}. Returning empty result set.",
+                    expectedDimensions, queryVector.length);
+            return Collections.emptyList();
         }
 
         String queryVectorString = vectorConverter.convertToDatabaseColumn(queryVector);

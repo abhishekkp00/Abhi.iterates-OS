@@ -112,14 +112,19 @@ export default function StudyRoomPage() {
     async function loadPdf() {
       let targetUrl = downloadUrl
 
-      if (!targetUrl && resourceId) {
+      if (resourceId) {
         try {
           const res = await api.get(`/resources/${resourceId}`)
           const attachments = res.data?.data?.attachments
           if (attachments && attachments.length > 0) {
             const pdfAtt = attachments.find((a: any) => a.contentType?.toLowerCase().includes('pdf')) || attachments[0]
             if (pdfAtt && pdfAtt.downloadUrl) {
-              targetUrl = pdfAtt.downloadUrl
+              targetUrl = targetUrl || pdfAtt.downloadUrl
+            }
+            if (pdfAtt && pdfAtt.id) {
+              api.post(`/resources/${resourceId}/attachments/${pdfAtt.id}/ingest`).catch(e => {
+                console.debug('Background backend ingest notice:', e)
+              })
             }
           }
         } catch (e) {
@@ -133,9 +138,8 @@ export default function StudyRoomPage() {
         return
       }
 
-      if (targetUrl.startsWith('data:') || targetUrl.startsWith('http://') || targetUrl.startsWith('https://') || targetUrl.startsWith('blob:')) {
-        const finalUrl = targetUrl.includes('#page=') ? targetUrl : `${targetUrl}#page=${targetPage}`
-        setPdfBlobUrl(finalUrl)
+      if (targetUrl.startsWith('data:') || targetUrl.startsWith('blob:')) {
+        setPdfBlobUrl(targetUrl)
         setIsPdfLoading(false)
         animateIngestion()
         return
@@ -143,22 +147,27 @@ export default function StudyRoomPage() {
 
       try {
         setIsPdfLoading(true)
-        const cleanUrl = targetUrl.startsWith('/api/v1') ? targetUrl.replace('/api/v1', '') : targetUrl
-        const response = await api.get(cleanUrl, {
-          responseType: 'blob',
-        })
-        const blob = new Blob([response.data], { type: 'application/pdf' })
-        const objectUrl = window.URL.createObjectURL(blob) + `#page=${targetPage}`
+        let blob: Blob
+        if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+          const res = await fetch(targetUrl)
+          if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+          const buffer = await res.arrayBuffer()
+          blob = new Blob([buffer], { type: 'application/pdf' })
+        } else {
+          const cleanUrl = targetUrl.startsWith('/api/v1') ? targetUrl.replace('/api/v1', '') : targetUrl
+          const response = await api.get(cleanUrl, { responseType: 'blob' })
+          blob = new Blob([response.data], { type: 'application/pdf' })
+        }
+
+        const objectUrl = window.URL.createObjectURL(blob)
         setPdfBlobUrl(objectUrl)
         setIsPdfLoading(false)
-
-        // Trigger ingest animation
         animateIngestion()
       } catch (err) {
-        console.error('Error fetching PDF', err)
-        toast.error('Failed to load PDF online. Starting in offline mode.')
+        console.error('Error fetching PDF blob, using fallback target URL', err)
+        setPdfBlobUrl(targetUrl)
         setIsPdfLoading(false)
-        setRagStatus('ready')
+        animateIngestion()
       }
     }
 
@@ -713,11 +722,10 @@ export default function StudyRoomPage() {
     // Call real backend endpoint or simulate if offline
     try {
       const sysPrompt = `You are a professional academic RAG study assistant inside AbhiIterates.OS.
-The user is studying a document attachment.
-Document Name: "${fileName}"
-Resource ID: "${resourceId}"
-
-Provide highly detailed study responses. Format mathematics equations elegantly, use clear markdown lists for key takeaways, and cite source segments when appropriate (e.g. [Page 3, Section 2]). Keep the focus strictly on the subject matter of the document. If you do not know the answer, explain honestly that it's outside the scope of the document's general topic.`
+The user is currently studying the document: "${fileName}" (Resource ID: "${resourceId}").
+Answer questions accurately based on the actual text extracted from this document.
+Format code snippets, math formulas, and lists cleanly.
+If you do not know the answer or the content is missing, state clearly what information is needed.`
 
       streamChat(
         {
@@ -919,7 +927,13 @@ Provide highly detailed study responses. Format mathematics equations elegantly,
               {pdfBlobUrl ? (
                 <iframe
                   ref={iframeRef}
-                  src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
+                  src={
+                    pdfBlobUrl.startsWith('http://') || pdfBlobUrl.startsWith('https://')
+                      ? `https://docs.google.com/gview?url=${encodeURIComponent(pdfBlobUrl)}&embedded=true`
+                      : pdfBlobUrl.includes('#')
+                        ? pdfBlobUrl
+                        : `${pdfBlobUrl}#page=${targetPage}&toolbar=0&navpanes=0`
+                  }
                   title="Study Document Reader"
                   className="w-full h-full border-none z-0"
                 />
