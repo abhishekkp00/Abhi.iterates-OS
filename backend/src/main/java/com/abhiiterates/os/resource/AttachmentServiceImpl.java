@@ -8,6 +8,8 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.abhiiterates.os.ai.ingestion.service.DocumentIngestionService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     private final ResourceAttachmentRepository attachmentRepository;
     private final Cloudinary cloudinary;
     private final CloudinaryConfig cloudinaryConfig;
+    private final ObjectProvider<DocumentIngestionService> ingestionServiceProvider;
 
     private final Path fileStorageLocation = Paths.get("uploads").toAbsolutePath().normalize();
 
@@ -119,6 +122,18 @@ public class AttachmentServiceImpl implements AttachmentService {
                 .build();
 
         ResourceAttachment saved = attachmentRepository.save(attachment);
+
+        // Auto-ingest PDF documents on upload
+        if (saved.getFileName() != null && saved.getFileName().toLowerCase().endsWith(".pdf")) {
+            ingestionServiceProvider.ifAvailable(service -> {
+                try {
+                    log.info("Triggering automatic RAG document ingestion for uploaded attachment ID [{}]", saved.getId());
+                    service.ingestAttachment(resource.getId(), saved.getId(), user);
+                } catch (Exception ex) {
+                    log.warn("Automatic document ingestion on upload failed: {}", ex.getMessage());
+                }
+            });
+        }
 
         return AttachmentResponse.builder()
                 .id(saved.getId())

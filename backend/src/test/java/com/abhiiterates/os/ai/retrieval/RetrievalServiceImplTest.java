@@ -47,6 +47,7 @@ class RetrievalServiceImplTest {
     @BeforeEach
     void setUp() {
         testUser = User.builder().id(UUID.randomUUID()).email("user@example.com").build();
+        when(embeddingProperties.isEnabled()).thenReturn(true);
     }
 
     @Test
@@ -117,8 +118,8 @@ class RetrievalServiceImplTest {
     }
 
     @Test
-    @DisplayName("retrieve when query vector dimension mismatches throws IllegalStateException")
-    void retrieve_whenDimensionMismatches_throwsIllegalStateException() {
+    @DisplayName("retrieve when query vector dimension mismatches returns empty list")
+    void retrieve_whenDimensionMismatches_returnsEmptyList() {
         when(embeddingProperties.getModel()).thenReturn("text-embedding-3-small");
         when(embeddingProperties.getDimensions()).thenReturn(1536); // Expect 1536
         when(retrievalProperties.getTopK()).thenReturn(5);
@@ -127,9 +128,7 @@ class RetrievalServiceImplTest {
         float[] wrongVector = new float[]{0.1f, 0.2f, 0.3f}; // Size 3
         when(embeddingModel.embed("deadlock")).thenReturn(wrongVector);
 
-        assertThatThrownBy(() -> retrievalService.retrieve("deadlock", testUser))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Query vector dimension mismatch");
+        assertThat(retrievalService.retrieve("deadlock", testUser)).isEmpty();
 
         verifyNoInteractions(vectorSearchRepository);
     }

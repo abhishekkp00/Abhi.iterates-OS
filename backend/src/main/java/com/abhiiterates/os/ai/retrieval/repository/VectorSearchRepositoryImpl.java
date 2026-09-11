@@ -238,4 +238,94 @@ public class VectorSearchRepositoryImpl implements VectorSearchRepository {
         }
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
+    public List<RetrievalResult> searchChunksByKeyword(
+            UUID userId,
+            String queryText,
+            int topK,
+            UUID resourceIdFilter,
+            UUID documentIdFilter) {
+
+        String sql = """
+            SELECT 
+                c.id AS chunk_id,
+                d.id AS document_id,
+                r.id AS resource_id,
+                r.title AS document_title,
+                d.file_name AS filename,
+                c.page_number AS page_number,
+                c.chunk_index AS chunk_index,
+                c.chunk_text AS text
+            FROM rag_document_chunks c
+            JOIN rag_documents d ON c.document_id = d.id
+            JOIN resources r ON d.resource_id = r.id
+            WHERE (:userId IS NULL OR r.user_id = :userId)
+              AND (:resourceIdFilter IS NULL OR r.id = :resourceIdFilter)
+              AND (:documentIdFilter IS NULL OR d.id = :documentIdFilter)
+            ORDER BY c.chunk_index ASC
+            """;
+
+        try {
+            Query query = entityManager.createNativeQuery(sql);
+            query.setParameter("userId", userId);
+            query.setParameter("resourceIdFilter", resourceIdFilter);
+            query.setParameter("documentIdFilter", documentIdFilter);
+
+            List<Object[]> rows = query.getResultList();
+
+            String[] terms = queryText != null ? queryText.toLowerCase().split("\\s+") : new String[0];
+            List<String> validTerms = java.util.Arrays.stream(terms)
+                    .filter(t -> t.length() > 2 && !java.util.Set.of("the", "and", "for", "that", "this", "with", "what", "give", "most", "which").contains(t))
+                    .toList();
+
+            record ScoredChunk(RetrievalResult result, int score, int index) {}
+            List<ScoredChunk> scoredList = new ArrayList<>();
+
+            for (Object[] row : rows) {
+                String text = (String) row[7];
+                String lowerText = text != null ? text.toLowerCase() : "";
+
+                int matches = 0;
+                for (String term : validTerms) {
+                    if (lowerText.contains(term)) {
+                        matches++;
+                    }
+                }
+
+                RetrievalResult res = RetrievalResult.builder()
+                        .chunkId(castToUuid(row[0]))
+                        .documentId(castToUuid(row[1]))
+                        .resourceId(castToUuid(row[2]))
+                        .documentTitle((String) row[3])
+                        .filename((String) row[4])
+                        .pageNumber(row[5] != null ? ((Number) row[5]).intValue() : null)
+                        .chunkIndex(row[6] != null ? ((Number) row[6]).intValue() : null)
+                        .text(text)
+                        .similarityScore(matches > 0 ? 0.75 + (0.05 * Math.min(4, matches)) : 0.60)
+                        .distanceScore(0.25)
+                        .build();
+
+                int chunkIdx = row[6] != null ? ((Number) row[6]).intValue() : 0;
+                scoredList.add(new ScoredChunk(res, matches, chunkIdx));
+            }
+
+            scoredList.sort((a, b) -> {
+                if (b.score() != a.score()) return Integer.compare(b.score(), a.score());
+                return Integer.compare(a.index(), b.index());
+            });
+
+            return scoredList.stream()
+                    .limit(topK)
+                    .map(ScoredChunk::result)
+                    .toList();
+
+        } catch (Exception ex) {
+            log.warn("Keyword chunk search failed: {}", ex.getMessage());
+            return List.of();
+        }
+    }
 }
+

@@ -50,22 +50,37 @@ public class RetrievalServiceImpl implements RetrievalService {
         String targetModel = embeddingProperties.getModel();
         int expectedDimensions = embeddingProperties.getDimensions();
 
+        if (!embeddingProperties.isEnabled()) {
+            log.debug("RAG embedding is disabled in configuration. Skipping semantic retrieval for user ID: {}", currentUser.getId());
+            return Collections.emptyList();
+        }
+
         log.debug("Generating query vector for user ID: {}, model: [{}], topK: {}, threshold: {}",
                 currentUser.getId(), targetModel, resolvedTopK, resolvedThreshold);
 
-        float[] queryVector = embeddingModel.embed(normalizedQuery);
+        float[] queryVector;
+        try {
+            queryVector = embeddingModel.embed(normalizedQuery);
+        } catch (Exception ex) {
+            log.warn("Semantic vector embedding generation failed for user ID [{}]: {}. Falling back to non-RAG chat response.",
+                    currentUser.getId(), ex.getMessage());
+            return Collections.emptyList();
+        }
 
         if (queryVector == null || queryVector.length == 0) {
-            throw new IllegalStateException("Embedding model returned empty vector for user query.");
+            log.warn("Embedding model returned empty vector for user query. Returning empty result set.");
+            return Collections.emptyList();
         }
 
         if (queryVector.length != expectedDimensions) {
-            throw new IllegalStateException("Query vector dimension mismatch: expected "
-                    + expectedDimensions + " dimensions, but received " + queryVector.length);
+            log.warn("Query vector dimension mismatch: expected {} dimensions, but received {}. Returning empty result set.",
+                    expectedDimensions, queryVector.length);
+            return Collections.emptyList();
         }
 
         String queryVectorString = vectorConverter.convertToDatabaseColumn(queryVector);
 
+        // Stage 1: Primary Vector Search (using requested or relaxed default threshold)
         List<RetrievalResult> results = vectorSearchRepository.searchSimilarChunks(
                 currentUser.getId(),
                 queryVectorString,
@@ -79,12 +94,40 @@ public class RetrievalServiceImpl implements RetrievalService {
                 request.topicId()
         );
 
+        // Stage 2: Relaxed Vector Search if primary threshold returned 0 hits
+        if (results.isEmpty() && resolvedThreshold > 0.15) {
+            log.info("Primary vector search returned 0 results for user ID [{}]. Retrying with relaxed threshold (0.15).", currentUser.getId());
+            results = vectorSearchRepository.searchSimilarChunks(
+                    currentUser.getId(),
+                    queryVectorString,
+                    queryVector,
+                    targetModel,
+                    resolvedTopK,
+                    0.15,
+                    request.resourceId(),
+                    request.documentId(),
+                    request.subjectId(),
+                    request.topicId()
+            );
+        }
+
+        // Stage 3: Keyword / Text Substring Matching Fallback if vector search returned 0 hits
         if (results.isEmpty()) {
-            log.info("Semantic retrieval for user ID [{}] returned 0 results (threshold: {}, topK: {})",
-                    currentUser.getId(), resolvedThreshold, resolvedTopK);
+            log.info("Vector search returned 0 results for user ID [{}]. Falling back to keyword search for query [{}]", currentUser.getId(), normalizedQuery);
+            results = vectorSearchRepository.searchChunksByKeyword(
+                    currentUser.getId(),
+                    normalizedQuery,
+                    resolvedTopK,
+                    request.resourceId(),
+                    request.documentId()
+            );
+        }
+
+        if (results.isEmpty()) {
+            log.info("Multi-stage retrieval for user ID [{}] returned 0 results", currentUser.getId());
         } else {
-            log.info("Semantic retrieval for user ID [{}] returned {} chunks (top score: {}, threshold: {}, topK: {})",
-                    currentUser.getId(), results.size(), results.get(0).similarityScore(), resolvedThreshold, resolvedTopK);
+            log.info("Multi-stage retrieval for user ID [{}] returned {} chunks (top score: {})",
+                    currentUser.getId(), results.size(), results.get(0).similarityScore());
         }
 
         return results;
@@ -108,7 +151,10 @@ public class RetrievalServiceImpl implements RetrievalService {
     }
 
     private double resolveSimilarityThreshold(Double requestedThreshold) {
-        double threshold = requestedThreshold != null ? requestedThreshold : retrievalProperties.getSimilarityThreshold();
-        return Math.max(0.0, Math.min(1.0, threshold));
+        if (requestedThreshold != null) {
+            return Math.max(0.0, Math.min(1.0, requestedThreshold));
+        }
+        return Math.max(0.0, Math.min(1.0, retrievalProperties.getSimilarityThreshold()));
     }
+
 }

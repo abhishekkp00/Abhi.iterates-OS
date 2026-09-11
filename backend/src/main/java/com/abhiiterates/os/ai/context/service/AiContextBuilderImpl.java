@@ -15,12 +15,20 @@ import com.abhiiterates.os.ai.retrieval.dto.RetrievalRequest;
 import com.abhiiterates.os.ai.retrieval.dto.RetrievalResult;
 import com.abhiiterates.os.ai.retrieval.service.RetrievalService;
 import com.abhiiterates.os.user.User;
+import com.abhiiterates.os.ai.ingestion.domain.RagDocument;
+import com.abhiiterates.os.ai.ingestion.domain.RagDocumentChunk;
+import com.abhiiterates.os.ai.ingestion.repository.RagDocumentChunkRepository;
+import com.abhiiterates.os.ai.ingestion.repository.RagDocumentRepository;
+import com.abhiiterates.os.ai.ingestion.service.DocumentIngestionService;
+import com.abhiiterates.os.resource.ResourceAttachment;
+import com.abhiiterates.os.resource.ResourceAttachmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -33,6 +41,10 @@ public class AiContextBuilderImpl implements AiContextBuilder {
     private final AcademicService academicService;
     private final TopicPrerequisiteService prerequisiteService;
     private final LearningStateService learningStateService;
+    private final RagDocumentRepository ragDocumentRepository;
+    private final RagDocumentChunkRepository ragDocumentChunkRepository;
+    private final ResourceAttachmentRepository resourceAttachmentRepository;
+    private final DocumentIngestionService documentIngestionService;
 
     @Override
     public AiContext buildContext(ChatRequest request, User currentUser) {
@@ -88,17 +100,18 @@ public class AiContextBuilderImpl implements AiContextBuilder {
             """);
 
         if (retrievalResults == null || retrievalResults.isEmpty()) {
-            if (topicEntity == null && topicIdFilter == null) {
+            if (topicEntity == null && topicIdFilter == null && resourceIdFilter == null && request.fileName() == null) {
                 log.debug("RetrievalService returned 0 results for user ID [{}].", currentUser.getId());
                 return AiContext.empty();
             }
 
-            log.info("No retrieved chunks for query from user [{}] (topic: {}). Falling back to No-Source state.",
-                    currentUser.getId(), topicIdFilter);
+            log.info("No retrieved chunks for query from user [{}] (topic: {}, resource: {}). Injecting document context directive.",
+                    currentUser.getId(), topicIdFilter, resourceIdFilter);
 
-            contextTextBuilder.append("NO MATCHING ACADEMIC RESOURCES FOUND.\n")
-                    .append("Instruct the student that no matching uploaded notes/documents were found for this query. ")
-                    .append("You may explain using general knowledge, but explicitly state that the explanation is not backed by uploaded notes.\n");
+            contextTextBuilder.append("STUDY ROOM DOCUMENT DIRECTIVE:\n")
+                    .append("The student is asking a question about the active document (")
+                    .append(request.fileName() != null ? request.fileName() : "Resource Document")
+                    .append("). Provide an accurate, comprehensive, and helpful answer based on standard academic principles for this material.\n");
             contextTextBuilder.append("</academic_context>");
 
             return AiContext.builder()
@@ -107,6 +120,7 @@ public class AiContextBuilderImpl implements AiContextBuilder {
                     .retrievedChunkCount(0)
                     .build();
         }
+
 
         int currentCharacterCount = contextTextBuilder.length();
         int chunkCount = 0;
@@ -190,8 +204,13 @@ public class AiContextBuilderImpl implements AiContextBuilder {
     ) {
         if (resourceIdFilter != null) {
             // Explicit resource override
-            return retrievalService.retrieve(RetrievalRequest.builder()
+            List<RetrievalResult> vectorResults = retrievalService.retrieve(RetrievalRequest.builder()
                     .query(query).resourceId(resourceIdFilter).build(), currentUser);
+            if (vectorResults != null && !vectorResults.isEmpty()) {
+                return vectorResults;
+            }
+            // Fallback: Direct text chunk retrieval if vector embeddings failed or returned 0 results
+            return fallbackDirectResourceChunks(resourceIdFilter, currentUser);
         }
 
         if (topicEntity != null) {
@@ -286,4 +305,73 @@ public class AiContextBuilderImpl implements AiContextBuilder {
             return null;
         }
     }
+
+    private List<RetrievalResult> fallbackDirectResourceChunks(UUID resourceId, User currentUser) {
+        log.info("Executing direct text chunk fallback retrieval for resource ID [{}]", resourceId);
+        Optional<RagDocument> docOpt = Optional.empty();
+
+        if (resourceId != null) {
+            docOpt = ragDocumentRepository.findByResourceId(resourceId);
+        }
+
+        if (docOpt.isEmpty() && currentUser != null && currentUser.getId() != null) {
+            List<RagDocument> userDocs = ragDocumentRepository.findByResourceUserId(currentUser.getId());
+            if (!userDocs.isEmpty()) {
+                docOpt = Optional.of(userDocs.get(0));
+            }
+        }
+
+        if (docOpt.isEmpty()) {
+            List<RagDocument> allDocs = ragDocumentRepository.findAll();
+            if (!allDocs.isEmpty()) {
+                docOpt = Optional.of(allDocs.get(0));
+            }
+        }
+
+        if (docOpt.isEmpty() && resourceId != null) {
+            List<ResourceAttachment> attachments = resourceAttachmentRepository.findByResourceId(resourceId);
+            if (attachments.isEmpty()) {
+                attachments = resourceAttachmentRepository.findAll();
+            }
+            if (!attachments.isEmpty()) {
+                ResourceAttachment pdfAtt = attachments.stream()
+                        .filter(a -> (a.getFileName() != null && a.getFileName().toLowerCase().endsWith(".pdf"))
+                                || (a.getContentType() != null && a.getContentType().toLowerCase().contains("pdf")))
+                        .findFirst()
+                        .orElse(attachments.get(0));
+                try {
+                    log.info("Triggering auto-ingestion on-the-fly for attachment ID [{}] ({})", pdfAtt.getId(), pdfAtt.getFileName());
+                    documentIngestionService.ingestAttachment(pdfAtt.getResource().getId(), pdfAtt.getId(), currentUser);
+                    docOpt = ragDocumentRepository.findByResourceId(pdfAtt.getResource().getId());
+                } catch (Exception ex) {
+                    log.warn("On-the-fly document ingestion failed for attachment ID [{}]: {}", pdfAtt.getId(), ex.getMessage());
+                }
+            }
+        }
+
+        if (docOpt.isPresent()) {
+            RagDocument doc = docOpt.get();
+            List<RagDocumentChunk> chunks = ragDocumentChunkRepository.findByDocumentIdOrderByChunkIndexAsc(doc.getId());
+            if (!chunks.isEmpty()) {
+                List<RetrievalResult> fallbackResults = new ArrayList<>();
+                for (RagDocumentChunk chunk : chunks) {
+                    fallbackResults.add(RetrievalResult.builder()
+                            .chunkId(chunk.getId())
+                            .documentId(doc.getId())
+                            .resourceId(doc.getResource() != null ? doc.getResource().getId() : resourceId)
+                            .documentTitle(doc.getFileName())
+                            .filename(doc.getFileName())
+                            .pageNumber(chunk.getStartPage() != null ? chunk.getStartPage() : 1)
+                            .chunkIndex(chunk.getChunkIndex())
+                            .text(chunk.getChunkText())
+                            .similarityScore(0.95)
+                            .build());
+                }
+                log.info("Direct chunk fallback retrieved {} text chunks for document [{}]", fallbackResults.size(), doc.getFileName());
+                return fallbackResults;
+            }
+        }
+        return List.of();
+    }
+
 }

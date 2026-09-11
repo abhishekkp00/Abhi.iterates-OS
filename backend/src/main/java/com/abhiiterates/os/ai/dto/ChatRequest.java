@@ -22,9 +22,20 @@ public record ChatRequest(
         String topicId,
 
         /** Optional controlled tutoring mode (EXPLAIN, SUMMARY, DEEP_DIVE, REVISION, QUESTION) */
-        TutorMode tutorMode
+        TutorMode tutorMode,
+
+        /** Optional file name for on-the-fly document matching */
+        String fileName,
+
+        /** Optional download URL for on-the-fly document extraction */
+        String downloadUrl
 ) {
     public ChatRequest(String conversationId, String message, String systemPrompt, String resourceId) {
-        this(conversationId, message, systemPrompt, resourceId, null, null);
+        this(conversationId, message, systemPrompt, resourceId, null, null, null, null);
+    }
+
+    public ChatRequest(String conversationId, String message, String systemPrompt, String resourceId, String topicId, TutorMode tutorMode) {
+        this(conversationId, message, systemPrompt, resourceId, topicId, tutorMode, null, null);
     }
 }
+
