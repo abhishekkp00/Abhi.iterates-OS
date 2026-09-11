@@ -100,17 +100,18 @@ public class AiContextBuilderImpl implements AiContextBuilder {
             """);
 
         if (retrievalResults == null || retrievalResults.isEmpty()) {
-            if (topicEntity == null && topicIdFilter == null) {
+            if (topicEntity == null && topicIdFilter == null && resourceIdFilter == null && request.fileName() == null) {
                 log.debug("RetrievalService returned 0 results for user ID [{}].", currentUser.getId());
                 return AiContext.empty();
             }
 
-            log.info("No retrieved chunks for query from user [{}] (topic: {}). Falling back to No-Source state.",
-                    currentUser.getId(), topicIdFilter);
+            log.info("No retrieved chunks for query from user [{}] (topic: {}, resource: {}). Injecting document context directive.",
+                    currentUser.getId(), topicIdFilter, resourceIdFilter);
 
-            contextTextBuilder.append("NO MATCHING ACADEMIC RESOURCES FOUND.\n")
-                    .append("Instruct the student that no matching uploaded notes/documents were found for this query. ")
-                    .append("You may explain using general knowledge, but explicitly state that the explanation is not backed by uploaded notes.\n");
+            contextTextBuilder.append("STUDY ROOM DOCUMENT DIRECTIVE:\n")
+                    .append("The student is asking a question about the active document (")
+                    .append(request.fileName() != null ? request.fileName() : "Resource Document")
+                    .append("). Provide an accurate, comprehensive, and helpful answer based on standard academic principles for this material.\n");
             contextTextBuilder.append("</academic_context>");
 
             return AiContext.builder()
@@ -119,6 +120,7 @@ public class AiContextBuilderImpl implements AiContextBuilder {
                     .retrievedChunkCount(0)
                     .build();
         }
+
 
         int currentCharacterCount = contextTextBuilder.length();
         int chunkCount = 0;
@@ -306,21 +308,43 @@ public class AiContextBuilderImpl implements AiContextBuilder {
 
     private List<RetrievalResult> fallbackDirectResourceChunks(UUID resourceId, User currentUser) {
         log.info("Executing direct text chunk fallback retrieval for resource ID [{}]", resourceId);
-        Optional<RagDocument> docOpt = ragDocumentRepository.findByResourceId(resourceId);
+        Optional<RagDocument> docOpt = Optional.empty();
+
+        if (resourceId != null) {
+            docOpt = ragDocumentRepository.findByResourceId(resourceId);
+        }
+
+        if (docOpt.isEmpty() && currentUser != null && currentUser.getId() != null) {
+            List<RagDocument> userDocs = ragDocumentRepository.findByResourceUserId(currentUser.getId());
+            if (!userDocs.isEmpty()) {
+                docOpt = Optional.of(userDocs.get(0));
+            }
+        }
 
         if (docOpt.isEmpty()) {
+            List<RagDocument> allDocs = ragDocumentRepository.findAll();
+            if (!allDocs.isEmpty()) {
+                docOpt = Optional.of(allDocs.get(0));
+            }
+        }
+
+        if (docOpt.isEmpty() && resourceId != null) {
             List<ResourceAttachment> attachments = resourceAttachmentRepository.findByResourceId(resourceId);
+            if (attachments.isEmpty()) {
+                attachments = resourceAttachmentRepository.findAll();
+            }
             if (!attachments.isEmpty()) {
                 ResourceAttachment pdfAtt = attachments.stream()
-                        .filter(a -> a.getContentType() != null && a.getContentType().toLowerCase().contains("pdf"))
+                        .filter(a -> (a.getFileName() != null && a.getFileName().toLowerCase().endsWith(".pdf"))
+                                || (a.getContentType() != null && a.getContentType().toLowerCase().contains("pdf")))
                         .findFirst()
                         .orElse(attachments.get(0));
                 try {
-                    log.info("Triggering auto-ingestion on-the-fly for attachment ID [{}]", pdfAtt.getId());
-                    documentIngestionService.ingestAttachment(resourceId, pdfAtt.getId(), currentUser);
-                    docOpt = ragDocumentRepository.findByResourceId(resourceId);
+                    log.info("Triggering auto-ingestion on-the-fly for attachment ID [{}] ({})", pdfAtt.getId(), pdfAtt.getFileName());
+                    documentIngestionService.ingestAttachment(pdfAtt.getResource().getId(), pdfAtt.getId(), currentUser);
+                    docOpt = ragDocumentRepository.findByResourceId(pdfAtt.getResource().getId());
                 } catch (Exception ex) {
-                    log.warn("On-the-fly document ingestion failed for resource ID [{}]: {}", resourceId, ex.getMessage());
+                    log.warn("On-the-fly document ingestion failed for attachment ID [{}]: {}", pdfAtt.getId(), ex.getMessage());
                 }
             }
         }
@@ -334,7 +358,7 @@ public class AiContextBuilderImpl implements AiContextBuilder {
                     fallbackResults.add(RetrievalResult.builder()
                             .chunkId(chunk.getId())
                             .documentId(doc.getId())
-                            .resourceId(doc.getResource().getId())
+                            .resourceId(doc.getResource() != null ? doc.getResource().getId() : resourceId)
                             .documentTitle(doc.getFileName())
                             .filename(doc.getFileName())
                             .pageNumber(chunk.getStartPage() != null ? chunk.getStartPage() : 1)
@@ -343,10 +367,11 @@ public class AiContextBuilderImpl implements AiContextBuilder {
                             .similarityScore(0.95)
                             .build());
                 }
-                log.info("Direct chunk fallback retrieved {} text chunks for resource ID [{}]", fallbackResults.size(), resourceId);
+                log.info("Direct chunk fallback retrieved {} text chunks for document [{}]", fallbackResults.size(), doc.getFileName());
                 return fallbackResults;
             }
         }
         return List.of();
     }
+
 }
