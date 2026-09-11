@@ -36,4 +36,13 @@ public interface VectorSearchRepository {
                 null, null
         );
     }
+
+    List<RetrievalResult> searchChunksByKeyword(
+            UUID userId,
+            String queryText,
+            int topK,
+            UUID resourceIdFilter,
+            UUID documentIdFilter
+    );
 }
+
