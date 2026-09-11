@@ -732,6 +732,8 @@ If you do not know the answer or the content is missing, state clearly what info
           message: userMsg,
           systemPrompt: sysPrompt,
           resourceId: resourceId,
+          fileName: fileName,
+          downloadUrl: downloadUrl,
         },
         {
           onToken: (chunk) => {
