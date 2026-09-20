@@ -1,5 +1,6 @@
 package com.abhiiterates.os.ai.ingestion.service;
 
+import com.abhiiterates.os.ai.ingestion.config.RagIngestionProperties;
 import com.abhiiterates.os.ai.ingestion.domain.RagDocument;
 import com.abhiiterates.os.ai.ingestion.domain.RagDocumentChunk;
 import com.abhiiterates.os.ai.ingestion.dto.ChunkResponse;
@@ -20,6 +21,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,50 +35,25 @@ import java.util.UUID;
 /**
  * DocumentIngestionServiceImpl — production-grade Spring AI RAG ingestion pipeline.
  *
- * Pipeline:
- *  1. Validate attachment ownership (resource belongs to authenticated user)
- *  2. Create / reset RagDocument lifecycle record (PROCESSING state)
- *  3. Download attachment bytes via AttachmentService
- *  4. Parse PDF into pages → List{@code <Document>} using Spring AI PagePdfDocumentReader
- *  5. Chunk pages into smaller segments via Spring AI TokenTextSplitter
- *  6. Enrich each chunk's metadata:
- *       userId, resourceId, attachmentId, documentId, fileName, contentType,
- *       chunkIndex, pageNumber
- *  7. Embed + persist chunks into ai_vector_store via VectorStore.add()
- *     (EmbeddingModel is called internally by VectorStore — no manual embed())
- *  8. Persist RagDocumentChunk rows (text only) for status / DTO responses
- *  9. Mark RagDocument status = COMPLETED, embeddingStatus = COMPLETED
+ * Target Pipeline:
+ * Uploaded Attachment → DocumentReader → List<Document> → TokenTextSplitter → Metadata Enrichment → VectorStore.add()
  *
- * Security invariant:
- *   userId is injected into every Document's metadata map BEFORE VectorStore.add().
- *   All subsequent similaritySearch() calls enforce a userId filter expression.
+ * Security & Idempotency:
+ * - Delete prior vectors for attachmentId before indexing new ones (idempotent re-indexing).
+ * - Inject userId into chunk metadata for mandatory tenant-isolated RAG security.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class DocumentIngestionServiceImpl implements DocumentIngestionService {
 
-    // ── Spring AI ──────────────────────────────────────────────────────────────
     private final VectorStore vectorStore;
-
-    // ── Repositories + Services ────────────────────────────────────────────────
     private final ResourceAttachmentRepository attachmentRepository;
     private final RagDocumentRepository ragDocumentRepository;
     private final RagDocumentChunkRepository ragDocumentChunkRepository;
     private final AttachmentService attachmentService;
     private final IngestionTxHelper txHelper;
-
-    // ── Chunking parameters ────────────────────────────────────────────────────
-    /** Target token count per chunk (≈ 800 tokens ~ 600 words). */
-    private static final int DEFAULT_CHUNK_SIZE   = 800;
-    /** Minimum character count for a valid chunk (discards micro-fragments). */
-    private static final int MIN_CHUNK_SIZE_CHARS = 350;
-    /** Minimum characters for a chunk to be embedded (skip near-empty stubs). */
-    private static final int MIN_CHUNK_TO_EMBED   = 5;
-    /** Hard cap on chunks per document (prevents unbounded memory use). */
-    private static final int MAX_NUM_CHUNKS       = 10_000;
-
-    // ── Public API ─────────────────────────────────────────────────────────────
+    private final RagIngestionProperties ingestionProperties;
 
     @Override
     public IngestionResponse ingestAttachment(UUID resourceId, UUID attachmentId, User currentUser) {
@@ -92,7 +69,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
                     + ". Only PDF documents are currently supported.");
         }
 
-        // Step 1: Create / reset RagDocument lifecycle record
+        // Step 1: Create / reset RagDocument lifecycle record (PROCESSING state)
         RagDocument ragDoc = txHelper.saveInitialStatus(attachment);
 
         try {
@@ -101,12 +78,8 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
                     attachmentService.download(attachmentId, currentUser);
 
             // Step 3: Parse PDF via Spring AI PagePdfDocumentReader
-            //   One Document per page; metadata includes "page_number" (1-based).
-            //   We open the InputStream only to confirm the resource is readable,
-            //   then pass the Resource directly to PagePdfDocumentReader.
             List<Document> rawDocs;
             try (InputStream probe = resourceFile.getInputStream()) {
-                // confirm stream opens — PagePdfDocumentReader may re-open it
                 if (probe == null) {
                     throw new IllegalStateException("Attachment stream is empty for ID: " + attachmentId);
                 }
@@ -121,13 +94,13 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             log.debug("PDF parsed: {} raw page documents for attachment [{}]",
                     rawDocs.size(), attachmentId);
 
-            // Step 4: Chunk pages via Spring AI TokenTextSplitter
+            // Step 4: Chunk pages via Spring AI TokenTextSplitter using configurable properties
             TokenTextSplitter splitter = TokenTextSplitter.builder()
-                    .withChunkSize(DEFAULT_CHUNK_SIZE)
-                    .withMinChunkSizeChars(MIN_CHUNK_SIZE_CHARS)
-                    .withMinChunkLengthToEmbed(MIN_CHUNK_TO_EMBED)
-                    .withMaxNumChunks(MAX_NUM_CHUNKS)
-                    .withKeepSeparator(true)
+                    .withChunkSize(ingestionProperties.getChunkSize())
+                    .withMinChunkSizeChars(ingestionProperties.getMinChunkSizeChars())
+                    .withMinChunkLengthToEmbed(ingestionProperties.getMinChunkLengthToEmbed())
+                    .withMaxNumChunks(ingestionProperties.getMaxNumChunks())
+                    .withKeepSeparator(ingestionProperties.isKeepSeparator())
                     .build();
             List<Document> chunks = rawDocs.isEmpty() ? List.of() : splitter.apply(rawDocs);
 
@@ -147,7 +120,6 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             List<ChunkOutput>   chunkOutputs   = new ArrayList<>(chunks.size());
             List<ExtractedPage> syntheticPages  = new ArrayList<>(rawDocs.size());
 
-            // Build synthetic page list for ExtractedDocument bridge to IngestionTxHelper
             for (int p = 0; p < rawDocs.size(); p++) {
                 Document page = rawDocs.get(p);
                 syntheticPages.add(new ExtractedPage(p + 1, page.getText() != null ? page.getText() : ""));
@@ -156,11 +128,9 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             for (int i = 0; i < chunks.size(); i++) {
                 Document chunk = chunks.get(i);
 
-                // PagePdfDocumentReader sets "page_number" (1-based integer) in metadata
                 Object rawPage = chunk.getMetadata().get("page_number");
                 int pageNumber = (rawPage instanceof Number n) ? n.intValue() : 1;
 
-                // Enriched metadata map: copy existing reader metadata + add mandatory fields
                 Map<String, Object> meta = new HashMap<>(chunk.getMetadata());
                 meta.put("userId",       userIdStr);         // MANDATORY security scope key
                 meta.put("resourceId",   resourceIdStr);
@@ -169,18 +139,26 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
                 meta.put("fileName",     fileName);
                 meta.put("contentType",  contentType);
                 meta.put("chunkIndex",   i);
-                meta.put("pageNumber",   pageNumber);         // normalised; always present
+                meta.put("pageNumber",   pageNumber);
 
                 enrichedChunks.add(new Document(chunk.getText(), meta));
 
-                // Persist chunk text in relational table for getIngestionStatus() DTO
                 String text = chunk.getText() != null ? chunk.getText() : "";
                 chunkOutputs.add(new ChunkOutput(
                         i, pageNumber, pageNumber, pageNumber, text, text.length()));
             }
 
-            // Step 6: Embed + persist to ai_vector_store via VectorStore.add()
-            //   PgVectorStore internally calls EmbeddingModel.embed() for each chunk.
+            // Step 6: Idempotent clean-up — delete existing vectors for attachmentId before inserting new chunks
+            try {
+                FilterExpressionBuilder b = new FilterExpressionBuilder();
+                vectorStore.delete(b.eq("attachmentId", attachmentIdStr).build());
+                log.debug("Cleared existing vectors for attachment [{}]", attachmentIdStr);
+            } catch (Exception ex) {
+                log.warn("VectorStore delete prior to re-indexing returned warning for attachment [{}]: {}",
+                        attachmentIdStr, ex.getMessage());
+            }
+
+            // Step 7: Embed + persist to ai_vector_store via VectorStore.add()
             if (!enrichedChunks.isEmpty()) {
                 log.info("Calling VectorStore.add() with {} enriched chunks for attachment [{}]",
                         enrichedChunks.size(), attachmentId);
@@ -190,20 +168,17 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
                 log.warn("No chunks produced for attachment [{}]. VectorStore not called.", attachmentId);
             }
 
-            // Step 7: Save chunk text rows + mark RagDocument COMPLETED
+            // Step 8: Save chunk text rows + mark RagDocument INDEXED
             long totalChars = chunkOutputs.stream().mapToLong(ChunkOutput::charCount).sum();
-            // Content hash encodes size signature for idempotency detection
             String contentHash = totalChars + "-" + rawDocs.size() + "-" + chunks.size();
 
             ExtractedDocument extractedDoc = new ExtractedDocument(
                     fileName, rawDocs.size(), syntheticPages, contentHash, totalChars);
 
             ragDoc = txHelper.saveChunksAndComplete(ragDoc, extractedDoc, chunkOutputs);
-
-            // Step 8: Mark embeddingStatus = COMPLETED (VectorStore.add handled embedding)
             ragDoc = txHelper.markEmbeddingCompleted(ragDoc);
 
-            log.info("Ingestion COMPLETED for attachment [{}]: {} pages, {} chunks, {} total chars",
+            log.info("Ingestion INDEXED for attachment [{}]: {} pages, {} chunks, {} total chars",
                     attachmentId, ragDoc.getPageCount(), ragDoc.getChunkCount(), totalChars);
 
             return mapToResponse(ragDoc, true);
@@ -228,8 +203,6 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
         return mapToResponse(ragDoc, true);
     }
 
-    // ── Private helpers ────────────────────────────────────────────────────────
-
     private ResourceAttachment validateAttachmentOwnership(
             UUID resourceId, UUID attachmentId, User currentUser) {
         ResourceAttachment attachment = attachmentRepository.findByIdWithResourceAndUser(attachmentId)
@@ -244,10 +217,6 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
         return attachment;
     }
 
-    /**
-     * Returns {@code true} when the MIME type or file extension indicates PDF.
-     * Only PDF is supported via Spring AI {@link PagePdfDocumentReader}.
-     */
     private boolean isSupportedContentType(String contentType, String fileName) {
         if (contentType != null && contentType.toLowerCase().contains("pdf")) return true;
         return fileName != null && fileName.toLowerCase().endsWith(".pdf");

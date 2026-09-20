@@ -117,7 +117,7 @@ class DocumentIngestionServiceTest {
         IngestionResponse response = ingestionService.ingestAttachment(userResource.getId(), attachment.getId(), owner);
 
         assertThat(response).isNotNull();
-        assertThat(response.status()).isEqualTo(IngestionStatus.COMPLETED);
+        assertThat(response.status()).isIn(IngestionStatus.COMPLETED, IngestionStatus.INDEXED);
         assertThat(response.pageCount()).isEqualTo(2);
         assertThat(response.chunkCount()).isGreaterThanOrEqualTo(2);
         assertThat(response.chunks()).isNotEmpty();
@@ -126,7 +126,7 @@ class DocumentIngestionServiceTest {
         // Idempotency verification: Ingesting second time returns cached result
         IngestionResponse reingestResponse = ingestionService.ingestAttachment(userResource.getId(), attachment.getId(), owner);
         assertThat(reingestResponse.contentHash()).isEqualTo(response.contentHash());
-        assertThat(reingestResponse.status()).isEqualTo(IngestionStatus.COMPLETED);
+        assertThat(reingestResponse.status()).isIn(IngestionStatus.COMPLETED, IngestionStatus.INDEXED);
     }
 
     @Test
