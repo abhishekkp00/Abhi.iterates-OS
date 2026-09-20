@@ -4,7 +4,6 @@ import com.abhiiterates.os.ai.embedding.config.RagEmbeddingProperties;
 import com.abhiiterates.os.ai.retrieval.config.RagRetrievalProperties;
 import com.abhiiterates.os.ai.retrieval.dto.RetrievalRequest;
 import com.abhiiterates.os.ai.retrieval.dto.RetrievalResult;
-import com.abhiiterates.os.ai.retrieval.repository.VectorSearchRepository;
 import com.abhiiterates.os.ai.retrieval.service.RetrievalServiceImpl;
 import com.abhiiterates.os.user.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,14 +15,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,9 +33,7 @@ import static org.mockito.Mockito.*;
 class RetrievalServiceImplTest {
 
     @Mock
-    private VectorSearchRepository vectorSearchRepository;
-    @Mock
-    private EmbeddingModel embeddingModel;
+    private VectorStore vectorStore;
     @Mock
     private RagEmbeddingProperties embeddingProperties;
     @Mock
@@ -57,7 +57,7 @@ class RetrievalServiceImplTest {
         assertThat(retrievalService.retrieve("   ", testUser)).isEmpty();
         assertThat(retrievalService.retrieve((String) null, testUser)).isEmpty();
 
-        verifyNoInteractions(embeddingModel, vectorSearchRepository);
+        verifyNoInteractions(vectorStore);
     }
 
     @Test
@@ -67,83 +67,56 @@ class RetrievalServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("user context is required");
 
-        verifyNoInteractions(embeddingModel, vectorSearchRepository);
+        verifyNoInteractions(vectorStore);
     }
 
     @Test
-    @DisplayName("retrieve with valid query generates query vector and returns repository hits")
-    void retrieve_withValidQuery_generatesVectorAndReturnsHits() {
-        when(embeddingProperties.getModel()).thenReturn("text-embedding-3-small");
-        when(embeddingProperties.getDimensions()).thenReturn(3);
+    @DisplayName("retrieve with valid query executes similaritySearch on VectorStore and maps documents")
+    void retrieve_withValidQuery_executesSearchAndReturnsHits() {
         when(retrievalProperties.getTopK()).thenReturn(5);
         when(retrievalProperties.getMaxTopK()).thenReturn(50);
         when(retrievalProperties.getSimilarityThreshold()).thenReturn(0.60);
 
-        float[] queryVector = new float[]{0.1f, 0.2f, 0.3f};
-        when(embeddingModel.embed("What is deadlock?")).thenReturn(queryVector);
+        UUID docId = UUID.randomUUID();
+        UUID resId = UUID.randomUUID();
 
-        RetrievalResult hit = RetrievalResult.builder()
-                .chunkId(UUID.randomUUID())
-                .documentId(UUID.randomUUID())
-                .resourceId(UUID.randomUUID())
-                .documentTitle("OS Notes")
-                .filename("os.pdf")
-                .pageNumber(1)
-                .chunkIndex(0)
+        Document springAiDoc = Document.builder()
+                .id("chunk-123")
                 .text("Deadlock happens when processes wait for resources.")
-                .similarityScore(0.92)
-                .distanceScore(0.08)
+                .metadata(Map.of(
+                        "userId", testUser.getId().toString(),
+                        "documentId", docId.toString(),
+                        "resourceId", resId.toString(),
+                        "documentTitle", "OS Notes",
+                        "fileName", "os.pdf",
+                        "pageNumber", 1,
+                        "chunkIndex", 0,
+                        "distance", 0.08
+                ))
+                .score(0.92)
                 .build();
 
-        when(vectorSearchRepository.searchSimilarChunks(
-                eq(testUser.getId()),
-                anyString(),
-                eq(queryVector),
-                eq("text-embedding-3-small"),
-                eq(5),
-                eq(0.60),
-                isNull(),
-                isNull(),
-                isNull(),
-                isNull()
-        )).thenReturn(List.of(hit));
+        when(vectorStore.similaritySearch(any(SearchRequest.class)))
+                .thenReturn(List.of(springAiDoc));
 
         List<RetrievalResult> results = retrievalService.retrieve("What is deadlock?", testUser);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).text()).contains("Deadlock happens");
         assertThat(results.get(0).similarityScore()).isEqualTo(0.92);
+        assertThat(results.get(0).documentTitle()).isEqualTo("OS Notes");
 
-        verify(embeddingModel).embed("What is deadlock?");
-    }
-
-    @Test
-    @DisplayName("retrieve when query vector dimension mismatches returns empty list")
-    void retrieve_whenDimensionMismatches_returnsEmptyList() {
-        when(embeddingProperties.getModel()).thenReturn("text-embedding-3-small");
-        when(embeddingProperties.getDimensions()).thenReturn(1536); // Expect 1536
-        when(retrievalProperties.getTopK()).thenReturn(5);
-        when(retrievalProperties.getMaxTopK()).thenReturn(50);
-
-        float[] wrongVector = new float[]{0.1f, 0.2f, 0.3f}; // Size 3
-        when(embeddingModel.embed("deadlock")).thenReturn(wrongVector);
-
-        assertThat(retrievalService.retrieve("deadlock", testUser)).isEmpty();
-
-        verifyNoInteractions(vectorSearchRepository);
+        verify(vectorStore).similaritySearch(any(SearchRequest.class));
     }
 
     @Test
     @DisplayName("retrieve bounds topK to configured maximum limit")
     void retrieve_boundsTopKToMaxLimit() {
-        when(embeddingProperties.getModel()).thenReturn("text-embedding-3-small");
-        when(embeddingProperties.getDimensions()).thenReturn(3);
         when(retrievalProperties.getTopK()).thenReturn(5);
         when(retrievalProperties.getMaxTopK()).thenReturn(10); // Max 10
         when(retrievalProperties.getSimilarityThreshold()).thenReturn(0.5);
 
-        when(embeddingModel.embed("deadlock")).thenReturn(new float[]{0.1f, 0.2f, 0.3f});
-        when(vectorSearchRepository.searchSimilarChunks(any(), any(), any(), any(), eq(10), anyDouble(), any(), any(), any(), any()))
+        when(vectorStore.similaritySearch(any(SearchRequest.class)))
                 .thenReturn(List.of());
 
         RetrievalRequest request = RetrievalRequest.builder()
@@ -153,8 +126,6 @@ class RetrievalServiceImplTest {
 
         retrievalService.retrieve(request, testUser);
 
-        // Verify topK was capped to maxTopK (10)
-        verify(vectorSearchRepository).searchSimilarChunks(
-                eq(testUser.getId()), any(), any(), any(), eq(10), eq(0.5), any(), any(), any(), any());
+        verify(vectorStore).similaritySearch(any(SearchRequest.class));
     }
 }

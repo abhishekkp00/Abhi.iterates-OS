@@ -5,7 +5,6 @@ import com.abhiiterates.os.ai.context.service.AiContextBuilderImpl;
 import com.abhiiterates.os.ai.dto.ChatRequest;
 import com.abhiiterates.os.ai.retrieval.dto.RetrievalRequest;
 import com.abhiiterates.os.ai.retrieval.dto.RetrievalResult;
-import com.abhiiterates.os.ai.retrieval.repository.VectorSearchRepository;
 import com.abhiiterates.os.ai.retrieval.service.RetrievalService;
 import com.abhiiterates.os.user.User;
 import org.junit.jupiter.api.BeforeEach;
