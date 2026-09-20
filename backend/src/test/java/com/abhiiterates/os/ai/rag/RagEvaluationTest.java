@@ -105,8 +105,11 @@ public class RagEvaluationTest {
 
     @BeforeEach
     void setUp() {
-        float[] unitVec = new float[1536];
-        unitVec[0] = 1.0f;
+        float[] tlbVec = new float[1536];
+        tlbVec[0] = 1.0f;
+
+        float[] pageFaultVec = new float[1536];
+        pageFaultVec[2] = 1.0f;
 
         float[] outOfCorpus = new float[1536];
         outOfCorpus[1] = 1.0f;
@@ -114,15 +117,27 @@ public class RagEvaluationTest {
         when(embeddingModel.embed(org.mockito.ArgumentMatchers.any(Document.class))).thenAnswer(inv -> {
             Document doc = inv.getArgument(0);
             String text = doc != null ? doc.getText() : null;
-            if (text != null && (text.toLowerCase().contains("tlb") || text.toLowerCase().contains("virtual memory") || text.toLowerCase().contains("paging") || text.toLowerCase().contains("page table") || text.toLowerCase().contains("os"))) {
-                return unitVec;
+            if (text != null) {
+                String lower = text.toLowerCase();
+                if (lower.contains("tlb") || lower.contains("translation lookaside buffer")) {
+                    return tlbVec;
+                }
+                if (lower.contains("page fault") || lower.contains("virtual memory") || lower.contains("paging") || lower.contains("page table")) {
+                    return pageFaultVec;
+                }
             }
             return outOfCorpus;
         });
         when(embeddingModel.embed(anyString())).thenAnswer(inv -> {
             String q = inv.getArgument(0);
-            if (q != null && (q.toLowerCase().contains("tlb") || q.toLowerCase().contains("virtual memory") || q.toLowerCase().contains("paging") || q.toLowerCase().contains("page table") || q.toLowerCase().contains("os"))) {
-                return unitVec;
+            if (q != null) {
+                String lower = q.toLowerCase();
+                if (lower.contains("tlb") || lower.contains("translation lookaside buffer")) {
+                    return tlbVec;
+                }
+                if (lower.contains("page fault") || lower.contains("virtual memory") || lower.contains("paging") || lower.contains("page table")) {
+                    return pageFaultVec;
+                }
             }
             return outOfCorpus;
         });
@@ -130,7 +145,21 @@ public class RagEvaluationTest {
                 .thenAnswer(inv -> {
                     List<?> l = inv.getArgument(0);
                     List<float[]> res = new java.util.ArrayList<>();
-                    for (int i = 0; i < l.size(); i++) res.add(unitVec);
+                    for (Object item : l) {
+                        String text = item instanceof Document d ? d.getText() : String.valueOf(item);
+                        if (text != null) {
+                            String lower = text.toLowerCase();
+                            if (lower.contains("tlb") || lower.contains("translation lookaside buffer")) {
+                                res.add(tlbVec);
+                                continue;
+                            }
+                            if (lower.contains("page fault") || lower.contains("virtual memory") || lower.contains("paging") || lower.contains("page table")) {
+                                res.add(pageFaultVec);
+                                continue;
+                            }
+                        }
+                        res.add(outOfCorpus);
+                    }
                     return res;
                 });
 
