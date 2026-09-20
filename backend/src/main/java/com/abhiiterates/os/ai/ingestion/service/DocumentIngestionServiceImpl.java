@@ -151,8 +151,11 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             // Step 6: Idempotent clean-up — delete existing vectors for attachmentId before inserting new chunks
             try {
                 FilterExpressionBuilder b = new FilterExpressionBuilder();
-                vectorStore.delete(b.eq("attachmentId", attachmentIdStr).build());
-                log.debug("Cleared existing vectors for attachment [{}]", attachmentIdStr);
+                vectorStore.delete(b.and(
+                        b.eq("userId", userIdStr),
+                        b.eq("attachmentId", attachmentIdStr)
+                ).build());
+                log.debug("Cleared existing vectors for attachment [{}] owned by user [{}]", attachmentIdStr, userIdStr);
             } catch (Exception ex) {
                 log.warn("VectorStore delete prior to re-indexing returned warning for attachment [{}]: {}",
                         attachmentIdStr, ex.getMessage());
