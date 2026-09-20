@@ -31,13 +31,26 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class AiConfig {
 
     /**
-     * ChatClient built from the auto-configured ChatModel bean.
-     * Spring AI auto-configures ChatModel based on whichever starter is on the classpath
-     * (e.g. spring-ai-starter-model-openai). No provider-specific code here.
+     * Persistent Spring AI ChatMemory bean backed by JPA AiConversation and AiMessage tables.
+     * Configured with a 20-message rolling window to limit context overhead.
      */
     @Bean
-    public ChatClient chatClient(ChatModel chatModel) {
-        return ChatClient.builder(chatModel).build();
+    public org.springframework.ai.chat.memory.ChatMemory chatMemory(
+            com.abhiiterates.os.ai.memory.PersistentAiChatMemoryRepository persistentChatMemoryRepository) {
+        return org.springframework.ai.chat.memory.MessageWindowChatMemory.builder()
+                .chatMemoryRepository(persistentChatMemoryRepository)
+                .maxMessages(20)
+                .build();
+    }
+
+    /**
+     * ChatClient built from the auto-configured ChatModel bean and configured with MessageChatMemoryAdvisor.
+     */
+    @Bean
+    public ChatClient chatClient(ChatModel chatModel, org.springframework.ai.chat.memory.ChatMemory chatMemory) {
+        return ChatClient.builder(chatModel)
+                .defaultAdvisors(org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .build();
     }
 
     /**
