@@ -140,14 +140,10 @@ public class AiContextBuilderImpl implements AiContextBuilder {
             String chunkText = result.text() != null ? result.text().trim() : "";
             if (chunkText.isEmpty()) continue;
 
-            String sourceHeader = String.format(
-                    "SOURCE %d\nTitle: %s\nFile: %s\nPage: %s\nRelevance: %.2f\nContent:\n",
-                    chunkCount + 1,
-                    result.documentTitle() != null ? result.documentTitle() : "Untitled",
-                    result.filename()      != null ? result.filename()      : "document.pdf",
-                    result.pageNumber()    != null ? result.pageNumber()    : 1,
-                    result.similarityScore()
-            );
+            String pageDisplay = result.pageNumber() != null ? String.valueOf(result.pageNumber()) : "unknown";
+            String filenameDisplay = result.filename() != null ? result.filename() : "document.pdf";
+            String sourceHeader = String.format("[Source: %s | Page: %s | Score: %.2f]\n",
+                    filenameDisplay, pageDisplay, result.similarityScore());
 
             int estimatedLength = sourceHeader.length() + chunkText.length() + 4;
             if (currentCharacterCount + estimatedLength > maxCharacters && chunkCount > 0) {
@@ -166,7 +162,7 @@ public class AiContextBuilderImpl implements AiContextBuilder {
 
             contextTextBuilder.append(sourceHeader)
                     .append(chunkText)
-                    .append("\n\n");
+                    .append("\n\n---\n\n");
 
             currentCharacterCount = contextTextBuilder.length();
             chunkCount++;
@@ -180,6 +176,7 @@ public class AiContextBuilderImpl implements AiContextBuilder {
                     .chunkId(result.chunkId())
                     .documentId(result.documentId())
                     .resourceId(result.resourceId())
+                    .attachmentId(result.documentId()) // attachmentId maps to document identifier
                     .title(result.documentTitle())
                     .filename(result.filename())
                     .pageNumber(result.pageNumber())
