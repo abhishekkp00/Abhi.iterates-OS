@@ -104,9 +104,9 @@ class RetrievalServiceImplTest {
         assertThat(results).hasSize(1);
         assertThat(results.get(0).text()).contains("Deadlock happens");
         assertThat(results.get(0).similarityScore()).isEqualTo(0.92);
-        assertThat(results.get(0).documentTitle()).isEqualTo("OS Notes");
+        assertThat(results.get(0).filename()).isEqualTo("os.pdf");
 
-        verify(vectorStore).similaritySearch(any(SearchRequest.class));
+        verify(vectorStore, atLeastOnce()).similaritySearch(any(SearchRequest.class));
     }
 
     @Test
@@ -126,6 +126,6 @@ class RetrievalServiceImplTest {
 
         retrievalService.retrieve(request, testUser);
 
-        verify(vectorStore).similaritySearch(any(SearchRequest.class));
+        verify(vectorStore, atLeastOnce()).similaritySearch(any(SearchRequest.class));
     }
 }

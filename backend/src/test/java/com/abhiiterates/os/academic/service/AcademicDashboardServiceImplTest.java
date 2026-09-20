@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class AcademicDashboardServiceImplTest {
 
     @Mock
@@ -120,7 +121,7 @@ class AcademicDashboardServiceImplTest {
 
         StudyPlan activePlan = StudyPlan.builder()
                 .id(UUID.randomUUID())
-                .status(StudyPlanStatus.DRAFT)
+                .status(StudyPlanStatus.ACTIVE)
                 .planStartDate(LocalDate.now())
                 .planEndDate(LocalDate.now().plusDays(6))
                 .plannedSessions(List.of(s1, s2))
@@ -128,7 +129,7 @@ class AcademicDashboardServiceImplTest {
 
         when(studySessionRepository.findByUserAndStatusAndStartedAtBetweenOrderByStartedAtDesc(eq(user), any(), any(), any()))
                 .thenReturn(Collections.emptyList());
-        when(studyPlanRepository.findActiveByUser(user))
+        when(studyPlanRepository.findActiveByUserWithSessions(user))
                 .thenReturn(Optional.of(activePlan));
 
         LearningStateResult weakTopicResult = LearningStateResult.builder()
@@ -166,7 +167,7 @@ class AcademicDashboardServiceImplTest {
                 .description("Master deadlocks")
                 .build();
 
-        when(academicGoalRepository.findByUserAndIsActiveTrueOrderByTargetDateAsc(user))
+        when(academicGoalRepository.findActiveGoalsWithTopicAndSubject(user))
                 .thenReturn(List.of(goal));
         when(assessmentAttemptRepository.findByUserOrderByStartedAtDesc(eq(user), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));

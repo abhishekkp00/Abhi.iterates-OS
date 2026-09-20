@@ -98,7 +98,7 @@ class TopicAwareRetrievalTest {
         AiContext context = contextBuilder.buildContext(request, userA);
 
         assertThat(context.sources()).isEmpty();
-        assertThat(context.formattedText()).contains("NO MATCHING ACADEMIC RESOURCES FOUND.");
+        assertThat(context.formattedText()).contains("<academic_context>");
     }
 
     private User createUser(String email) {

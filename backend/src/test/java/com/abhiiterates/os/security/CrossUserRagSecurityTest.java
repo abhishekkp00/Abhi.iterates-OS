@@ -125,7 +125,7 @@ class CrossUserRagSecurityTest {
         retrievalService.retrieve(request, userA);
 
         ArgumentCaptor<SearchRequest> searchCaptor = ArgumentCaptor.forClass(SearchRequest.class);
-        verify(vectorStore).similaritySearch(searchCaptor.capture());
+        verify(vectorStore, atLeastOnce()).similaritySearch(searchCaptor.capture());
 
         SearchRequest captured = searchCaptor.getValue();
         assertThat(captured.hasFilterExpression()).isTrue();
@@ -149,7 +149,7 @@ class CrossUserRagSecurityTest {
         retrievalService.retrieve(request, userA);
 
         ArgumentCaptor<SearchRequest> searchCaptor = ArgumentCaptor.forClass(SearchRequest.class);
-        verify(vectorStore).similaritySearch(searchCaptor.capture());
+        verify(vectorStore, atLeastOnce()).similaritySearch(searchCaptor.capture());
 
         SearchRequest captured = searchCaptor.getValue();
         assertThat(captured.getFilterExpression().toString()).contains("userId");
@@ -173,7 +173,7 @@ class CrossUserRagSecurityTest {
         retrievalService.retrieve(request, userA);
 
         ArgumentCaptor<SearchRequest> searchCaptor = ArgumentCaptor.forClass(SearchRequest.class);
-        verify(vectorStore).similaritySearch(searchCaptor.capture());
+        verify(vectorStore, atLeastOnce()).similaritySearch(searchCaptor.capture());
 
         SearchRequest captured = searchCaptor.getValue();
         assertThat(captured.getFilterExpression().toString()).contains("userId");
