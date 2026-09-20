@@ -40,7 +40,7 @@ jobs:
       - name: Verify Backend Compilation & Run Unit/Integration Tests
         working-directory: ./backend
         env:
-          SPRING_PROFILES_ACTIVE: test
+          SPRING_PROFILES_ACTIVE: test,ci
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/abhi_iterates_os_test
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgrespassword
