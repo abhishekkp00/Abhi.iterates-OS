@@ -60,7 +60,7 @@ public class IngestionTxHelper {
 
         List<RagDocumentChunk> savedChunks = ragDocumentChunkRepository.saveAll(chunkEntities);
 
-        ragDoc.setStatus(IngestionStatus.COMPLETED);
+        ragDoc.setStatus(IngestionStatus.INDEXED);
         ragDoc.setContentHash(extractedDoc.contentHash());
         ragDoc.setPageCount(extractedDoc.pageCount());
         ragDoc.setExtractedCharCount(extractedDoc.totalCharacterCount());
@@ -72,7 +72,20 @@ public class IngestionTxHelper {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public RagDocument markAsFailed(RagDocument ragDoc, String failureReason) {
         ragDoc.setStatus(IngestionStatus.FAILED);
+        ragDoc.setEmbeddingStatus(IngestionStatus.FAILED);
         ragDoc.setFailureReason(failureReason != null && failureReason.length() > 990 ? failureReason.substring(0, 990) : failureReason);
         return ragDocumentRepository.save(ragDoc);
     }
+
+    /**
+     * Marks embeddingStatus = INDEXED after VectorStore.add() succeeds.
+     * Runs in a separate transaction so it commits independently of ingestion.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public RagDocument markEmbeddingCompleted(RagDocument ragDoc) {
+        ragDoc.setEmbeddingStatus(IngestionStatus.INDEXED);
+        ragDoc.setEmbeddingFailureReason(null);
+        return ragDocumentRepository.save(ragDoc);
+    }
 }
+

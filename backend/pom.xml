@@ -200,6 +200,22 @@
             <artifactId>bucket4j-core</artifactId>
             <version>8.10.1</version>
         </dependency>
+
+        <!-- ── Spring AI VectorStore: PGVector ──────────────────────────────────────── -->
+        <!-- Provides PgVectorStore, VectorStore, SearchRequest, FilterExpressionBuilder. -->
+        <!-- Replaces hand-rolled VectorSearchRepository + custom native SQL pipeline.   -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-vector-store-pgvector</artifactId>
+        </dependency>
+
+        <!-- ── Spring AI PDF Document Reader ────────────────────────────────────────── -->
+        <!-- Provides PagePdfDocumentReader — replaces manual PDFBox extraction.         -->
+        <!-- Version is managed by spring-ai-bom:${spring-ai.version}.                  -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-pdf-document-reader</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

@@ -26,7 +26,13 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Deprecated(since = "Spring AI VectorStore migration", forRemoval = false)
+// DEPRECATED: Embedding is now handled transparently by VectorStore.add() during document
+// ingestion in DocumentIngestionServiceImpl. The ai_vector_store table (Flyway V12) is the
+// authoritative embedding store. This class remains present to avoid breaking the existing
+// DocumentEmbeddingService API surface but is no longer invoked from the ingestion flow.
 public class DocumentEmbeddingServiceImpl implements DocumentEmbeddingService {
+
 
     private final ResourceAttachmentRepository attachmentRepository;
     private final RagDocumentRepository ragDocumentRepository;

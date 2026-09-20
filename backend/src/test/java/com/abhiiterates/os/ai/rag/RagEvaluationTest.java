@@ -34,16 +34,29 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.springframework.ai.document.Document;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
+@org.springframework.test.context.ActiveProfiles("test")
 @Transactional
 public class RagEvaluationTest {
+
+    @org.springframework.boot.test.context.TestConfiguration
+    static class TestVectorStoreConfig {
+        @org.springframework.context.annotation.Bean
+        @org.springframework.context.annotation.Primary
+        public org.springframework.ai.vectorstore.VectorStore testVectorStore(EmbeddingModel embeddingModel) {
+            return org.springframework.ai.vectorstore.SimpleVectorStore.builder(embeddingModel).build();
+        }
+    }
 
     @MockBean
     private EmbeddingModel embeddingModel;
@@ -76,6 +89,9 @@ public class RagEvaluationTest {
     private DocumentEmbeddingService embeddingService;
 
     @Autowired
+    private org.springframework.ai.vectorstore.VectorStore vectorStore;
+
+    @Autowired
     private RetrievalService retrievalService;
 
     @Autowired
@@ -89,7 +105,63 @@ public class RagEvaluationTest {
 
     @BeforeEach
     void setUp() {
-        when(embeddingModel.embed(anyString())).thenReturn(new float[1536]);
+        float[] tlbVec = new float[1536];
+        tlbVec[0] = 1.0f;
+
+        float[] pageFaultVec = new float[1536];
+        pageFaultVec[2] = 1.0f;
+
+        float[] outOfCorpus = new float[1536];
+        outOfCorpus[1] = 1.0f;
+
+        when(embeddingModel.embed(org.mockito.ArgumentMatchers.any(Document.class))).thenAnswer(inv -> {
+            Document doc = inv.getArgument(0);
+            String text = doc != null ? doc.getText() : null;
+            if (text != null) {
+                String lower = text.toLowerCase();
+                if (lower.contains("tlb") || lower.contains("translation lookaside buffer")) {
+                    return tlbVec;
+                }
+                if (lower.contains("page fault") || lower.contains("virtual memory") || lower.contains("paging") || lower.contains("page table")) {
+                    return pageFaultVec;
+                }
+            }
+            return outOfCorpus;
+        });
+        when(embeddingModel.embed(anyString())).thenAnswer(inv -> {
+            String q = inv.getArgument(0);
+            if (q != null) {
+                String lower = q.toLowerCase();
+                if (lower.contains("tlb") || lower.contains("translation lookaside buffer")) {
+                    return tlbVec;
+                }
+                if (lower.contains("page fault") || lower.contains("virtual memory") || lower.contains("paging") || lower.contains("page table")) {
+                    return pageFaultVec;
+                }
+            }
+            return outOfCorpus;
+        });
+        when(embeddingModel.embed(org.mockito.ArgumentMatchers.anyList()))
+                .thenAnswer(inv -> {
+                    List<?> l = inv.getArgument(0);
+                    List<float[]> res = new java.util.ArrayList<>();
+                    for (Object item : l) {
+                        String text = item instanceof Document d ? d.getText() : String.valueOf(item);
+                        if (text != null) {
+                            String lower = text.toLowerCase();
+                            if (lower.contains("tlb") || lower.contains("translation lookaside buffer")) {
+                                res.add(tlbVec);
+                                continue;
+                            }
+                            if (lower.contains("page fault") || lower.contains("virtual memory") || lower.contains("paging") || lower.contains("page table")) {
+                                res.add(pageFaultVec);
+                                continue;
+                            }
+                        }
+                        res.add(outOfCorpus);
+                    }
+                    return res;
+                });
 
         chunkRepository.deleteAll();
         ragDocumentRepository.deleteAll();
@@ -181,8 +253,20 @@ public class RagEvaluationTest {
                 .build();
         chunkRepository.save(chunk2);
 
-        // Generate embeddings for User A's chunks
-        embeddingService.generateEmbeddingsForDocument(resA.getId(), attA.getId(), userA);
+        // Store chunks in vectorStore for User A
+        Map<String, Object> meta1 = new HashMap<>();
+        meta1.put("userId", userA.getId().toString());
+        meta1.put("resourceId", resA.getId().toString());
+        meta1.put("attachmentId", attA.getId().toString());
+        meta1.put("topicId", topicPaging.getId().toString());
+        meta1.put("fileName", attA.getFileName());
+
+        Map<String, Object> meta2 = new HashMap<>(meta1);
+
+        vectorStore.add(List.of(
+                new Document(chunk1.getChunkText(), meta1),
+                new Document(chunk2.getChunkText(), meta2)
+        ));
     }
 
     @Test

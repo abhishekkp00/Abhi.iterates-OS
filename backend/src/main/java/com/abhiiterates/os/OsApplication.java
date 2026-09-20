@@ -15,7 +15,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  *
  * Production best practice: Explicitly configure timezone and lifecycle markers.
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+        org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration.class
+})
 @EnableJpaAuditing
 @EnableScheduling
 @Slf4j

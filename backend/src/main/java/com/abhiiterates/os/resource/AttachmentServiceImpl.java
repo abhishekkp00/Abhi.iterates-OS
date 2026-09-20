@@ -8,6 +8,11 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.abhiiterates.os.ai.ingestion.service.DocumentIngestionService;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +41,10 @@ public class AttachmentServiceImpl implements AttachmentService {
     private final ResourceAttachmentRepository attachmentRepository;
     private final Cloudinary cloudinary;
     private final CloudinaryConfig cloudinaryConfig;
+    private final ObjectProvider<DocumentIngestionService> ingestionServiceProvider;
+    private final VectorStore vectorStore;
+    private final com.abhiiterates.os.ai.ingestion.repository.RagDocumentRepository ragDocumentRepository;
+    private final com.abhiiterates.os.ai.ingestion.repository.RagDocumentChunkRepository ragDocumentChunkRepository;
 
     private final Path fileStorageLocation = Paths.get("uploads").toAbsolutePath().normalize();
 
@@ -120,6 +129,18 @@ public class AttachmentServiceImpl implements AttachmentService {
 
         ResourceAttachment saved = attachmentRepository.save(attachment);
 
+        // Auto-ingest PDF documents on upload
+        if (saved.getFileName() != null && saved.getFileName().toLowerCase().endsWith(".pdf")) {
+            ingestionServiceProvider.ifAvailable(service -> {
+                try {
+                    log.info("Triggering automatic RAG document ingestion for uploaded attachment ID [{}]", saved.getId());
+                    service.ingestAttachment(resource.getId(), saved.getId(), user);
+                } catch (Exception ex) {
+                    log.warn("Automatic document ingestion on upload failed: {}", ex.getMessage());
+                }
+            });
+        }
+
         return AttachmentResponse.builder()
                 .id(saved.getId())
                 .fileName(saved.getFileName())
@@ -182,26 +203,55 @@ public class AttachmentServiceImpl implements AttachmentService {
         ResourceAttachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment not found with ID: " + attachmentId));
 
-        // Enforce ownership
+        // 1. Enforce user ownership of the parent resource
         if (!attachment.getResource().getUser().getId().equals(user.getId())) {
             throw new ResourceNotFoundException("Attachment not found with ID: " + attachmentId);
         }
 
+        String userIdStr       = user.getId().toString();
+        String attachmentIdStr = attachmentId.toString();
+
+        // 2. Delete associated vector chunks from Spring AI VectorStore (scoped: userId AND attachmentId).
+        // CONSISTENCY LIMITATION DOCUMENTATION:
+        // Relational metadata updates (PostgreSQL JPA transaction) and Spring AI VectorStore operations
+        // do not participate in a single distributed 2PC XA transaction. Vector store deletion is executed
+        // first within a try-catch block so that if vector store deletion fails or throws a non-fatal warning,
+        // relational state deletion still completes predictably, while pre-search filters always enforce user ownership.
+        try {
+            FilterExpressionBuilder b = new FilterExpressionBuilder();
+            Filter.Expression deleteFilter = b.and(
+                    b.eq("userId", userIdStr),
+                    b.eq("attachmentId", attachmentIdStr)
+            ).build();
+            vectorStore.delete(deleteFilter);
+            log.info("Deleted vector chunks from VectorStore for attachment [{}] owned by user [{}]", attachmentIdStr, userIdStr);
+        } catch (Exception ex) {
+            log.warn("VectorStore delete returned warning for attachment [{}]: {}", attachmentIdStr, ex.getMessage());
+        }
+
+        // 3. Delete relational RagDocument and RagDocumentChunk records
+        ragDocumentRepository.findByAttachmentId(attachmentId).ifPresent(ragDoc -> {
+            ragDocumentChunkRepository.deleteByDocumentId(ragDoc.getId());
+            ragDocumentRepository.delete(ragDoc);
+            log.info("Deleted RagDocument [{}] for attachment [{}]", ragDoc.getId(), attachmentIdStr);
+        });
+
+        // 4. Delete physical file from disk / cloud storage
         String downloadUrl = attachment.getDownloadUrl();
         if (downloadUrl != null && downloadUrl.contains("/attachments/") && downloadUrl.contains("/download")) {
             String uniqueFileName = downloadUrl.substring(
                     downloadUrl.lastIndexOf("/attachments/") + 13,
                     downloadUrl.lastIndexOf("/download"));
 
-            // Delete from disk
             try {
                 Path filePath = this.fileStorageLocation.resolve(uniqueFileName).normalize();
                 Files.deleteIfExists(filePath);
-            } catch (IOException ignored) {
+            } catch (IOException ex) {
+                log.warn("Could not delete physical file [{}] from disk: {}", uniqueFileName, ex.getMessage());
             }
         }
 
-        // Delete from DB
+        // 5. Delete metadata record from database
         attachmentRepository.delete(attachment);
     }
 }

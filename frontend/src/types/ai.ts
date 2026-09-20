@@ -81,6 +81,10 @@ export interface SendMessageRequest {
   topicId?: string
   /** Optional controlled tutoring mode */
   tutorMode?: TutorMode
+  /** Optional file name for document matching */
+  fileName?: string
+  /** Optional download URL for document extraction */
+  downloadUrl?: string
 }
 
 export interface SendMessageResponse {
