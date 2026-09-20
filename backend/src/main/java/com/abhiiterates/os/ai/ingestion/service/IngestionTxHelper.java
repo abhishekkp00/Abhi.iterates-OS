@@ -75,4 +75,16 @@ public class IngestionTxHelper {
         ragDoc.setFailureReason(failureReason != null && failureReason.length() > 990 ? failureReason.substring(0, 990) : failureReason);
         return ragDocumentRepository.save(ragDoc);
     }
+
+    /**
+     * Marks embeddingStatus = COMPLETED after VectorStore.add() succeeds.
+     * Runs in a separate transaction so it commits independently of ingestion.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public RagDocument markEmbeddingCompleted(RagDocument ragDoc) {
+        ragDoc.setEmbeddingStatus(IngestionStatus.COMPLETED);
+        ragDoc.setEmbeddingFailureReason(null);
+        return ragDocumentRepository.save(ragDoc);
+    }
 }
+
