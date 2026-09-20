@@ -16,27 +16,10 @@
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS ai_vector_store (
-    id        UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
+    id        UUID    PRIMARY KEY,
     content   TEXT,
-    metadata  JSONB,
-    embedding vector(1536)
+    metadata  ${jsonb-type},
+    embedding ${vector-type}
 );
 
--- HNSW index for fast approximate nearest-neighbour cosine similarity search.
--- m=16 and ef_construction=64 are standard production-grade HNSW parameters.
-CREATE INDEX IF NOT EXISTS idx_ai_vector_store_hnsw
-    ON ai_vector_store
-    USING hnsw (embedding vector_cosine_ops)
-    WITH (m = 16, ef_construction = 64);
-
--- GIN index on metadata JSONB for fast metadata-filter lookups (userId, resourceId, etc.)
-CREATE INDEX IF NOT EXISTS idx_ai_vector_store_metadata
-    ON ai_vector_store
-    USING gin (metadata);
-
--- Expression indexes for the most frequent per-user and per-resource queries.
-CREATE INDEX IF NOT EXISTS idx_ai_vector_store_metadata_user
-    ON ai_vector_store ((metadata->>'userId'));
-
-CREATE INDEX IF NOT EXISTS idx_ai_vector_store_metadata_resource
-    ON ai_vector_store ((metadata->>'resourceId'));
+${vector-store-indexes}
