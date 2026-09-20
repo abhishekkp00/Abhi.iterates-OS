@@ -45,7 +45,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RetrievalServiceImpl implements RetrievalService {
+public class RetrievalServiceImpl implements RetrievalService, RagRetriever {
 
     private static final int MAX_QUERY_LENGTH = 2000;
 
@@ -59,7 +59,7 @@ public class RetrievalServiceImpl implements RetrievalService {
     }
 
     @Override
-    public List<RetrievalResult> retrieve(RetrievalRequest request, User currentUser) {
+    public List<Document> retrieveDocuments(RetrievalRequest request, User currentUser) {
         if (currentUser == null || currentUser.getId() == null) {
             throw new IllegalArgumentException(
                     "Authenticated user context is required for semantic retrieval.");
@@ -86,38 +86,29 @@ public class RetrievalServiceImpl implements RetrievalService {
                 normalizedQuery.length() > 80 ? normalizedQuery.substring(0, 80) + "..." : normalizedQuery);
 
         // ── Build mandatory userId filter (ALWAYS present) ────────────────────
-        // FilterExpressionBuilder.eq() returns Op, not Filter.Expression.
-        // To combine: b.and(b.eq(...), b.eq(...)).build() → Filter.Expression
         FilterExpressionBuilder b = new FilterExpressionBuilder();
 
-        // Baseline: user-only scope
         FilterExpressionBuilder.Op userOp =
                 b.eq("userId", currentUser.getId().toString());
 
         Filter.Expression scopeFilter;
 
         if (request.resourceId() != null) {
-            // AND(userId, resourceId)
             scopeFilter = b.and(userOp, b.eq("resourceId", request.resourceId().toString())).build();
             log.debug("Retrieval scoped to resourceId=[{}]", request.resourceId());
         } else if (request.documentId() != null) {
-            // AND(userId, documentId)
             scopeFilter = b.and(userOp, b.eq("documentId", request.documentId().toString())).build();
             log.debug("Retrieval scoped to documentId=[{}]", request.documentId());
         } else if (request.topicId() != null) {
-            // AND(userId, topicId) — topicId stored in metadata during ingestion
             scopeFilter = b.and(userOp, b.eq("topicId", request.topicId().toString())).build();
             log.debug("Retrieval scoped to topicId=[{}]", request.topicId());
         } else if (request.subjectId() != null) {
-            // AND(userId, subjectId)
             scopeFilter = b.and(userOp, b.eq("subjectId", request.subjectId().toString())).build();
             log.debug("Retrieval scoped to subjectId=[{}]", request.subjectId());
         } else {
-            // User-wide: userId only
             scopeFilter = userOp.build();
         }
 
-        // ── Primary similarity search ─────────────────────────────────────────
         SearchRequest searchRequest = SearchRequest.builder()
                 .query(normalizedQuery)
                 .topK(resolvedTopK)
@@ -135,7 +126,6 @@ public class RetrievalServiceImpl implements RetrievalService {
             return Collections.emptyList();
         }
 
-        // ── Stage 2: Relaxed threshold retry if primary returned zero hits ────
         if ((results == null || results.isEmpty()) && resolvedThreshold > 0.15) {
             log.info("Primary search returned 0 results for user [{}]. " +
                     "Retrying with relaxed threshold (0.15).", currentUser.getId());
@@ -156,20 +146,18 @@ public class RetrievalServiceImpl implements RetrievalService {
             }
         }
 
-        if (results == null || results.isEmpty()) {
-            log.info("Semantic retrieval returned 0 results for user [{}].", currentUser.getId());
+        return results != null ? results : Collections.emptyList();
+    }
+
+    @Override
+    public List<RetrievalResult> retrieve(RetrievalRequest request, User currentUser) {
+        List<Document> docs = retrieveDocuments(request, currentUser);
+        if (docs.isEmpty()) {
             return Collections.emptyList();
         }
-
-        List<RetrievalResult> mapped = results.stream()
+        return docs.stream()
                 .map(this::mapDocumentToRetrievalResult)
                 .toList();
-
-        log.info("Semantic retrieval returned {} chunks for user [{}] (top score: {})",
-                mapped.size(), currentUser.getId(),
-                mapped.isEmpty() ? "n/a" : mapped.get(0).similarityScore());
-
-        return mapped;
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
