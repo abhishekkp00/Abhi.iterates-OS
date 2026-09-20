@@ -40,7 +40,7 @@ jobs:
       - name: Verify Backend Compilation & Run Unit/Integration Tests
         working-directory: ./backend
         env:
-          SPRING_PROFILES_ACTIVE: test,ci
+          SPRING_PROFILES_ACTIVE: test
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/abhi_iterates_os_test
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgrespassword
@@ -48,7 +48,7 @@ jobs:
           JWT_SECRET: c29tZS1zdXBlci1zZWNyZXQtand0LWtleS1mb3ItY2ktaW50ZWdyYXRpb24tdGVzdHMtYmhhdjE1MTI=
           ADMIN_EMAIL: admin@ci.local
           ADMIN_PASSWORD: AdminPassword123!
-        run: mvn clean test -B
+        run: mvn clean test -B -Dspring.flyway.placeholders.vector-extension-init="CREATE EXTENSION IF NOT EXISTS vector;"
 
   frontend-build-and-test:
     name: Frontend Build & Type Check (React + TypeScript + Vite)
