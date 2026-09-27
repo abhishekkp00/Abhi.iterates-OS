@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -59,8 +60,15 @@ public class MarketplaceListingServiceImpl implements MarketplaceListingService 
     @Override
     @Transactional
     public MarketplaceListingResponse create(MarketplaceListingRequest request, User seller) {
+        if (request.getPrice() == null || request.getPrice().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Price must be non-negative");
+        }
+        if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
+            throw new IllegalArgumentException("Title is required");
+        }
+
         MarketplaceListing listing = MarketplaceListing.builder()
-                .title(request.getTitle())
+                .title(request.getTitle().trim())
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .negotiable(request.isNegotiable())

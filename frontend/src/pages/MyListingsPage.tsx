@@ -1,95 +1,53 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2, CheckCircle2, FolderOpen, ShoppingBag, Plus } from '@/lib/icons'
+import { ArrowLeft, Pencil, Trash2, CheckCircle2, FolderOpen, ShoppingBag, Plus, Loader2 } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import type { Listing } from '@/types/marketplace'
-
-const INITIAL_MY_LISTINGS: Listing[] = [
-  {
-    id: 'l1',
-    title: 'Introduction to Algorithms (CLRS) 4th Edition',
-    description: 'Barely used for one semester. No highlights or markings. Perfect condition for CS courses.',
-    price: 45.00,
-    negotiable: true,
-    category: 'BOOKS',
-    condition: 'LIKE_NEW',
-    location: 'Hill Library',
-    status: 'ACTIVE',
-    seller: {
-      id: 'u1',
-      fullName: 'Alex River',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop',
-      email: 'alex@campus.edu',
-    },
-    images: [
-      { id: 'i1', imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=600&auto=format&fit=crop', isPrimary: true },
-    ],
-    isFavorited: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: 'cs, algorithms, textbook',
-  },
-  {
-    id: 'l6',
-    title: 'Calculus: Early Transcendentals 8th Edition',
-    description: 'Used textbook. Some highlighted sections but pages are in perfect readable condition.',
-    price: 30.00,
-    negotiable: true,
-    category: 'BOOKS',
-    condition: 'GOOD',
-    location: 'West Quad',
-    status: 'SOLD',
-    seller: {
-      id: 'u1',
-      fullName: 'Alex River',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop',
-      email: 'alex@campus.edu',
-    },
-    images: [
-      { id: 'i6', imageUrl: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=600&auto=format&fit=crop', isPrimary: true },
-    ],
-    isFavorited: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: 'math, calculus, textbook',
-  },
-]
+import {
+  useMyMarketplaceListingsQuery,
+  useChangeMarketplaceListingStatusMutation,
+  useDeleteMarketplaceListingMutation,
+} from '@/features/marketplace/hooks/useMarketplace'
+import type { ListingStatus } from '@/types/marketplace'
 
 export default function MyListingsPage() {
-  const [listings, setListings] = useState<Listing[]>(INITIAL_MY_LISTINGS)
   const [activeTab, setActiveTab] = useState<'ALL' | 'ACTIVE' | 'SOLD' | 'ARCHIVED'>('ALL')
+  const currentPage = 1
+
+  const { data: pageData, isLoading, isError, refetch } = useMyMarketplaceListingsQuery({
+    page: currentPage - 1,
+    size: 20,
+    sort: 'createdAt,desc',
+  })
+
+  const changeStatusMutation = useChangeMarketplaceListingStatusMutation()
+  const deleteMutation = useDeleteMarketplaceListingMutation()
+
+  const rawListings = pageData?.content || []
 
   const handleMarkAsSold = (id: string) => {
-    setListings(prev =>
-      prev.map(item => item.id === id ? { ...item, status: 'SOLD' as const } : item)
-    )
-    toast.success('Listing marked as sold!')
+    changeStatusMutation.mutate({ id, status: 'SOLD' })
   }
 
   const handleArchive = (id: string) => {
-    setListings(prev =>
-      prev.map(item => item.id === id ? { ...item, status: 'ARCHIVED' as const } : item)
-    )
-    toast.success('Listing moved to archive.')
+    changeStatusMutation.mutate({ id, status: 'ARCHIVED' })
   }
 
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to permanently delete this listing?')) {
-      setListings(prev => prev.filter(item => item.id !== id))
-      toast.success('Listing deleted successfully!')
+      deleteMutation.mutate(id)
     }
   }
 
-  const filteredListings = listings.filter(item => {
+  const filteredListings = rawListings.filter((item) => {
     if (activeTab === 'ALL') return true
     return item.status === activeTab
   })
 
-  const statusColors: Record<string, string> = {
-    ACTIVE: 'bg-success/10 text-success border-success/20',
+  const statusColors: Record<ListingStatus, string> = {
+    ACTIVE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     SOLD: 'bg-muted text-muted-foreground border-border',
-    ARCHIVED: 'bg-info/10 text-info border-info/20',
+    ARCHIVED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    DRAFT: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   }
 
   return (
@@ -117,7 +75,7 @@ export default function MyListingsPage() {
 
       {/* Tabs Row */}
       <div className="flex border-b border-border gap-2">
-        {(['ALL', 'ACTIVE', 'SOLD', 'ARCHIVED'] as const).map(tab => (
+        {(['ALL', 'ACTIVE', 'SOLD', 'ARCHIVED'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -131,9 +89,21 @@ export default function MyListingsPage() {
       </div>
 
       {/* Listings List */}
-      {filteredListings.length > 0 ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground font-medium">Fetching your active listings...</p>
+        </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center justify-center border border-dashed border-destructive/40 rounded-xl p-12 text-center bg-destructive/5">
+          <p className="text-sm font-bold text-foreground">Could not load your listings</p>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-3 text-xs">
+            Retry Connection
+          </Button>
+        </div>
+      ) : filteredListings.length > 0 ? (
         <div className="space-y-4">
-          {filteredListings.map(listing => (
+          {filteredListings.map((listing) => (
             <div
               key={listing.id}
               className="flex flex-col sm:flex-row gap-4 p-4 border border-border rounded-xl bg-card shadow-sm items-start sm:items-center"
@@ -141,7 +111,7 @@ export default function MyListingsPage() {
               {/* Product Thumbnail */}
               <div className="size-16 rounded-lg overflow-hidden border border-border bg-muted shrink-0">
                 <img
-                  src={listing.images[0]?.imageUrl || 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=600&auto=format&fit=crop'}
+                  src={listing.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=600&auto=format&fit=crop'}
                   alt={listing.title}
                   className="h-full w-full object-cover"
                 />
@@ -165,19 +135,21 @@ export default function MyListingsPage() {
                     <Button
                       variant="outline"
                       size="xs"
+                      disabled={changeStatusMutation.isPending}
                       onClick={() => handleMarkAsSold(listing.id)}
                       className="rounded-lg gap-1 border-border cursor-pointer"
                     >
-                      <CheckCircle2 className="size-3 text-success" />
+                      <CheckCircle2 className="size-3 text-emerald-400" />
                       <span>Sold</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="xs"
+                      disabled={changeStatusMutation.isPending}
                       onClick={() => handleArchive(listing.id)}
                       className="rounded-lg gap-1 border-border cursor-pointer"
                     >
-                      <FolderOpen className="size-3 text-info" />
+                      <FolderOpen className="size-3 text-blue-400" />
                       <span>Archive</span>
                     </Button>
                   </>
@@ -197,6 +169,7 @@ export default function MyListingsPage() {
                 <Button
                   variant="ghost"
                   size="xs"
+                  disabled={deleteMutation.isPending}
                   onClick={() => handleDelete(listing.id)}
                   className="rounded-lg gap-1 text-destructive hover:bg-destructive/10 cursor-pointer"
                 >
