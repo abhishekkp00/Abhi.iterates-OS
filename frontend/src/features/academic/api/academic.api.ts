@@ -160,28 +160,33 @@ export interface AcademicDashboardData {
   recentAssessments?: any[]
 }
 
+function extractData<T>(res: { data: any; status?: number }): T {
+  if (res.status === 204 || !res.data) return null as T
+  return res.data && typeof res.data === 'object' && 'data' in res.data ? res.data.data : res.data
+}
+
 export const academicApi = {
   // Subjects
   getSubjects: async (): Promise<AcademicSubject[]> => {
-    const res = await api.get<AcademicSubject[]>('/academic/subjects')
-    return res.data
+    const res = await api.get('/academic/subjects')
+    return extractData<AcademicSubject[]>(res)
   },
 
   createSubject: async (payload: { name: string; code?: string; colorHex?: string }): Promise<AcademicSubject> => {
-    const res = await api.post<AcademicSubject>('/academic/subjects', payload)
-    return res.data
+    const res = await api.post('/academic/subjects', payload)
+    return extractData<AcademicSubject>(res)
   },
 
   // Topics
   getTopics: async (subjectId?: string): Promise<AcademicTopic[]> => {
     const url = subjectId ? `/academic/topics?subjectId=${subjectId}` : '/academic/topics'
-    const res = await api.get<AcademicTopic[]>(url)
-    return res.data
+    const res = await api.get(url)
+    return extractData<AcademicTopic[]>(res)
   },
 
   createTopic: async (payload: { subjectId: string; name: string; description?: string }): Promise<AcademicTopic> => {
-    const res = await api.post<AcademicTopic>('/academic/topics', payload)
-    return res.data
+    const res = await api.post('/academic/topics', payload)
+    return extractData<AcademicTopic>(res)
   },
 
   getTopicsBySubject: async (subjectId?: string): Promise<AcademicTopic[]> => {
@@ -190,23 +195,23 @@ export const academicApi = {
 
   // Study Sessions
   startSession: async (payload: StartStudySessionPayload): Promise<StudySession> => {
-    const res = await api.post<StudySession>('/study-sessions/start', payload)
-    return res.data
+    const res = await api.post('/study-sessions/start', payload)
+    return extractData<StudySession>(res)
   },
 
   completeSession: async (sessionId: string, payload?: CompleteStudySessionPayload): Promise<StudySession> => {
-    const res = await api.post<StudySession>(`/study-sessions/${sessionId}/complete`, payload || {})
-    return res.data
+    const res = await api.post(`/study-sessions/${sessionId}/complete`, payload || {})
+    return extractData<StudySession>(res)
   },
 
   cancelSession: async (sessionId: string): Promise<StudySession> => {
-    const res = await api.post<StudySession>(`/study-sessions/${sessionId}/cancel`, {})
-    return res.data
+    const res = await api.post(`/study-sessions/${sessionId}/cancel`, {})
+    return extractData<StudySession>(res)
   },
 
   logManualSession: async (payload: ManualStudySessionPayload): Promise<StudySession> => {
-    const res = await api.post<StudySession>('/study-sessions/manual', payload)
-    return res.data
+    const res = await api.post('/study-sessions/manual', payload)
+    return extractData<StudySession>(res)
   },
 
   createManualSession: async (payload: ManualStudySessionPayload): Promise<StudySession> => {
@@ -215,70 +220,70 @@ export const academicApi = {
 
   getActiveSession: async (): Promise<StudySession | null> => {
     try {
-      const res = await api.get<StudySession>('/study-sessions/active')
-      return res.status === 204 ? null : res.data
+      const res = await api.get('/study-sessions/active')
+      return res.status === 204 ? null : extractData<StudySession>(res)
     } catch {
       return null
     }
   },
 
   getUserSessions: async (page = 0, size = 20): Promise<PagedStudySessions> => {
-    const res = await api.get<PagedStudySessions>(`/study-sessions?page=${page}&size=${size}`)
-    return res.data
+    const res = await api.get(`/study-sessions?page=${page}&size=${size}`)
+    return extractData<PagedStudySessions>(res)
   },
 
   getTopicProgress: async (topicId: string): Promise<TopicProgress> => {
-    const res = await api.get<TopicProgress>(`/study-sessions/topics/${topicId}/progress`)
-    return res.data
+    const res = await api.get(`/study-sessions/topics/${topicId}/progress`)
+    return extractData<TopicProgress>(res)
   },
 
   // Learning State Analysis
   getTopicLearningState: async (topicId: string): Promise<LearningStateResult> => {
-    const res = await api.get<LearningStateResult>(`/academic/topics/${topicId}/learning-state`)
-    return res.data
+    const res = await api.get(`/academic/topics/${topicId}/learning-state`)
+    return extractData<LearningStateResult>(res)
   },
 
   getUserTopicsLearningState: async (subjectId?: string): Promise<LearningStateResult[]> => {
     const url = `/academic/learning-state/topics${subjectId ? `?subjectId=${subjectId}` : ''}`
-    const res = await api.get<LearningStateResult[]>(url)
-    return res.data
+    const res = await api.get(url)
+    return extractData<LearningStateResult[]>(res)
   },
 
   getSubjectLearningStateSummary: async (subjectId: string): Promise<SubjectLearningStateSummary> => {
-    const res = await api.get<SubjectLearningStateSummary>(`/academic/subjects/${subjectId}/learning-state`)
-    return res.data
+    const res = await api.get(`/academic/subjects/${subjectId}/learning-state`)
+    return extractData<SubjectLearningStateSummary>(res)
   },
 
   // Command Center Dashboard & Exams
   getDashboardData: async (timeZone?: string): Promise<AcademicDashboardData> => {
     const tz = timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-    const res = await api.get<AcademicDashboardData>(`/academic/dashboard?timeZone=${encodeURIComponent(tz)}`)
-    return res.data
+    const res = await api.get(`/academic/dashboard?timeZone=${encodeURIComponent(tz)}`)
+    return extractData<AcademicDashboardData>(res)
   },
 
   getExams: async (): Promise<Exam[]> => {
-    const res = await api.get<Exam[]>('/academic/exams')
-    return res.data
+    const res = await api.get('/academic/exams')
+    return extractData<Exam[]>(res)
   },
 
   getExamById: async (id: string): Promise<Exam> => {
-    const res = await api.get<Exam>(`/academic/exams/${id}`)
-    return res.data
+    const res = await api.get(`/academic/exams/${id}`)
+    return extractData<Exam>(res)
   },
 
   getExamCoverage: async (id: string): Promise<ExamCoverageResponse> => {
-    const res = await api.get<ExamCoverageResponse>(`/academic/exams/${id}/coverage`)
-    return res.data
+    const res = await api.get(`/academic/exams/${id}/coverage`)
+    return extractData<ExamCoverageResponse>(res)
   },
 
   createExam: async (payload: ExamRequest): Promise<Exam> => {
-    const res = await api.post<Exam>('/academic/exams', payload)
-    return res.data
+    const res = await api.post('/academic/exams', payload)
+    return extractData<Exam>(res)
   },
 
   updateExam: async (id: string, payload: ExamRequest): Promise<Exam> => {
-    const res = await api.put<Exam>(`/academic/exams/${id}`, payload)
-    return res.data
+    const res = await api.put(`/academic/exams/${id}`, payload)
+    return extractData<Exam>(res)
   },
 
   deleteExam: async (id: string): Promise<void> => {

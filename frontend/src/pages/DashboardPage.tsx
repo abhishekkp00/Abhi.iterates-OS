@@ -10,10 +10,18 @@ import { RecentResourcesPreview } from '@/features/dashboard/components/RecentRe
 import { AiWorkspacePreview } from '@/features/dashboard/components/AiWorkspacePreview'
 import { StudyStreakCalendar } from '@/features/dashboard/components/StudyStreakCalendar'
 import { staggerParentVariants, staggerChildVariants } from '@/lib/animations'
+import { AlertTriangle, RefreshCw } from '@/lib/icons'
+import { Button } from '@/components/ui/button'
 
 export default function DashboardPage() {
-  // Fetch weekly analytics (7 days range)
-  const { data: analyticsData } = useAnalyticsQuery(7)
+  // Fetch weekly analytics (7 days range) with TanStack Query
+  const { 
+    data: analyticsData, 
+    isLoading: isLoadingAnalytics, 
+    isError: isAnalyticsError, 
+    refetch: refetchAnalytics 
+  } = useAnalyticsQuery(7)
+
   const { data: resourcesData } = useResourcesListQuery({ page: 1, size: 1 })
   const { tasks } = useTasks()
 
@@ -31,6 +39,24 @@ export default function DashboardPage() {
 
   return (
     <div className="page-container max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      {isAnalyticsError && (
+        <div className="mb-6 flex items-center justify-between p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-medium">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="size-4 shrink-0 text-rose-400" />
+            <span>Could not refresh dashboard metrics. Displaying local workspace data.</span>
+          </div>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => refetchAnalytics()}
+            className="flex items-center gap-1.5 text-xs text-rose-300 hover:text-white hover:bg-rose-500/20"
+          >
+            <RefreshCw className="size-3.5" />
+            <span>Retry</span>
+          </Button>
+        </div>
+      )}
+
       <motion.div
         variants={staggerParentVariants}
         initial="initial"
@@ -49,7 +75,11 @@ export default function DashboardPage() {
 
         {/* Row 3: Overview Statistics Cards (Full Width) */}
         <motion.div variants={staggerChildVariants}>
-          <OverviewStats stats={stats} chartData={analyticsData?.chartData || []} />
+          <OverviewStats 
+            stats={stats} 
+            chartData={analyticsData?.chartData || []} 
+            isLoading={isLoadingAnalytics}
+          />
         </motion.div>
 
         {/* Row 4: Widget Previews Split Layout (Grid) */}

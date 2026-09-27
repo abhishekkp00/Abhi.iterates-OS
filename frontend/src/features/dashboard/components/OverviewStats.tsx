@@ -78,6 +78,21 @@ function StatCard({ title, value, icon: Icon, trend, color, sparklineData }: Sta
   )
 }
 
+function StatCardSkeleton() {
+  return (
+    <div className="clean-card p-5 flex flex-col justify-between h-36 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-3 w-20 bg-slate-800 rounded" />
+        <div className="size-8 bg-slate-800 rounded-xl" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-7 w-24 bg-slate-800 rounded" />
+        <div className="h-3 w-32 bg-slate-800 rounded" />
+      </div>
+    </div>
+  )
+}
+
 interface OverviewStatsProps {
   stats: {
     completedTasks: number
@@ -94,9 +109,20 @@ interface OverviewStatsProps {
     aiTokens: number
     activeListings: number
   }>
+  isLoading?: boolean
 }
 
-export function OverviewStats({ stats, chartData = [] }: OverviewStatsProps) {
+export function OverviewStats({ stats, chartData = [], isLoading = false }: OverviewStatsProps) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+    )
+  }
+
   const taskSparkline = chartData.map((d) => d.completedTasks)
   const studySparkline = chartData.map((d) => d.studyMinutes)
   const tokensSparkline = chartData.map((d) => d.aiTokens)
