@@ -121,46 +121,51 @@ export interface TopicPriorityBreakdown {
   reason: string
 }
 
+function extractData<T>(res: { data: any; status?: number }): T {
+  if (res.status === 204 || !res.data) return null as T
+  return res.data && typeof res.data === 'object' && 'data' in res.data ? res.data.data : res.data
+}
+
 export const plannerApi = {
   // Plan Generation & Lifecycle
   previewPlan: async (payload?: GeneratePlanPayload): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>('/study-plans/preview', payload || {})
-    return res.data
+    const res = await api.post('/study-plans/preview', payload || {})
+    return extractData<StudyPlan>(res)
   },
 
   saveDraftPlan: async (payload?: GeneratePlanPayload): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>('/study-plans', payload || {})
-    return res.data
+    const res = await api.post('/study-plans', payload || {})
+    return extractData<StudyPlan>(res)
   },
 
   regeneratePlan: async (payload?: GeneratePlanPayload): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>('/study-plans/regenerate', payload || {})
-    return res.data
+    const res = await api.post('/study-plans/regenerate', payload || {})
+    return extractData<StudyPlan>(res)
   },
 
   activatePlan: async (planId: string): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>(`/study-plans/${planId}/activate`)
-    return res.data
+    const res = await api.post(`/study-plans/${planId}/activate`)
+    return extractData<StudyPlan>(res)
   },
 
   expirePlan: async (planId: string): Promise<StudyPlan> => {
-    const res = await api.post<StudyPlan>(`/study-plans/${planId}/expire`)
-    return res.data
+    const res = await api.post(`/study-plans/${planId}/expire`)
+    return extractData<StudyPlan>(res)
   },
 
   getPlan: async (planId: string): Promise<StudyPlan> => {
-    const res = await api.get<StudyPlan>(`/study-plans/${planId}`)
-    return res.data
+    const res = await api.get(`/study-plans/${planId}`)
+    return extractData<StudyPlan>(res)
   },
 
   getPriorityBreakdown: async (planId: string): Promise<TopicPriorityBreakdown[]> => {
-    const res = await api.get<TopicPriorityBreakdown[]>(`/study-plans/${planId}/priority-breakdown`)
-    return res.data
+    const res = await api.get(`/study-plans/${planId}/priority-breakdown`)
+    return extractData<TopicPriorityBreakdown[]>(res)
   },
 
   getUserPlans: async (): Promise<StudyPlanSummary[]> => {
-    const res = await api.get<StudyPlanSummary[]>('/study-plans')
-    return res.data
+    const res = await api.get('/study-plans')
+    return extractData<StudyPlanSummary[]>(res)
   },
 
   overrideSession: async (
@@ -168,33 +173,33 @@ export const plannerApi = {
     sessionId: string,
     data: { recommendedMinutes?: number; sessionType?: StudySessionType; overrideNotes: string }
   ): Promise<PlannedStudySession> => {
-    const res = await api.put<PlannedStudySession>(
+    const res = await api.put(
       `/study-plans/${planId}/sessions/${sessionId}`,
       data
     )
-    return res.data
+    return extractData<PlannedStudySession>(res)
   },
 
   // Preferences
   getPreferences: async (): Promise<PlannerPreferences> => {
-    const res = await api.get<PlannerPreferences>('/study-plans/preferences')
-    return res.data
+    const res = await api.get('/study-plans/preferences')
+    return extractData<PlannerPreferences>(res)
   },
 
   upsertPreferences: async (data: Partial<PlannerPreferences>): Promise<PlannerPreferences> => {
-    const res = await api.put<PlannerPreferences>('/study-plans/preferences', data)
-    return res.data
+    const res = await api.put('/study-plans/preferences', data)
+    return extractData<PlannerPreferences>(res)
   },
 
   // Academic Goals
   createGoal: async (data: CreateGoalPayload): Promise<AcademicGoal> => {
-    const res = await api.post<AcademicGoal>('/academic/goals', data)
-    return res.data
+    const res = await api.post('/academic/goals', data)
+    return extractData<AcademicGoal>(res)
   },
 
   getActiveGoals: async (): Promise<AcademicGoal[]> => {
-    const res = await api.get<AcademicGoal[]>('/academic/goals')
-    return res.data
+    const res = await api.get('/academic/goals')
+    return extractData<AcademicGoal[]>(res)
   },
 
   deactivateGoal: async (goalId: string): Promise<void> => {
@@ -203,15 +208,15 @@ export const plannerApi = {
 
   // Topic Prerequisites
   addPrerequisite: async (topicId: string, prerequisiteTopicId: string): Promise<TopicPrerequisite> => {
-    const res = await api.post<TopicPrerequisite>(`/academic/topics/${topicId}/prerequisites`, {
+    const res = await api.post(`/academic/topics/${topicId}/prerequisites`, {
       prerequisiteTopicId,
     })
-    return res.data
+    return extractData<TopicPrerequisite>(res)
   },
 
   getPrerequisites: async (topicId: string): Promise<TopicPrerequisite[]> => {
-    const res = await api.get<TopicPrerequisite[]>(`/academic/topics/${topicId}/prerequisites`)
-    return res.data
+    const res = await api.get(`/academic/topics/${topicId}/prerequisites`)
+    return extractData<TopicPrerequisite[]>(res)
   },
 
   removePrerequisite: async (topicId: string, prerequisiteTopicId: string): Promise<void> => {

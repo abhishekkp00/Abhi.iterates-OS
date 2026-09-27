@@ -25,63 +25,68 @@ export interface PagedAttempts {
   number: number
 }
 
+function extractData<T>(res: { data: any; status?: number }): T {
+  if (res.status === 204 || !res.data) return null as T
+  return res.data && typeof res.data === 'object' && 'data' in res.data ? res.data.data : res.data
+}
+
 export const assessmentApi = {
   // Assessment Creation & Management
   createAssessment: async (payload: CreateAssessmentPayload): Promise<Assessment> => {
-    const res = await api.post<Assessment>('/assessments', payload)
-    return res.data
+    const res = await api.post('/assessments', payload)
+    return extractData<Assessment>(res)
   },
 
   publishAssessment: async (id: string): Promise<Assessment> => {
-    const res = await api.post<Assessment>(`/assessments/${id}/publish`)
-    return res.data
+    const res = await api.post(`/assessments/${id}/publish`)
+    return extractData<Assessment>(res)
   },
 
   addQuestion: async (assessmentId: string, payload: CreateQuestionPayload): Promise<any> => {
     const res = await api.post(`/assessments/${assessmentId}/questions`, payload)
-    return res.data
+    return extractData<any>(res)
   },
 
   getStudentQuestions: async (assessmentId: string): Promise<Question[]> => {
-    const res = await api.get<Question[]>(`/assessments/${assessmentId}/questions`)
-    return res.data
+    const res = await api.get(`/assessments/${assessmentId}/questions`)
+    return extractData<Question[]>(res)
   },
 
   getAssessmentById: async (id: string): Promise<Assessment> => {
-    const res = await api.get<Assessment>(`/assessments/${id}`)
-    return res.data
+    const res = await api.get(`/assessments/${id}`)
+    return extractData<Assessment>(res)
   },
 
   getUserAssessments: async (page = 0, publishedOnly = false): Promise<PagedAssessments> => {
     const url = `/assessments?page=${page}&size=20${publishedOnly ? '&publishedOnly=true' : ''}`
-    const res = await api.get<PagedAssessments>(url)
-    return res.data
+    const res = await api.get(url)
+    return extractData<PagedAssessments>(res)
   },
 
   // Test Attempt & Submission
   startAttempt: async (assessmentId: string): Promise<AssessmentAttempt> => {
-    const res = await api.post<AssessmentAttempt>(`/assessment-attempts/assessments/${assessmentId}/start`)
-    return res.data
+    const res = await api.post(`/assessment-attempts/assessments/${assessmentId}/start`)
+    return extractData<AssessmentAttempt>(res)
   },
 
   submitAttempt: async (attemptId: string, payload: SubmitAttemptPayload): Promise<AssessmentAttempt> => {
-    const res = await api.post<AssessmentAttempt>(`/assessment-attempts/${attemptId}/submit`, payload)
-    return res.data
+    const res = await api.post(`/assessment-attempts/${attemptId}/submit`, payload)
+    return extractData<AssessmentAttempt>(res)
   },
 
   getAttemptById: async (attemptId: string): Promise<AssessmentAttempt> => {
-    const res = await api.get<AssessmentAttempt>(`/assessment-attempts/${attemptId}`)
-    return res.data
+    const res = await api.get(`/assessment-attempts/${attemptId}`)
+    return extractData<AssessmentAttempt>(res)
   },
 
   getUserAttempts: async (page = 0): Promise<PagedAttempts> => {
-    const res = await api.get<PagedAttempts>(`/assessment-attempts?page=${page}&size=20`)
-    return res.data
+    const res = await api.get(`/assessment-attempts?page=${page}&size=20`)
+    return extractData<PagedAttempts>(res)
   },
 
   getTopicPerformance: async (topicId: string): Promise<TopicPerformance> => {
-    const res = await api.get<TopicPerformance>(`/assessment-attempts/topics/${topicId}/performance`)
-    return res.data
+    const res = await api.get(`/assessment-attempts/topics/${topicId}/performance`)
+    return extractData<TopicPerformance>(res)
   },
 
   generateAdaptiveAssessment: async (payload: {
@@ -91,7 +96,7 @@ export const assessmentApi = {
     difficulty?: string
     includeResources?: boolean
   }): Promise<Assessment> => {
-    const res = await api.post<Assessment>('/assessments/generate', payload)
-    return res.data
+    const res = await api.post('/assessments/generate', payload)
+    return extractData<Assessment>(res)
   },
 }

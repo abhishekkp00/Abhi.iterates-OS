@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { tasksApi } from '../api/tasks.api'
 import { toast } from 'sonner'
-import type { TaskRequest } from '@/types/productivity'
+import type { Task, TaskRequest } from '@/types/productivity'
 
 export function useTasks() {
   const queryClient = useQueryClient()
@@ -16,10 +16,15 @@ export function useTasks() {
     queryFn: tasksApi.getSummary,
   })
 
+  const invalidateAllPlannerQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    queryClient.invalidateQueries({ queryKey: ['analytics'] })
+  }
+
   const createTaskMutation = useMutation({
     mutationFn: tasksApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      invalidateAllPlannerQueries()
       toast.success('Task created successfully')
     },
     onError: (err: any) => {
@@ -29,23 +34,53 @@ export function useTasks() {
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: TaskRequest }) => tasksApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      toast.success('Task updated successfully')
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] })
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
+
+      if (previousTasks) {
+        queryClient.setQueryData<Task[]>(['tasks'], (old) =>
+          old ? old.map((t) => (t.id === id ? { ...t, ...data } : t)) : []
+        )
+      }
+
+      return { previousTasks }
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks'], context.previousTasks)
+      }
       toast.error(err.response?.data?.message || 'Failed to update task')
+    },
+    onSettled: () => {
+      invalidateAllPlannerQueries()
+      toast.success('Task updated successfully')
     },
   })
 
   const deleteTaskMutation = useMutation({
     mutationFn: tasksApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      toast.success('Task deleted successfully')
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] })
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
+
+      if (previousTasks) {
+        queryClient.setQueryData<Task[]>(['tasks'], (old) =>
+          old ? old.filter((t) => t.id !== id) : []
+        )
+      }
+
+      return { previousTasks }
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks'], context.previousTasks)
+      }
       toast.error(err.response?.data?.message || 'Failed to delete task')
+    },
+    onSettled: () => {
+      invalidateAllPlannerQueries()
+      toast.success('Task deleted successfully')
     },
   })
 

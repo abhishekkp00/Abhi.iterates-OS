@@ -1,97 +1,26 @@
 import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Heart, Share2, MapPin, MessageCircle, Calendar, Pencil, Tag } from '@/lib/icons'
+import { ArrowLeft, Heart, Share2, MapPin, MessageCircle, Calendar, Pencil, Tag, Loader2 } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import type { Listing } from '@/types/marketplace'
-
-// Retrieve details matching ID from our MOCK_LISTINGS dataset
-const MOCK_LISTINGS: Listing[] = [
-  {
-    id: 'l1',
-    title: 'Introduction to Algorithms (CLRS) 4th Edition',
-    description: 'Barely used for one semester. No highlights or markings. Perfect condition for CS courses. Covers divide-and-conquer, greedy algorithms, dynamic programming, and advanced data structures. Comes with solutions references if requested.',
-    price: 45.00,
-    negotiable: true,
-    category: 'BOOKS',
-    condition: 'LIKE_NEW',
-    location: 'Hill Library',
-    status: 'ACTIVE',
-    seller: {
-      id: 'u1',
-      fullName: 'Alex River',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop',
-      email: 'alex@campus.edu',
-    },
-    images: [
-      { id: 'i1', imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=600&auto=format&fit=crop', isPrimary: true },
-      { id: 'i1-2', imageUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=600&auto=format&fit=crop', isPrimary: false },
-    ],
-    isFavorited: false,
-    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(), // 1 day ago
-    updatedAt: new Date().toISOString(),
-    tags: 'cs, algorithms, textbook',
-  },
-  {
-    id: 'l2',
-    title: 'iPad Pro 11" (M1, 128GB, Wi-Fi)',
-    description: 'Space Gray. Comes with original box and USB-C charger. Minor scratches on the back but screen is pristine. Battery health is at 92%. Great for digital note-taking or video calls.',
-    price: 520.00,
-    negotiable: false,
-    category: 'ELECTRONICS',
-    condition: 'GOOD',
-    location: 'West Quad',
-    status: 'ACTIVE',
-    seller: {
-      id: 'u2',
-      fullName: 'Emily Stone',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop',
-      email: 'emily@campus.edu',
-    },
-    images: [
-      { id: 'i2', imageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=600&auto=format&fit=crop', isPrimary: true },
-      { id: 'i2-2', imageUrl: 'https://images.unsplash.com/photo-1589739900243-4b52cd9b104e?q=80&w=600&auto=format&fit=crop', isPrimary: false },
-    ],
-    isFavorited: true,
-    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(), // 2 days ago
-    updatedAt: new Date().toISOString(),
-    tags: 'apple, ipad, tablet',
-  },
-  {
-    id: 'l3',
-    title: 'Private Room in Shared Apartment (Sublet)',
-    description: 'Looking for a subletter for Fall 2026. 5 mins walk to campus. Gym and laundry included. Utilities around $40/mo. Shared kitchen with 2 quiet CS roommates.',
-    price: 850.00,
-    negotiable: true,
-    category: 'HOUSING',
-    condition: 'GOOD',
-    location: 'North Campus',
-    status: 'ACTIVE',
-    seller: {
-      id: 'u3',
-      fullName: 'Marcus Vance',
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop',
-      email: 'marcus@campus.edu',
-    },
-    images: [
-      { id: 'i3', imageUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=600&auto=format&fit=crop', isPrimary: true },
-    ],
-    isFavorited: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: 'housing, sublet, room',
-  },
-]
+import { useMarketplaceListingQuery, useMarketplaceListingsQuery } from '@/features/marketplace/hooks/useMarketplace'
 
 export default function MarketplaceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  
-  // Find current listing
-  const listing = (MOCK_LISTINGS.find(item => item.id === id) || MOCK_LISTINGS[0]) as Listing
-  
   const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const [isFavorited, setIsFavorited] = useState(listing.isFavorited || false)
+  const [isFavorited, setIsFavorited] = useState(false)
+
+  // Fetch target listing from backend API
+  const { data: listing, isLoading, isError } = useMarketplaceListingQuery(id)
+
+  // Fetch related items in same category
+  const { data: relatedPage } = useMarketplaceListingsQuery({
+    categories: listing?.category,
+    size: 4,
+  })
+
+  const relatedListings = (relatedPage?.content || []).filter((item) => item.id !== listing?.id)
 
   const handleFavoriteClick = () => {
     setIsFavorited(!isFavorited)
@@ -108,13 +37,10 @@ export default function MarketplaceDetailPage() {
   }
 
   const handleContactSeller = () => {
-    toast.success(`Contacting ${listing.seller.fullName}... Chat placeholder activated!`)
+    if (!listing?.seller) return
+    toast.success(`Contact email: ${listing.seller.email}`)
+    window.location.href = `mailto:${listing.seller.email}?subject=${encodeURIComponent(`Inquiry regarding "${listing.title}" on Campus Marketplace`)}`
   }
-
-  // Get related items (same category, excluding current one)
-  const relatedListings = MOCK_LISTINGS.filter(
-    item => item.category === listing.category && item.id !== listing.id
-  )
 
   const conditionLabels: Record<string, string> = {
     NEW: 'Brand New',
@@ -131,6 +57,27 @@ export default function MarketplaceDetailPage() {
     SERVICES: 'Tutoring & Services',
     CLOTHING: 'Clothing & Apparel',
     OTHER: 'Other Items',
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 max-w-5xl mx-auto">
+        <Loader2 className="size-8 animate-spin text-primary" />
+        <p className="text-xs text-muted-foreground font-medium">Loading listing details...</p>
+      </div>
+    )
+  }
+
+  if (isError || !listing) {
+    return (
+      <div className="page-container max-w-3xl space-y-6 text-center py-16">
+        <h2 className="text-lg font-bold text-foreground">Listing not found</h2>
+        <p className="text-xs text-muted-foreground">The requested listing may have been removed or is no longer available.</p>
+        <Link to="/marketplace">
+          <Button size="sm">Back to Marketplace</Button>
+        </Link>
+      </div>
+    )
   }
 
   const formattedDate = new Date(listing.createdAt).toLocaleDateString(undefined, {
@@ -318,7 +265,7 @@ export default function MarketplaceDetailPage() {
         <div className="border-t border-border pt-8 space-y-5">
           <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Related Listings</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-            {relatedListings.map(item => (
+            {relatedListings.map((item) => (
               <div
                 key={item.id}
                 onClick={() => {

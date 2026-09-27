@@ -1,95 +1,55 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate, useBlocker } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, AlertCircle } from '@/lib/icons'
+import { ArrowLeft, AlertCircle, Loader2 } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
 import { ListingForm, type ListingFormValues } from '@/features/marketplace/components/ListingForm'
-import type { Listing } from '@/types/marketplace'
-
-// Reference matching mock listings to pre-populate form
-const MOCK_LISTINGS: Listing[] = [
-  {
-    id: 'l1',
-    title: 'Introduction to Algorithms (CLRS) 4th Edition',
-    description: 'Barely used for one semester. No highlights or markings. Perfect condition for CS courses.',
-    price: 45.00,
-    negotiable: true,
-    category: 'BOOKS',
-    condition: 'LIKE_NEW',
-    location: 'Hill Library',
-    status: 'ACTIVE',
-    seller: {
-      id: 'u1',
-      fullName: 'Alex River',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop',
-      email: 'alex@campus.edu',
-    },
-    images: [
-      { id: 'i1', imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=600&auto=format&fit=crop', isPrimary: true },
-    ],
-    isFavorited: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: 'cs, algorithms, textbook',
-  },
-  {
-    id: 'l2',
-    title: 'iPad Pro 11" (M1, 128GB, Wi-Fi)',
-    description: 'Space Gray. Comes with original box and USB-C charger. Minor scratches on the back but screen is pristine.',
-    price: 520.00,
-    negotiable: false,
-    category: 'ELECTRONICS',
-    condition: 'GOOD',
-    location: 'West Quad',
-    status: 'ACTIVE',
-    seller: {
-      id: 'u2',
-      fullName: 'Emily Stone',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop',
-      email: 'emily@campus.edu',
-    },
-    images: [
-      { id: 'i2', imageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=600&auto=format&fit=crop', isPrimary: true },
-    ],
-    isFavorited: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: 'apple, ipad, tablet',
-  },
-]
+import {
+  useMarketplaceListingQuery,
+  useUpdateMarketplaceListingMutation,
+} from '@/features/marketplace/hooks/useMarketplace'
 
 export default function MarketplaceEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
 
-  // Find listing or fallback
-  const listing = MOCK_LISTINGS.find(item => item.id === id)
+  // Fetch listing details from backend
+  const { data: listing, isLoading, isError } = useMarketplaceListingQuery(id)
+  const updateMutation = useUpdateMarketplaceListingMutation()
 
   // SPA navigation blocker via React Router v6
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      isDirty && !isSubmitting && currentLocation.pathname !== nextLocation.pathname
+      isDirty && !updateMutation.isPending && currentLocation.pathname !== nextLocation.pathname
   )
 
   // Tab/browser close or reload prevention
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty && !isSubmitting) {
+      if (isDirty && !updateMutation.isPending) {
         e.preventDefault()
         e.returnValue = ''
       }
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [isDirty, isSubmitting])
-  
-  if (!listing) {
+  }, [isDirty, updateMutation.isPending])
+
+  if (isLoading) {
     return (
-      <div className="page-container max-w-3xl space-y-6 text-center">
+      <div className="flex flex-col items-center justify-center py-24 gap-3 max-w-3xl mx-auto">
+        <Loader2 className="size-8 animate-spin text-primary" />
+        <p className="text-xs text-muted-foreground font-medium">Loading listing details...</p>
+      </div>
+    )
+  }
+
+  if (isError || !listing || !id) {
+    return (
+      <div className="page-container max-w-3xl space-y-6 text-center py-16">
         <h2 className="text-lg font-bold text-foreground">Listing not found</h2>
+        <p className="text-xs text-muted-foreground">The requested listing could not be found or you do not have permission to edit it.</p>
         <Link to="/marketplace">
           <Button size="sm">Back to Marketplace</Button>
         </Link>
@@ -97,20 +57,29 @@ export default function MarketplaceEditPage() {
     )
   }
 
-  const handleSubmit = async (_values: ListingFormValues, _files: File[]) => {
-    setIsSubmitting(true)
-    try {
-      // Simulate file upload delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      
-      setIsDirty(false) // Reset dirty state to bypass navigation block on success
-      toast.success('Your listing was updated successfully!')
-      navigate(`/marketplace/${id}`)
-    } catch (_err) {
-      toast.error('Failed to save listing changes.')
-    } finally {
-      setIsSubmitting(false)
-    }
+  const handleSubmit = async (values: ListingFormValues, files: File[]) => {
+    const existingUrls = listing.images?.map((img) => img.imageUrl) || []
+    const newUrls = files.map((_, i) => `https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=600&auto=format&fit=crop&v=${i}`)
+    const imageUrls = [...existingUrls, ...newUrls]
+
+    setIsDirty(false)
+    await updateMutation.mutateAsync({
+      id,
+      data: {
+        title: values.title,
+        description: values.description || undefined,
+        price: values.price,
+        negotiable: values.negotiable,
+        category: values.category,
+        condition: values.condition,
+        location: values.location || undefined,
+        status: listing.status,
+        tags: values.tags || undefined,
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      },
+    })
+
+    navigate(`/marketplace/${id}`)
   }
 
   return (
@@ -121,7 +90,7 @@ export default function MarketplaceEditPage() {
           <span>Back to Details</span>
         </Button>
       </Link>
-      
+
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Edit Campus Listing</h1>
         <p className="text-sm text-muted-foreground mt-1">Modify details for your active campus listing.</p>
@@ -130,7 +99,7 @@ export default function MarketplaceEditPage() {
       <ListingForm
         initialValues={listing}
         onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
+        isSubmitting={updateMutation.isPending}
         submitLabel="Save Changes"
         onDirtyStateChange={setIsDirty}
       />
