@@ -20,7 +20,7 @@ export default defineConfig({
     // Proxy API calls to backend to avoid CORS in dev
     proxy: {
       '/api': {
-        target: 'http://localhost:8095',
+        target: process.env.VITE_BACKEND_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
     },
