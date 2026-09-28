@@ -22,7 +22,7 @@ import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/v1/admin/settings")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 @RequiredArgsConstructor
 @Tag(name = "Admin System Settings", description = "Endpoints to configure feature flags, maintenance, and tokens")
 @Slf4j
@@ -50,6 +50,7 @@ public class AdminSettingsController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Get global system configuration parameters and feature flags")
     public ResponseEntity<ApiResponse<SystemSettingsDto>> getSettings(HttpServletRequest request) {
         log.info("Admin requested global settings configuration.");
@@ -74,13 +75,15 @@ public class AdminSettingsController {
     }
 
     @PutMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update global system configuration parameters and feature flags")
     public ResponseEntity<ApiResponse<Void>> saveSettings(
             @Valid @RequestBody SystemSettingsDto dto,
             @AuthenticationPrincipal User adminUser,
             HttpServletRequest request
     ) {
-        log.info("Admin '{}' updated global settings configuration.", adminUser.getEmail());
+        String adminEmail = adminUser != null ? adminUser.getEmail() : "superadmin";
+        log.info("Admin '{}' updated global settings configuration.", adminEmail);
 
         updateOrSave("maintenanceMode", String.valueOf(dto.maintenanceMode()));
         updateOrSave("enableAiAssistant", String.valueOf(dto.enableAiAssistant()));
@@ -89,7 +92,7 @@ public class AdminSettingsController {
         updateOrSave("apiKeyConfig", dto.apiKeyConfig());
 
         auditLogRepository.save(AuditLog.builder()
-                .adminEmail(adminUser.getEmail())
+                .adminEmail(adminEmail)
                 .action("UPDATE_SYSTEM_SETTINGS")
                 .target("SYSTEM_CONFIG")
                 .details(String.format("Maint: %b | AI: %b | AutoApprove: %b | Tokens: %d",

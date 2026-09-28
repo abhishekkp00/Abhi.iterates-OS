@@ -108,7 +108,7 @@ public class SecurityConfig {
                         // Public auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // Admin-only REST
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         // Require JWT for everything else
                         .anyRequest().authenticated()
                 )
