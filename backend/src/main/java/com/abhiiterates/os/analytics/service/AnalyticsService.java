@@ -80,15 +80,22 @@ public class AnalyticsService {
                 ));
 
         // Group active listings by date
-        List<com.abhiiterates.os.marketplace.MarketplaceListing> listings = marketplaceListingRepository.findAll().stream()
-                .filter(l -> l.getSeller().getId().equals(user.getId()))
-                .toList();
+        List<com.abhiiterates.os.marketplace.MarketplaceListing> listings = marketplaceListingRepository.findAllBySeller(user);
 
         Map<String, Long> activeListingsByDate = listings.stream()
                 .filter(l -> l.getCreatedAt() != null)
                 .collect(Collectors.groupingBy(
                         l -> formatDate(l.getCreatedAt()),
                         Collectors.counting()
+                ));
+
+        // Group real AI tokens by date
+        List<com.abhiiterates.os.ai.AiMessage> userMessages = aiMessageRepository.findAllMessagesByUser(user);
+        Map<String, Long> aiTokensByDate = userMessages.stream()
+                .filter(m -> m.getCreatedAt() != null && m.getTokenCount() != null)
+                .collect(Collectors.groupingBy(
+                        m -> formatDate(m.getCreatedAt()),
+                        Collectors.summingLong(com.abhiiterates.os.ai.AiMessage::getTokenCount)
                 ));
 
         List<DashboardAnalyticsDto.ChartDataPoint> chartData = new ArrayList<>();
@@ -98,16 +105,14 @@ public class AnalyticsService {
             long completedTasksOnDate = completedTasksByDate.getOrDefault(dateStr, 0L);
             double studyMinutesOnDate = studyDurationByDate.getOrDefault(dateStr, 0.0);
             long listingsOnDate = activeListingsByDate.getOrDefault(dateStr, 0L);
-
-            // Mock daily tokens for visual display based on total (if zero, we fallback)
-            long dailyAiTokensMock = totalAiTokens > 0 ? (totalAiTokens / daysRange) + (int)(Math.random() * 50) : 0L;
+            long dailyAiTokens = aiTokensByDate.getOrDefault(dateStr, 0L);
 
             chartData.add(DashboardAnalyticsDto.ChartDataPoint.builder()
                     .date(dateStr)
                     .completedTasks(completedTasksOnDate)
                     .studyMinutes(studyMinutesOnDate)
                     .activeListings(listingsOnDate)
-                    .aiTokens(dailyAiTokensMock)
+                    .aiTokens(dailyAiTokens)
                     .build());
         }
 

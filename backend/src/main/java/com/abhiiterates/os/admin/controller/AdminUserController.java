@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/admin/users")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 @RequiredArgsConstructor
 @Tag(name = "Admin User Operations", description = "Administrative commands to manage student users")
 @Slf4j
@@ -36,6 +36,27 @@ public class AdminUserController {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final com.abhiiterates.os.admin.AuditLogRepository auditLogRepository;
+
+    private boolean isSuperAdmin(User user) {
+        if (user == null || user.getRoles() == null) return false;
+        return user.getRoles().stream().anyMatch(r -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
+    }
+
+    private boolean isAdmin(User user) {
+        if (user == null || user.getRoles() == null) return false;
+        return user.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equalsIgnoreCase(r.getName()) || "ROLE_SUPER_ADMIN".equalsIgnoreCase(r.getName()));
+    }
+
+    private boolean isCallerSuperAdmin(User adminUser) {
+        if (adminUser != null && isSuperAdmin(adminUser)) {
+            return true;
+        }
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities() != null) {
+            return auth.getAuthorities().stream().anyMatch(a -> "ROLE_SUPER_ADMIN".equalsIgnoreCase(a.getAuthority()));
+        }
+        return false;
+    }
 
     @GetMapping
     @Operation(summary = "Search and filter registered user profiles (paginated)")
@@ -73,7 +94,7 @@ public class AdminUserController {
             @AuthenticationPrincipal User adminUser,
             HttpServletRequest request
     ) {
-        if (adminUser.getId().equals(id)) {
+        if (adminUser != null && adminUser.getId().equals(id)) {
             return ResponseEntity.badRequest().body(
                     ApiResponse.error("You cannot modify your own administrative roles.", 400, request.getRequestURI())
             );
@@ -81,6 +102,17 @@ public class AdminUserController {
 
         User target = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        boolean targetIsSuperAdmin = isSuperAdmin(target);
+        boolean requestAssignsSuperAdmin = body.roles().stream().anyMatch("ROLE_SUPER_ADMIN"::equalsIgnoreCase);
+        boolean callerIsSuperAdmin = isCallerSuperAdmin(adminUser);
+
+        // Privilege Escalation Guard: Only SUPER_ADMIN can assign SUPER_ADMIN role or alter a SUPER_ADMIN user
+        if ((targetIsSuperAdmin || requestAssignsSuperAdmin) && !callerIsSuperAdmin) {
+            return ResponseEntity.status(403).body(
+                    ApiResponse.error("Forbidden: Only SUPER_ADMIN can assign or alter SUPER_ADMIN roles.", 403, request.getRequestURI())
+            );
+        }
 
         Set<Role> newRoles = new HashSet<>();
         for (String roleName : body.roles()) {
@@ -91,10 +123,12 @@ public class AdminUserController {
 
         target.setRoles(newRoles);
         userRepository.save(target);
-        log.info("Admin '{}' updated roles of user '{}' to {}", adminUser.getEmail(), target.getEmail(), body.roles());
+
+        String adminEmail = adminUser != null ? adminUser.getEmail() : "admin";
+        log.info("Admin '{}' updated roles of user '{}' to {}", adminEmail, target.getEmail(), body.roles());
 
         auditLogRepository.save(com.abhiiterates.os.admin.AuditLog.builder()
-                .adminEmail(adminUser.getEmail())
+                .adminEmail(adminEmail)
                 .action("UPDATE_USER_ROLES")
                 .target(target.getUsername())
                 .details("Roles updated to: " + body.roles())
@@ -115,7 +149,7 @@ public class AdminUserController {
             @AuthenticationPrincipal User adminUser,
             HttpServletRequest request
     ) {
-        if (adminUser.getId().equals(id)) {
+        if (adminUser != null && adminUser.getId().equals(id)) {
             return ResponseEntity.badRequest().body(
                     ApiResponse.error("You cannot change your own active status.", 400, request.getRequestURI())
             );
@@ -124,12 +158,23 @@ public class AdminUserController {
         User target = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        boolean targetIsAdminOrSuper = isAdmin(target);
+        boolean callerIsSuperAdmin = isCallerSuperAdmin(adminUser);
+
+        if (targetIsAdminOrSuper && !callerIsSuperAdmin) {
+            return ResponseEntity.status(403).body(
+                    ApiResponse.error("Forbidden: Only SUPER_ADMIN can modify active status of administrative accounts.", 403, request.getRequestURI())
+            );
+        }
+
         target.setActive(active);
         userRepository.save(target);
-        log.info("Admin '{}' set active status of user '{}' to {}", adminUser.getEmail(), target.getEmail(), active);
+
+        String adminEmail = adminUser != null ? adminUser.getEmail() : "admin";
+        log.info("Admin '{}' set active status of user '{}' to {}", adminEmail, target.getEmail(), active);
 
         auditLogRepository.save(com.abhiiterates.os.admin.AuditLog.builder()
-                .adminEmail(adminUser.getEmail())
+                .adminEmail(adminEmail)
                 .action(active ? "REACTIVATE_USER" : "DEACTIVATE_USER")
                 .target(target.getUsername())
                 .details("Active status set to: " + active)
@@ -150,7 +195,7 @@ public class AdminUserController {
             @AuthenticationPrincipal User adminUser,
             HttpServletRequest request
     ) {
-        if (adminUser.getId().equals(id)) {
+        if (adminUser != null && adminUser.getId().equals(id)) {
             return ResponseEntity.badRequest().body(
                     ApiResponse.error("You cannot soft-delete your own account.", 400, request.getRequestURI())
             );
@@ -159,14 +204,25 @@ public class AdminUserController {
         User target = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        boolean targetIsAdminOrSuper = isAdmin(target);
+        boolean callerIsSuperAdmin = isCallerSuperAdmin(adminUser);
+
+        if (targetIsAdminOrSuper && !callerIsSuperAdmin) {
+            return ResponseEntity.status(403).body(
+                    ApiResponse.error("Forbidden: Only SUPER_ADMIN can soft-delete administrative accounts.", 403, request.getRequestURI())
+            );
+        }
+
         target.setActive(false);
         target.setSoftDeleted(true);
         target.setDeletedAt(Instant.now());
         userRepository.save(target);
-        log.info("Admin '{}' soft-deleted user '{}'", adminUser.getEmail(), target.getEmail());
+
+        String adminEmail = adminUser != null ? adminUser.getEmail() : "admin";
+        log.info("Admin '{}' soft-deleted user '{}'", adminEmail, target.getEmail());
 
         auditLogRepository.save(com.abhiiterates.os.admin.AuditLog.builder()
-                .adminEmail(adminUser.getEmail())
+                .adminEmail(adminEmail)
                 .action("DELETE_USER")
                 .target(target.getUsername())
                 .details("Soft deleted account permanently")

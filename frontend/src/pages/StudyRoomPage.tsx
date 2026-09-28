@@ -289,7 +289,11 @@ export default function StudyRoomPage() {
       ctx.lineWidth = 2
       ctx.setLineDash([4, 4])
       ctx.beginPath()
-      ctx.roundRect ? ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 8) : ctx.rect(boxX, boxY, boxWidth, boxHeight)
+      if (ctx.roundRect) {
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 8)
+      } else {
+        ctx.rect(boxX, boxY, boxWidth, boxHeight)
+      }
       ctx.fill()
       ctx.stroke()
       ctx.restore()
@@ -355,7 +359,9 @@ export default function StudyRoomPage() {
       if (iframeWin) {
         try {
           iframeWin.removeEventListener('scroll', handleScroll)
-        } catch (e) {}
+        } catch (_e) {
+          // ignore scroll cleanup error
+        }
       }
     }
   }, [redrawCanvas])
@@ -493,7 +499,9 @@ export default function StudyRoomPage() {
     if (iframeRef.current) {
       try {
         iframeRef.current.contentWindow?.scrollBy({ top: e.deltaY, left: e.deltaX, behavior: 'instant' as ScrollBehavior })
-      } catch (err) {}
+      } catch (_err) {
+        // ignore cross-origin scroll error
+      }
     }
     if (containerRef.current) {
       containerRef.current.scrollTop += e.deltaY

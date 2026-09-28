@@ -1,74 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Trash2, CheckCircle2, MessageSquare, Sparkles, Clock } from '@/lib/icons'
+import { Bell, Trash2, CheckCircle2, MessageSquare, Sparkles, Clock, Loader2 } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
-
-type MockNotification = {
-  id: string
-  type: string
-  message: string
-  read: boolean
-  createdAt: string
-  actionUrl?: string
-}
+import { useNotificationStore } from '@/store/notification.store'
 
 export default function NotificationsPage() {
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
-  const [notifications, setNotifications] = useState<MockNotification[]>([
-    {
-      id: '1',
-      type: 'RESOURCE_COMMENTED',
-      message: 'Alex Rivera commented on your resource "Advanced Algorithms Study Guide"',
-      read: false,
-      createdAt: new Date().toISOString(),
-      actionUrl: '/resources/1'
-    },
-    {
-      id: '2',
-      type: 'MENTION',
-      message: 'Sarah Chen mentioned you in a comment on "Database Schema Design"',
-      read: false,
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      actionUrl: '/resources/2'
-    },
-    {
-      id: '3',
-      type: 'TASK_DUE_SOON',
-      message: 'Task "Submit Operating Systems Lab" is due in 3 hours',
-      read: true,
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-      actionUrl: '/tasks'
-    },
-    {
-      id: '4',
-      type: 'SYSTEM_ANNOUNCEMENT',
-      message: 'Welcome to AbhiIterates.OS! Explore the real-time collaboration dashboard.',
-      read: true,
-      createdAt: new Date(Date.now() - 86400000).toISOString()
-    }
-  ])
 
-  const filtered = notifications.filter(n => filter === 'all' || !n.read)
+  const {
+    notifications,
+    loading,
+    fetchNotifications,
+    markRead,
+    markAllRead,
+    remove,
+  } = useNotificationStore()
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-  }
+  useEffect(() => {
+    fetchNotifications()
+  }, [fetchNotifications])
 
-  const clearAll = () => {
-    setNotifications([])
-  }
-
-  const toggleRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !n.read } : n))
-  }
-
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
-  }
+  const filtered = notifications.filter((n) => filter === 'all' || !n.read)
 
   const getIcon = (type: string) => {
     switch (type) {
       case 'RESOURCE_COMMENTED':
+      case 'RESOURCE_SHARED':
         return <MessageSquare className="size-4 text-emerald-400" />
       case 'MENTION':
         return <Sparkles className="size-4 text-purple-400" />
@@ -88,19 +45,15 @@ export default function NotificationsPage() {
             Notifications
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Stay updated with real-time comments, mentions, and system alerts.
+            Stay updated with real-time comments, mentions, task deadlines, and system alerts.
           </p>
         </div>
 
         {notifications.length > 0 && (
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={markAllRead} className="h-9">
+            <Button variant="outline" size="sm" onClick={() => markAllRead()} className="h-9">
               <CheckCircle2 className="size-3.5 mr-2" />
               Mark all read
-            </Button>
-            <Button variant="ghost" size="sm" onClick={clearAll} className="h-9 text-destructive hover:bg-destructive/10">
-              <Trash2 className="size-3.5 mr-2" />
-              Clear all
             </Button>
           </div>
         )}
@@ -110,9 +63,9 @@ export default function NotificationsPage() {
       <div className="flex border-b border-border/40">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             filter === 'all'
-              ? 'border-primary text-foreground'
+              ? 'border-primary text-foreground font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -120,26 +73,31 @@ export default function NotificationsPage() {
         </button>
         <button
           onClick={() => setFilter('unread')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             filter === 'unread'
-              ? 'border-primary text-foreground'
+              ? 'border-primary text-foreground font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          Unread ({notifications.filter(n => !n.read).length})
+          Unread ({notifications.filter((n) => !n.read).length})
         </button>
       </div>
 
       {/* Notifications List */}
       <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-border/60 rounded-xl bg-card/20">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Loader2 className="size-8 animate-spin text-primary" />
+            <p className="text-xs text-muted-foreground font-medium">Fetching notifications...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border/60 rounded-xl bg-card/20">
             <div className="size-12 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground mb-4">
               <Bell className="size-6" />
             </div>
-            <h3 className="font-semibold text-lg">No notifications</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mt-1">
-              You are all caught up! When you get new notifications, they will show up here.
+            <h3 className="font-semibold text-base text-foreground">No notifications</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mt-1">
+              You are all caught up! When new system notifications or activity occur, they will show up here.
             </p>
           </div>
         ) : (
@@ -162,13 +120,14 @@ export default function NotificationsPage() {
               </div>
 
               {/* Message & Time */}
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm leading-relaxed ${!n.read ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+              <div className="flex-1 min-w-0 space-y-1">
+                <p className={`text-sm leading-relaxed ${!n.read ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>
                   {n.message}
                 </p>
-                <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground/75">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground/75">
                   <span className="flex items-center gap-1">
                     <Clock className="size-3" />
+                    {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })} at{' '}
                     {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   {n.actionUrl && (
@@ -184,20 +143,22 @@ export default function NotificationsPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  title={n.read ? 'Mark as unread' : 'Mark as read'}
-                  onClick={() => toggleRead(n.id)}
-                >
-                  <CheckCircle2 className={`size-4 ${n.read ? 'text-muted-foreground' : 'text-primary'}`} />
-                </Button>
+                {!n.read && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    title="Mark as read"
+                    onClick={() => markRead(n.id)}
+                  >
+                    <CheckCircle2 className="size-4 text-primary" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   className="text-destructive hover:bg-destructive/10"
                   title="Delete notification"
-                  onClick={() => deleteNotification(n.id)}
+                  onClick={() => remove(n.id)}
                 >
                   <Trash2 className="size-4" />
                 </Button>

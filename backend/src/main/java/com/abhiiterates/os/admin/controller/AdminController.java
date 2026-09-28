@@ -32,7 +32,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/v1/admin")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 @RequiredArgsConstructor
 @Tag(name = "Admin Portal", description = "Administration and platform monitoring endpoints")
 @Slf4j
