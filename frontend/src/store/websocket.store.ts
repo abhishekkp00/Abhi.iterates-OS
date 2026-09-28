@@ -5,6 +5,8 @@ import { useAuthStore } from './auth.store'
 import { API_BASE_URL } from '@/constants/app'
 import { toast } from 'sonner'
 
+import { useNotificationStore } from './notification.store'
+
 export type WebSocketStatus = 'CONNECTED' | 'DISCONNECTED' | 'CONNECTING' | 'RECONNECTING'
 
 interface WebSocketState {
@@ -51,6 +53,10 @@ export const useWebSocketStore = create<WebSocketState>()((set, get) => {
         onConnect: () => {
           set({ client, status: 'CONNECTED', reconnectAttempts: 0 })
           
+          // Refetch notifications and unread count to clear stale state on reconnect
+          useNotificationStore.getState().fetchNotifications()
+          useNotificationStore.getState().fetchUnreadCount()
+
           // Toast dynamic connection state to the user
           toast.success('Real-time sync established', {
             id: 'ws-status-toast',
