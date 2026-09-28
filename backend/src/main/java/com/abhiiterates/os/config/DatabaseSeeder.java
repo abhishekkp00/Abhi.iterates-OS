@@ -82,6 +82,9 @@ public class DatabaseSeeder implements CommandLineRunner {
             cleanupStudentLogins(adminUser);
 
             log.info("Database seeding and user cleanup successfully completed.");
+        } catch (IllegalStateException e) {
+            log.error("CRITICAL: Failed fast on missing deployment secret configuration: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.warn("DatabaseSeeder execution encountered exception: {}", e.getMessage());
         }
@@ -89,6 +92,10 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public User seedAdminUser(Role adminRole, Role superAdminRole) {
+        if (adminEmail == null || adminEmail.trim().isEmpty() || adminPassword == null || adminPassword.trim().isEmpty()) {
+            throw new IllegalStateException("Required admin seed credentials (ADMIN_EMAIL, ADMIN_PASSWORD) are missing or empty. Please set them in your environment variables.");
+        }
+
         Set<Role> roles = new HashSet<>();
         if (adminRole != null) roles.add(adminRole);
         if (superAdminRole != null) roles.add(superAdminRole);

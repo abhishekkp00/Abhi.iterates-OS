@@ -1,4 +1,4 @@
-name: Abhi.iterates-OS CI Pipeline
+name: Abhi.iterates-OS Reproducible CI Pipeline
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  backend-build-and-test:
-    name: Backend Build & Test (Spring Boot 3 + PostgreSQL/pgvector)
+  ci-pipeline:
+    name: Continuous Integration & Build Pipeline
     runs-on: ubuntu-latest
 
     services:
@@ -27,7 +27,8 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout Code Repository
+      # Step 1: Checkout Code Repository
+      - name: 1. Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
@@ -37,23 +38,6 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Verify Backend Compilation & Run Unit/Integration Tests
-        working-directory: ./backend
-        env:
-          SPRING_PROFILES_ACTIVE: test
-          JWT_SECRET: c29tZS1zdXBlci1zZWNyZXQtand0LWtleS1mb3ItY2ktaW50ZWdyYXRpb24tdGVzdHMtYmhhdjE1MTI=
-          ADMIN_EMAIL: admin@ci.local
-          ADMIN_PASSWORD: AdminPassword123!
-        run: mvn clean test -B
-
-  frontend-build-and-test:
-    name: Frontend Build & Type Check (React + TypeScript + Vite)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code Repository
-        uses: actions/checkout@v4
-
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -61,10 +45,50 @@ jobs:
           cache: 'npm'
           cache-dependency-path: ./frontend/package-lock.json
 
-      - name: Install Frontend Dependencies
+      # Step 2: Backend Build
+      - name: 2. Backend Build
+        working-directory: ./backend
+        run: mvn clean compile -B
+
+      # Step 3: Backend Tests
+      - name: 3. Backend Tests
+        working-directory: ./backend
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          JWT_SECRET: c29tZS1zdXBlci1zZWNyZXQtand0LWtleS1mb3ItY2ktaW50ZWdyYXRpb24tdGVzdHMtYmhhdjE1MTI=
+          ADMIN_EMAIL: admin@ci.local
+          ADMIN_PASSWORD: AdminPassword123!
+        run: mvn test -B
+
+      # Step 4: Frontend Install
+      - name: 4. Frontend Install
         working-directory: ./frontend
         run: npm ci
 
-      - name: Verify TypeScript Compilation & Production Build
+      # Step 5: Frontend Tests
+      - name: 5. Frontend Tests
+        working-directory: ./frontend
+        run: npm test
+
+      # Step 6: Frontend Build
+      - name: 6. Frontend Build
         working-directory: ./frontend
         run: npm run build
+
+      # Step 7: Docker Build
+      - name: 7. Docker Build
+        env:
+          JWT_SECRET: c29tZS1zdXBlci1zZWNyZXQtand0LWtleS1mb3ItY2ktaW50ZWdyYXRpb24tdGVzdHMtYmhhdjE1MTI=
+          POSTGRES_PASSWORD: postgrespassword
+          ADMIN_PASSWORD: AdminPassword123!
+        run: docker compose build
+
+      # Step 8: Optional Image Push (runs only if registry credentials are provided)
+      - name: 8. Optional Image Push
+        if: ${{ env.DOCKER_REGISTRY_USER != '' && secrets.DOCKER_REGISTRY_PASSWORD != '' }}
+        env:
+          DOCKER_REGISTRY_USER: ${{ secrets.DOCKER_REGISTRY_USER }}
+        run: |
+          echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login -u "$DOCKER_REGISTRY_USER" --password-stdin
+          docker push abhi-os-backend:latest
+          docker push abhi-os-frontend:latest
