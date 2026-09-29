@@ -120,7 +120,9 @@ public class UserWorkflowIntegrationTest {
         notificationRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userSessionRepository.deleteAll();
-        userRepository.deleteAll();
+        userRepository.findAll().stream()
+                .filter(u -> u.getRoles() == null || u.getRoles().stream().noneMatch(r -> "ROLE_ADMIN".equals(r.getName()) || "ROLE_SUPER_ADMIN".equals(r.getName())))
+                .forEach(userRepository::delete);
 
         // 1. Register & Login student
         studentEmail = "workflow_student_" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";

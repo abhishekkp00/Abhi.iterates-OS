@@ -1,183 +1,98 @@
-# Architecture Decision Records — AbhiIterates.OS
+# System Architecture & Technical Specification
 
-This document records every significant architectural decision made during development,
-including the context, decision, reasoning, and consequences.
-
-Architecture decisions are permanent record. They are never deleted — only superseded.
+This document details the architectural design, component interactions, data flow, provider specifications, security boundaries, and technical constraints of AbhiIterates.OS.
 
 ---
 
-## ADR-001: Monorepo Structure
+## 1. High-Level Architecture
 
-**Date:** 2026-07-04
-**Status:** Accepted
-
-### Context
-The project has two active runtimes: a React frontend and a Spring Boot backend. An `ai-service/` directory was reserved at project creation for a potential future Python/FastAPI AI service. That service has not been implemented — all AI functionality currently lives inside the Spring Boot monolith via Spring AI.
-
-### Decision
-Use a clean monorepo with active directories: `frontend/` (React SPA) and `backend/` (Spring Boot 3 modular monolith). The unused `ai-service/` placeholder directory has been removed to eliminate architecture ambiguity. All AI and RAG functionality lives within the Spring Boot application via Spring AI.
-
-### Reasoning
-- **Atomic commits:** A feature often spans frontend + backend. One PR, one commit, one review cycle.
-- **Shared context:** Documentation, design decisions, and API contracts are visible to all services.
-- **Simpler CI/CD at MVP:** One repository means one GitHub Actions workflow with path-based triggers.
-- **Easier onboarding:** A new contributor clones one URL and sees the entire system.
-
-### Consequences
-- Build times increase as the codebase grows. Mitigated by path-based CI triggers.
-- Branch management becomes slightly more complex. Mitigated by strict naming conventions.
-- If independent scaling is needed, services are extracted to polyrepo. The module boundaries in our code will make this straightforward.
-
----
-
-## ADR-002: Modular Monolith over Microservices
-
-**Date:** 2026-07-04
-**Status:** Accepted
-
-### Context
-The backend could be built as microservices (separate deployable services per domain) or as a modular monolith (one deployable with internal module boundaries).
-
-### Decision
-Build the backend as a **Modular Monolith** with strict inter-module boundaries.
-
-### Reasoning
-Microservices solve operational problems that do not yet exist at MVP stage:
-- We have no team requiring independent deployment pipelines.
-- We have no proven traffic patterns requiring independent scaling.
-- We have no need for polyglot persistence per service.
-
-Microservices would introduce:
-- Network latency between services for every request.
-- Distributed transaction complexity.
-- Multiple deployment units to manage and monitor.
-- Service discovery infrastructure overhead.
-
-A modular monolith gives us:
-- **Module isolation:** Each domain (auth, library, marketplace, ai, notification) lives in its own package with clean interfaces.
-- **Zero extraction cost:** When we grow and need to split a service, the module boundary already exists. We add a network interface and deploy it separately. This is a days-long task, not a months-long refactor.
-- **Simple local development:** One `./mvnw spring-boot:run` command.
-- **Testability:** Integration tests can cross module boundaries without mocking HTTP.
-
-### Consequences
-- Single point of failure for the backend. Acceptable at MVP stage. Mitigated by Railway auto-restart.
-- Entire backend must be redeployed for any change. Acceptable at MVP stage.
-- Must enforce module boundaries through code review and package structure. Cyclic dependencies are a risk.
+```
+[React 18 SPA Client]
+        │ (HTTPS / REST & SSE)
+        ▼
+ [Nginx Reverse Proxy]
+        │ (HTTP Port 8080)
+        ▼
+[Spring Boot 3.3.1 API (Java 21)]
+        │
+   ┌────┴───────────────────────────┬───────────────────────────┐
+   │ (JPA / Flyway)                 │ (Spring AI VectorStore)   │ (Groq REST API / OpenAI REST API)
+   ▼                                ▼                           ▼
+[PostgreSQL 16 Relational DB]  [pgvector Vector Table]     [External AI Services]
+  - users                       - ai_vector_store            - Groq: llama-3.3-70b-versatile
+  - resources                     (HNSW Cosine Index)        - OpenAI: text-embedding-3-small
+  - tasks                                                    - Google OAuth2
+  - marketplace_listings                                     - Cloudinary (Optional media)
+```
 
 ---
 
-## ADR-003: PostgreSQL as Primary Database
+## 2. End-to-End Component Flow
 
-**Date:** 2026-07-04
-**Status:** Accepted
+### Frontend (Client Layer)
+- **Framework**: React `18.3.1` bundled with Vite `5.4.8` and TypeScript `5.5.3`.
+- **State Architecture**:
+  - **Server State**: Managed by TanStack React Query (`v5.101.2`) handling asynchronous caching, optimistic UI updates, background revalidation, and retry logic.
+  - **Client State**: Managed by Zustand (`v5.0.14`) for local UI state (theme preferences, active sidebar selection, active chat conversation state).
+- **Web Server & Reverse Proxy**: Nginx `alpine` container serving compiled static assets (`/usr/share/nginx/html`) and reverse-proxying API calls (`/api/`) and SSE streams (`/api/v1/ai/chat/stream`) to the backend container.
 
-### Context
-We needed a relational database for structured data (users, resources, purchases, subscriptions, highlights, bookmarks) and a store for vector embeddings (for AI features).
+### Backend (Core Application Layer)
+- **Runtime & Framework**: Java `21` (Eclipse Temurin JRE) running Spring Boot `3.3.1`.
+- **Security & Authorization**:
+  - Stateless JWT authentication via `JwtAuthenticationFilter`. Access tokens expire in 15 minutes; refresh tokens expire in 7 days and use rotation with revocation tracking (`UserSessionRepository` and `RefreshTokenRepository`).
+  - Server-side Role-Based Access Control (`ROLE_USER`, `ROLE_CREATOR`, `ROLE_ADMIN`, `ROLE_SUPER_ADMIN`) enforced at method level via `@PreAuthorize`.
+- **Database Access & Migrations**: Spring Data JPA with Hibernate `6.5.2.Final`. Flyway `10.x` manages 12 versioned migration scripts (V1 through V12).
 
-### Decision
-Use **PostgreSQL 16** as the single primary database via Neon (serverless Postgres).
+### Database & Vector Store Layer
+- **Relational Database**: PostgreSQL `16.x` providing ACID transaction compliance for users, academic entities, tasks, resources, listings, notifications, and analytics.
+- **Vector Storage**: `pgvector` extension installed on PostgreSQL 16. Vector data is stored in the `ai_vector_store` table:
+  - `id`: UUID Primary Key
+  - `content`: Document chunk text
+  - `metadata`: JSONB containing enriched fields (`userId`, `resourceId`, `filename`)
+  - `embedding`: `vector(1536)`
+- **Indexing**: Hierarchical Navigable Small World (`HNSW`) index using cosine distance (`vector_cosine_ops`) initialized via Flyway V12 migration script.
 
-### Reasoning
-- Strong ACID guarantees for financial transactions (payments, purchases).
-- JSON support for flexible metadata fields without schema changes.
-- **pgvector** extension enables vector similarity search, eliminating the need for a separate vector database for MVP.
-- Neon provides a serverless, auto-scaling, branch-per-PR developer experience.
-- Spring Data JPA has first-class PostgreSQL support.
-
-### Consequences
-- Vector search performance at large scale requires migration to a dedicated vector DB (Pinecone, Weaviate, Qdrant). This is a Phase 3 concern.
-- Schema migrations require careful planning. Handled by Flyway (introduced in Day 4).
-
----
-
-## ADR-004: JWT with Refresh Token Rotation
-
-**Date:** 2026-07-04
-**Status:** Accepted
-
-### Context
-We needed a stateless authentication strategy that supports secure session management across web clients.
-
-### Decision
-Short-lived access tokens (15 minutes) + long-lived refresh tokens (30 days) with **rotation on every refresh**.
-
-### Reasoning
-- **Access token lifetime:** 15 minutes limits the damage window if a token is stolen. No network call is needed for most requests (stateless validation).
-- **Refresh token rotation:** Each time a refresh token is used, it is invalidated and a new one is issued. If a stolen refresh token is used, the legitimate user's next refresh will fail (detecting theft). We then invalidate the entire refresh token family.
-- **Database-backed refresh tokens:** Refresh tokens are stored in PostgreSQL, enabling true invalidation (logout, device management, theft detection). Access tokens remain stateless.
-
-### Consequences
-- Slightly more complex client implementation (must handle 401 and retry with refresh).
-- Refresh token storage adds a database lookup on every token refresh. Acceptable — refresh happens at most once per 15 minutes.
+### AI Provider & RAG Pipeline Layer
+- **LLM Provider**: Groq API using `llama-3.3-70b-versatile` over its OpenAI-compatible endpoint (`https://api.groq.com/openai`). Secret keys (`GROQ_API_KEY`) remain strictly on the backend.
+- **Embedding Provider**: OpenAI API using `text-embedding-3-small` returning 1536-dimensional float vectors.
+- **Tenant Isolation**: All similarity search queries pass a `FilterExpressionBuilder` condition enforcing `user_id = :userId` metadata matching.
 
 ---
 
-## ADR-005: Cloudinary for File Storage (Current Implementation)
+## 3. Technology Stack & Component Versions
 
-**Date:** 2026-07-04
-**Status:** Superseded by current implementation
-**Original decision:** Supabase Storage (MVP) → Cloudflare R2 (Production)
-**Actual implementation:** Cloudinary SDK for all resource attachments and marketplace listing images.
-
-### Context
-We need object storage for PDFs, user avatars, and creator-uploaded resources.
-
-### Decision (Revised)
-Use **Cloudinary** for MVP storage. The `cloudinary-http44` SDK is integrated into the Spring Boot backend. Files are uploaded via `CloudinaryConfig.java` and `AttachmentServiceImpl.java`.
-
-### Reasoning
-- Cloudinary provides a generous free tier with CDN, transformation, and direct upload support.
-- No separate storage infrastructure setup is required — credentials are provided via environment variables.
-- The original Supabase/R2 plan was not implemented due to the simpler integration path offered by Cloudinary.
-
-### Consequences
-- Migration to R2 or Supabase remains an option if egress costs become a concern at scale.
-- Cloudinary does not provide Row-Level Security; resource access control is enforced at the Spring Security layer.
+| Tier | Component | Provider / Tool | Version | Configured Scope |
+|---|---|---|---|---|
+| **Runtime** | JDK | Eclipse Temurin | `21` | Application execution environment |
+| **Backend** | Framework | Spring Boot | `3.3.1` | REST endpoints, Security, Transactions |
+| **AI Layer** | AI Abstraction | Spring AI | `1.0.0` | ChatClient & PgVectorStore integration |
+| **Database** | RDBMS | PostgreSQL | `16` | Relational entity storage |
+| **Vector DB** | Vector Extension | pgvector | `pg16` | HNSW cosine similarity vector storage |
+| **Migrations** | DDL Engine | Flyway | `10.x` | Schema migrations V1-V12 |
+| **LLM Inference**| Groq Cloud API | `llama-3.3-70b-versatile` | Cloud | SSE streaming chat & topic tutoring |
+| **Embeddings** | OpenAI API | `text-embedding-3-small` | Cloud | 1536-dimensional document embeddings |
+| **Frontend** | UI Framework | React | `18.3.1` | Client view layer |
+| **Build Tool** | Bundler | Vite | `5.4.8` | Client asset compilation |
+| **Language** | Type System | TypeScript | `5.5.3` | Type safety across client codebase |
+| **Data Fetching**| Async Query | TanStack Query | `5.101.2` | Data fetching, caching, optimistic state |
+| **Proxy** | Web Server | Nginx | `alpine` | SPA routing & backend API reverse proxy |
 
 ---
 
-## ADR-006: In-Process Bucket4j Rate Limiting over Redis Infrastructure
+## 4. Architectural Safeguards & Security Boundaries
 
-**Date:** 2026-07-04 (Updated 2026-08-26)  
-**Status:** Accepted (In-Process Bucket4j Implemented)
-
-### Context
-Authentication endpoints (`/login`, `/register`) and AI SSE streaming endpoints require rate limiting to prevent brute-force attacks and LLM token budget abuse.
-
-### Decision
-Implement **in-process Bucket4j sliding-window rate limiting** (`RateLimiterService`, `AiRateLimiterService`) directly in the Spring Boot backend instead of introducing external Redis infrastructure.
-
-### Current Implementation
-- `RateLimiterService` provides IP-based sliding-window rate limiting on `/api/v1/auth/login` (10 req/min) and `/api/v1/auth/register` (5 req/min).
-- `AiRateLimiterService` provides token-bucket rate limiting on `/api/v1/ai/chat/stream` (10 stream req/min, 20 chat req/min).
-- External Redis is **not required or deployed**, eliminating container overhead and cache invalidation complexity for single-node production scale.
-
-### Reasoning
-- Eliminates Redis cluster hosting costs and connection pool management.
-- Provides sub-millisecond in-memory rate-limit checks without network round-trips.
-- Single-instance container deployment maintains 100% rate-limiting precision without distributed state synchronization.
+1. **Backend Secret Encapsulation**: The frontend never receives `GROQ_API_KEY`, `OPENAI_API_KEY`, or `JWT_SECRET`.
+2. **Fail-Fast Secret Validation**: Spring Boot startup fails fast immediately if `JWT_SECRET`, `ADMIN_EMAIL`, or `ADMIN_PASSWORD` are absent or empty.
+3. **Multi-Tenant Data Isolation**: Database queries use explicit user ownership filters (`WHERE user_id = :userId`). Vector search queries append JSONB metadata filter expressions (`user_id = :userId`).
+4. **Privilege Escalation Protection**: Non-`SUPER_ADMIN` accounts are prohibited from creating or modifying `SUPER_ADMIN` accounts or reserved system configuration settings.
 
 ---
 
-## ADR-007: Feature-Based Frontend Folder Structure
+## 5. Scope Boundaries & What is NOT Implemented
 
-**Date:** 2026-07-04
-**Status:** Accepted
+To eliminate ambiguity, the following capabilities are explicitly **NOT** implemented in this version:
 
-### Context
-Frontend codebases typically use either type-based structure (`components/`, `pages/`, `hooks/`) or feature-based structure (`features/auth/`, `features/library/`).
-
-### Decision
-**Feature-based structure** inside `src/features/`, shared code in `src/shared/`.
-
-### Reasoning
-Type-based structure collapses at scale. When a feature spans components, hooks, types, and API calls, you navigate across 5 folders to find related files. Feature-based structure co-locates everything a feature needs. Deleting a feature is a single folder deletion.
-
-### Consequences
-- Some code belongs to multiple features (auth tokens used across all features). This goes in `src/shared/` with clear ownership.
-- Requires discipline to not create a god `shared/` folder. If something is used by only one feature, it belongs in that feature.
-
----
-
-*New decisions are added as numbered ADRs. Existing ADRs are never modified — only superseded by a new ADR referencing the old one.*
+1. **Automated Payment Gateway Integration**: No Stripe, PayPal, or Razorpay SDKs are integrated. Campus marketplace checkout displays a static UPI ID string for peer-to-peer manual payments.
+2. **Local GPU/LLM Inference**: The system does not bundle local Ollama or vLLM container models in standard deployment; it relies on external Groq/OpenAI cloud API keys.
+3. **Multi-Provider OAuth2 SSO**: Only Google OAuth2 ID token authentication is configured.
+4. **Realtime Audio/Video Conferencing**: Study rooms support document annotations, drawing canvas, and timer tools; they do not include WebRTC audio/video calling.
