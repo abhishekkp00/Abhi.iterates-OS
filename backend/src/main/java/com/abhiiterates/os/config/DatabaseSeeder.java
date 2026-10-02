@@ -6,7 +6,6 @@ import com.abhiiterates.os.user.Role;
 import com.abhiiterates.os.user.RoleRepository;
 import com.abhiiterates.os.user.User;
 import com.abhiiterates.os.user.UserRepository;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,14 +16,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Database Seeder.
- * Bootstraps initial roles, permissions, primary admin account, and purges non-admin student logins.
+ * Bootstraps initial roles, permissions, and primary admin account idempotently without modifying existing user data.
  */
 @Component
 @RequiredArgsConstructor
@@ -36,19 +32,18 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EntityManager entityManager;
 
     /** Loaded from ADMIN_EMAIL env variable — never hardcoded in source */
-    @Value("${app.admin.email}")
+    @Value("${app.admin.email:}")
     private String adminEmail;
 
     /** Loaded from ADMIN_PASSWORD env variable — never hardcoded in source */
-    @Value("${app.admin.password}")
+    @Value("${app.admin.password:}")
     private String adminPassword;
 
     @Override
     public void run(String... args) {
-        log.info("Checking database roles, permissions, admin account, and user cleanup...");
+        log.info("Checking database roles, permissions, and initial admin account...");
 
         try {
             // 1. Seed Permissions
@@ -75,13 +70,10 @@ public class DatabaseSeeder implements CommandLineRunner {
             Role adminRole = getOrCreateRole("ROLE_ADMIN", "System administrator role", adminPerms);
             Role superAdminRole = getOrCreateRole("ROLE_SUPER_ADMIN", "System owner role", adminPerms);
 
-            // 3. Seed Primary Admin Credentials
-            User adminUser = seedAdminUser(adminRole, superAdminRole);
+            // 3. Seed Primary Admin Credentials (idempotent, never overwrites existing user data)
+            seedAdminUser(adminRole, superAdminRole);
 
-            // 4. Purge All Non-Admin Student Logins
-            cleanupStudentLogins(adminUser);
-
-            log.info("Database seeding and user cleanup successfully completed.");
+            log.info("Database seeding successfully completed.");
         } catch (IllegalStateException e) {
             log.error("CRITICAL: Failed fast on missing deployment secret configuration: {}", e.getMessage());
             throw e;
@@ -101,12 +93,24 @@ public class DatabaseSeeder implements CommandLineRunner {
         if (superAdminRole != null) roles.add(superAdminRole);
 
         return userRepository.findByEmail(adminEmail).map(user -> {
-            user.setPasswordHash(passwordEncoder.encode(adminPassword));
-            user.setRoles(roles);
-            user.setActive(true);
-            user.setEmailVerified(true);
-            log.info("Admin user verified and updated.");
-            return userRepository.save(user);
+            log.info("Admin user '{}' already exists. Preserving existing user credentials.", adminEmail);
+            boolean rolesUpdated = false;
+            Set<Role> currentRoles = user.getRoles();
+            if (currentRoles == null) {
+                currentRoles = new HashSet<>();
+                user.setRoles(currentRoles);
+                rolesUpdated = true;
+            }
+            for (Role role : roles) {
+                if (currentRoles.stream().noneMatch(r -> r.getName().equals(role.getName()))) {
+                    currentRoles.add(role);
+                    rolesUpdated = true;
+                }
+            }
+            if (rolesUpdated) {
+                return userRepository.save(user);
+            }
+            return user;
         }).orElseGet(() -> {
             String defaultUsername = adminEmail.contains("@") ? adminEmail.split("@")[0] : "admin";
             User adminUser = User.builder()
@@ -122,57 +126,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             log.info("Creating primary system admin user from environment configuration: {}", adminEmail);
             return userRepository.save(adminUser);
         });
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void cleanupStudentLogins(User adminUser) {
-        if (adminUser == null) return;
-        List<User> nonAdminUsers = userRepository.findAll().stream()
-                .filter(u -> !adminEmail.equalsIgnoreCase(u.getEmail()))
-                .collect(Collectors.toList());
-
-        if (!nonAdminUsers.isEmpty()) {
-            log.info("Purging {} non-admin student logins from database...", nonAdminUsers.size());
-            for (User student : nonAdminUsers) {
-                UUID adminId = adminUser.getId();
-                UUID studentId = student.getId();
-
-                executeNativeUpdate("UPDATE tasks SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
-                executeNativeUpdate("UPDATE calendar_events SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
-                executeNativeUpdate("UPDATE resources SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
-                executeNativeUpdate("UPDATE notifications SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
-                executeNativeUpdate("UPDATE ai_conversations SET user_id = :adminId WHERE user_id = :studentId", adminId, studentId);
-
-                executeNativeDelete("DELETE FROM password_reset_tokens WHERE user_id = :studentId", studentId);
-                executeNativeDelete("DELETE FROM email_verification_tokens WHERE user_id = :studentId", studentId);
-                executeNativeDelete("DELETE FROM refresh_tokens WHERE user_id = :studentId", studentId);
-                executeNativeDelete("DELETE FROM user_sessions WHERE user_id = :studentId", studentId);
-                executeNativeDelete("DELETE FROM user_roles WHERE user_id = :studentId", studentId);
-
-                executeNativeDelete("DELETE FROM users WHERE id = :studentId", studentId);
-            }
-        }
-    }
-
-    private void executeNativeUpdate(String sql, UUID adminId, UUID studentId) {
-        try {
-            entityManager.createNativeQuery(sql)
-                    .setParameter("adminId", adminId)
-                    .setParameter("studentId", studentId)
-                    .executeUpdate();
-        } catch (Exception e) {
-            // Ignored
-        }
-    }
-
-    private void executeNativeDelete(String sql, UUID studentId) {
-        try {
-            entityManager.createNativeQuery(sql)
-                    .setParameter("studentId", studentId)
-                    .executeUpdate();
-        } catch (Exception e) {
-            // Ignored
-        }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -192,8 +145,13 @@ public class DatabaseSeeder implements CommandLineRunner {
     public Role getOrCreateRole(String name, String description, Set<Permission> permissions) {
         return roleRepository.findByName(name)
                 .map(role -> {
-                    role.setPermissions(permissions);
-                    return roleRepository.save(role);
+                    if (role.getPermissions() == null || !role.getPermissions().containsAll(permissions)) {
+                        Set<Permission> updatedPerms = role.getPermissions() == null ? new HashSet<>() : new HashSet<>(role.getPermissions());
+                        updatedPerms.addAll(permissions);
+                        role.setPermissions(updatedPerms);
+                        return roleRepository.save(role);
+                    }
+                    return role;
                 })
                 .orElseGet(() -> {
                     Role role = Role.builder()
@@ -206,3 +164,4 @@ public class DatabaseSeeder implements CommandLineRunner {
                 });
     }
 }
+
