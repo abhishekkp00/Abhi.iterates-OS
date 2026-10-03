@@ -47,8 +47,13 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
     
-    // Check if error status is 401 and request wasn't already retried
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    const isPublicAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
+                                 originalRequest?.url?.includes('/auth/register') ||
+                                 originalRequest?.url?.includes('/auth/refresh') ||
+                                 originalRequest?.url?.includes('/auth/logout')
+
+    // Check if error status is 401, request wasn't already retried, and isn't a public auth endpoint
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isPublicAuthEndpoint) {
       if (isRefreshing) {
         // Queue this request and wait for the token refresh to finish
         return new Promise((resolve, reject) => {

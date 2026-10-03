@@ -105,8 +105,15 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         // OAuth2 SSO
                         .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
-                        // Public auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Public auth endpoints
+                        .requestMatchers(
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/refresh",
+                                "/api/v1/auth/logout"
+                        ).permitAll()
+                        // User identity endpoint — strictly requires authenticated session
+                        .requestMatchers("/api/v1/auth/me").authenticated()
                         // Admin-only REST
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         // Require JWT for everything else

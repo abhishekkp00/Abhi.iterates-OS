@@ -205,6 +205,9 @@ public class AuthServiceImpl implements AuthService {
     public UserProfileDto getCurrentUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        if (!user.isActive() || user.isSoftDeleted()) {
+            throw new org.springframework.security.authentication.BadCredentialsException("User account is inactive or disabled");
+        }
         return userMapper.toUserProfileDto(user);
     }
 

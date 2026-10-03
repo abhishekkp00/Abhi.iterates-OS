@@ -96,11 +96,24 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
     @Operation(summary = "Fetch current authenticated user profile", description = "Returns the user profile associated with the JWT bearer token.")
     public ResponseEntity<ApiResponse<UserProfileDto>> getMe(
             @AuthenticationPrincipal User currentUser,
             HttpServletRequest servletRequest
     ) {
+        if (currentUser == null || !currentUser.isEnabled()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    ApiResponse.<UserProfileDto>builder()
+                            .success(false)
+                            .message("Full authentication is required to access this resource.")
+                            .data(null)
+                            .timestamp(java.time.Instant.now())
+                            .path(servletRequest.getRequestURI())
+                            .status(HttpStatus.UNAUTHORIZED.value())
+                            .build()
+            );
+        }
         UserProfileDto profile = authService.getCurrentUser(currentUser.getEmail());
         ApiResponse<UserProfileDto> response = ApiResponse.success(
                 profile,

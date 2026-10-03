@@ -74,6 +74,22 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle Spring Security AuthenticationException.
+     * Returns 401 Unauthorized.
+     */
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(
+            org.springframework.security.core.AuthenticationException ex, HttpServletRequest request) {
+        log.warn("Authentication failed on path [{}]: {}", request.getRequestURI(), ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(
+                ex.getMessage() != null ? ex.getMessage() : "Full authentication is required to access this resource.", 
+                HttpStatus.UNAUTHORIZED.value(), 
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    /**
      * Handle Spring Security AccessDeniedException.
      * Returns 403 Forbidden.
      */
