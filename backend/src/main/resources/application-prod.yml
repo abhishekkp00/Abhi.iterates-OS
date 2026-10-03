@@ -18,6 +18,9 @@ spring:
     placeholders:
       vector-extension-init: "CREATE EXTENSION IF NOT EXISTS vector;"
       hnsw-index-init: "CREATE INDEX IF NOT EXISTS idx_rag_emb_vector_hnsw ON rag_document_chunk_embeddings USING hnsw ((vector::vector(1536)) vector_cosine_ops);"
+      jsonb-type: "JSONB"
+      vector-type: "vector(1536)"
+      vector-store-indexes: "CREATE INDEX IF NOT EXISTS idx_ai_vector_store_hnsw ON ai_vector_store USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64); CREATE INDEX IF NOT EXISTS idx_ai_vector_store_metadata ON ai_vector_store USING gin (metadata); CREATE INDEX IF NOT EXISTS idx_ai_vector_store_metadata_user ON ai_vector_store ((metadata->>'userId')); CREATE INDEX IF NOT EXISTS idx_ai_vector_store_metadata_resource ON ai_vector_store ((metadata->>'resourceId'));"
     baseline-on-migrate: false
   jpa:
     hibernate:

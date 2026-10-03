@@ -23,7 +23,7 @@ class FlywaySchemaValidationTest {
         assertThat(flyway).isNotNull();
 
         MigrationInfo[] appliedMigrations = flyway.info().applied();
-        assertThat(appliedMigrations).hasSizeGreaterThanOrEqualTo(2);
+        assertThat(appliedMigrations).hasSize(12);
 
         MigrationInfo v1 = appliedMigrations[0];
         assertThat(v1.getVersion().getVersion()).isEqualTo("1");
@@ -34,5 +34,12 @@ class FlywaySchemaValidationTest {
         assertThat(v2.getVersion().getVersion()).isEqualTo("2");
         assertThat(v2.getDescription()).isEqualTo("document ingestion schema");
         assertThat(v2.getState().isApplied()).isTrue();
+
+        MigrationInfo v12 = appliedMigrations[11];
+        assertThat(v12.getVersion().getVersion()).isEqualTo("12");
+        assertThat(v12.getDescription()).isEqualTo("spring ai vector store");
+        assertThat(v12.getState().isApplied()).isTrue();
+
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("12");
     }
 }
