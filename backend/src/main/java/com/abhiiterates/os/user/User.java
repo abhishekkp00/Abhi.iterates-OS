@@ -1,6 +1,7 @@
 package com.abhiiterates.os.user;
 
 import com.abhiiterates.os.common.BaseAuditEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -30,6 +31,7 @@ public class User extends BaseAuditEntity implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @JsonIgnore
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
@@ -84,6 +86,12 @@ public class User extends BaseAuditEntity implements UserDetails {
         return authorities;
     }
 
+    @JsonIgnore
+    public String getPasswordHash() {
+        return this.passwordHash;
+    }
+
+    @JsonIgnore
     @Override
     public String getPassword() {
         return this.passwordHash;

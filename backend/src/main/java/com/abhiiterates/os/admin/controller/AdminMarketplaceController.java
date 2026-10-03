@@ -1,5 +1,8 @@
 package com.abhiiterates.os.admin.controller;
 
+import com.abhiiterates.os.admin.dto.AdminListingImageDto;
+import com.abhiiterates.os.admin.dto.AdminMarketplaceListingDto;
+import com.abhiiterates.os.admin.dto.AdminSellerDto;
 import com.abhiiterates.os.common.ApiResponse;
 import com.abhiiterates.os.exception.ResourceNotFoundException;
 import com.abhiiterates.os.marketplace.*;
@@ -12,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -31,13 +35,59 @@ public class AdminMarketplaceController {
     private final com.abhiiterates.os.admin.AuditLogRepository auditLogRepository;
 
     @GetMapping
+    @Transactional(readOnly = true)
     @Operation(summary = "Get all marketplace listings for moderation (unfiltered)")
-    public ResponseEntity<ApiResponse<List<MarketplaceListing>>> getAllListings(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<List<AdminMarketplaceListingDto>>> getAllListings(HttpServletRequest request) {
         log.info("Admin requested all listings for moderation queue.");
         List<MarketplaceListing> listings = listingRepository.findAll();
+        List<AdminMarketplaceListingDto> dtos = listings.stream()
+                .map(this::toAdminMarketplaceListingDto)
+                .toList();
         return ResponseEntity.ok(
-                ApiResponse.success(listings, "All listings retrieved", request.getRequestURI())
+                ApiResponse.success(dtos, "All listings retrieved", request.getRequestURI())
         );
+    }
+
+    private AdminMarketplaceListingDto toAdminMarketplaceListingDto(MarketplaceListing listing) {
+        User seller = listing.getSeller();
+        AdminSellerDto sellerDto = null;
+        if (seller != null) {
+            String fullName = ((seller.getFirstName() != null ? seller.getFirstName() : "") + " " +
+                               (seller.getLastName() != null ? seller.getLastName() : "")).trim();
+            sellerDto = AdminSellerDto.builder()
+                    .id(seller.getId())
+                    .username(seller.getUsername())
+                    .email(seller.getEmail())
+                    .fullName(!fullName.isEmpty() ? fullName : seller.getUsername())
+                    .build();
+        }
+
+        List<AdminListingImageDto> images = listing.getImages() != null
+                ? listing.getImages().stream()
+                        .map(img -> AdminListingImageDto.builder()
+                                .id(img.getId())
+                                .imageUrl(img.getImageUrl())
+                                .isPrimary(img.isPrimary())
+                                .build())
+                        .toList()
+                : List.of();
+
+        return AdminMarketplaceListingDto.builder()
+                .id(listing.getId())
+                .title(listing.getTitle())
+                .description(listing.getDescription())
+                .price(listing.getPrice())
+                .negotiable(listing.isNegotiable())
+                .category(listing.getCategory())
+                .condition(listing.getCondition())
+                .location(listing.getLocation())
+                .status(listing.getStatus())
+                .tags(listing.getTags())
+                .seller(sellerDto)
+                .images(images)
+                .createdAt(listing.getCreatedAt())
+                .updatedAt(listing.getUpdatedAt())
+                .build();
     }
 
     @PatchMapping("/{id}/status")

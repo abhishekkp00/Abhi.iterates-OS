@@ -1,5 +1,6 @@
 package com.abhiiterates.os.resource;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,6 +31,7 @@ public class ResourceAttachment {
     @Column(name = "download_url", nullable = false)
     private String downloadUrl;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resource_id", nullable = false)
     private Resource resource;

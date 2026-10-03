@@ -1,5 +1,6 @@
 package com.abhiiterates.os.marketplace;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,6 +25,7 @@ public class ListingImage {
     @Column(name = "is_primary", nullable = false)
     private boolean isPrimary;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "listing_id", nullable = false)
     private MarketplaceListing listing;

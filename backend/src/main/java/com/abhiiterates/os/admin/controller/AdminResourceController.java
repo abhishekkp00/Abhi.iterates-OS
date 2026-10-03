@@ -1,5 +1,7 @@
 package com.abhiiterates.os.admin.controller;
 
+import com.abhiiterates.os.admin.dto.AdminAttachmentDto;
+import com.abhiiterates.os.admin.dto.AdminResourceResponseDto;
 import com.abhiiterates.os.common.ApiResponse;
 import com.abhiiterates.os.exception.ResourceNotFoundException;
 import com.abhiiterates.os.resource.Resource;
@@ -14,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -33,13 +36,52 @@ public class AdminResourceController {
     private final com.abhiiterates.os.admin.AuditLogRepository auditLogRepository;
 
     @GetMapping
+    @Transactional(readOnly = true)
     @Operation(summary = "Get all uploaded library study resources (unfiltered)")
-    public ResponseEntity<ApiResponse<List<Resource>>> getAllResources(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<List<AdminResourceResponseDto>>> getAllResources(HttpServletRequest request) {
         log.info("Admin requested all study resources for moderation queue.");
         List<Resource> resources = resourceRepository.findAll();
+        List<AdminResourceResponseDto> dtos = resources.stream()
+                .map(this::toAdminResourceResponseDto)
+                .toList();
         return ResponseEntity.ok(
-                ApiResponse.success(resources, "All study resources retrieved", request.getRequestURI())
+                ApiResponse.success(dtos, "All study resources retrieved", request.getRequestURI())
         );
+    }
+
+    private AdminResourceResponseDto toAdminResourceResponseDto(Resource resource) {
+        List<AdminAttachmentDto> attachments = resource.getAttachments() != null
+                ? resource.getAttachments().stream()
+                        .map(att -> AdminAttachmentDto.builder()
+                                .id(att.getId())
+                                .fileName(att.getFileName())
+                                .fileSize(att.getFileSize())
+                                .contentType(att.getContentType())
+                                .downloadUrl(att.getDownloadUrl())
+                                .fileUrl(att.getDownloadUrl())
+                                .build())
+                        .toList()
+                : List.of();
+
+        User user = resource.getUser();
+
+        return AdminResourceResponseDto.builder()
+                .id(resource.getId())
+                .title(resource.getTitle())
+                .description(resource.getDescription())
+                .category(resource.getCategory())
+                .priority(resource.getPriority())
+                .status(resource.getStatus())
+                .deadline(resource.getDeadline())
+                .tags(resource.getTags())
+                .starred(resource.isStarred())
+                .creatorId(user != null ? user.getId() : null)
+                .creatorEmail(user != null ? user.getEmail() : null)
+                .creatorUsername(user != null ? user.getUsername() : null)
+                .attachments(attachments)
+                .createdAt(resource.getCreatedAt())
+                .updatedAt(resource.getUpdatedAt())
+                .build();
     }
 
     @PatchMapping("/{id}/status")
